@@ -51,7 +51,7 @@ defineExpose({ limpar, imagem })
   <div class="assinatura">
     <canvas ref="canvas" width="600" height="180" @mousedown="iniciar" @mousemove="mover" @mouseup="parar" @mouseleave="parar"
             @touchstart="iniciar" @touchmove="mover" @touchend="parar" />
-    <Button label="Limpar" icon="pi pi-eraser" text size="small" type="button" @click="limpar" />
+    <Button label="Limpar / refazer" icon="pi pi-eraser" text size="small" type="button" @click="limpar" />
   </div>
 </template>
 

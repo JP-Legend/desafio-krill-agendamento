@@ -23,6 +23,13 @@ const dev = ref({})
 const assinando = ref(null)
 const nomeAss = ref('')
 const pad = ref(null)
+/** Assinaturas no ato da emissão, como no Gestão CD (quadro + nome de motorista e conferente). */
+const padsNovo = reactive({ MOTORISTA: null, CONFERENTE: null })
+const nomesNovo = reactive({ MOTORISTA: '', CONFERENTE: '' })
+const assinadoNovo = reactive({ MOTORISTA: false, CONFERENTE: false })
+const exigirAssinaturas = ref(false)
+const SIGNATARIOS = [['MOTORISTA', 'motorista'], ['CONFERENTE', 'conferente']]
+watch(() => form.motorista, (n, o) => { if (!nomesNovo.MOTORISTA || nomesNovo.MOTORISTA === o) nomesNovo.MOTORISTA = n })
 const total = somar
 const tiposNovo = computed(() => tiposPalete.ativos.value)
 const tiposVale = computed(() => (vale.value ? Object.keys(vale.value.entregues) : []))
@@ -36,6 +43,7 @@ async function carregar() {
   if (novo.value) {
     vale.value = null
     form.quantidades = zerar(tiposNovo.value.map((t) => t.codigo))
+    api('/vales-palete/configuracao').then((c) => { exigirAssinaturas.value = !!c?.exigirDuasAssinaturas }).catch(() => {})
     if (route.query.agendamento) {
       try {
         const a = await api(`/agendamentos/${route.query.agendamento}`)
@@ -57,13 +65,26 @@ async function carregar() {
   }
 }
 
+function assinaturasNovo() {
+  if (!pode(1303)) return []
+  return SIGNATARIOS.map(([quem, rotulo]) => ({ quem, rotulo, imagem: padsNovo[quem]?.imagem(), nome: (nomesNovo[quem] || (quem === 'MOTORISTA' ? form.motorista : '')).trim() }))
+    .filter((a) => a.imagem)
+}
+
 function criar() {
   if (!form.fornecedor.trim()) return notificar.aviso('Informe o fornecedor')
   if (!somar(form.quantidades)) return notificar.aviso('Informe ao menos um palete entregue')
+  const assinaturas = assinaturasNovo()
+  const semNome = assinaturas.find((a) => !a.nome)
+  if (semNome) return notificar.aviso(`Informe o nome do ${semNome.rotulo}`)
+  if (exigirAssinaturas.value && pode(1303) && assinaturas.length < 2) return notificar.aviso('Colete as duas assinaturas (motorista e conferente)')
   enviar(async () => {
     try {
-      const v = await api('/vales-palete', { method: 'POST', body: { ...form, data: isoData(form.data), fornecedor: form.fornecedor.trim(), placa: form.placa.trim() || null, motorista: form.motorista.trim() || null, observacao: form.observacao.trim() || null } })
-      notificar.sucesso(`Vale ${v.codigo} emitido. Colete as assinaturas.`)
+      let v = await api('/vales-palete', { method: 'POST', body: { ...form, data: isoData(form.data), fornecedor: form.fornecedor.trim(), placa: form.placa.trim() || null, motorista: form.motorista.trim() || null, observacao: form.observacao.trim() || null } })
+      for (const a of assinaturas) {
+        v = await api(`/vales-palete/${v.id}/assinaturas/${a.quem}`, { method: 'PUT', body: { nome: a.nome, imagem: a.imagem } })
+      }
+      notificar.sucesso(assinaturas.length === 2 ? `Vale ${v.codigo} emitido e assinado` : `Vale ${v.codigo} emitido. Colete as assinaturas.`)
       router.replace(`/vales-palete/${v.id}`)
     } catch (e) {
       notificar.erro(e)
@@ -144,6 +165,13 @@ onMounted(carregar)
         <div class="campo c9"><label for="vmo">Motorista</label><InputText id="vmo" v-model="form.motorista" maxlength="80" /></div>
         <div v-for="t in tiposNovo" :key="t.codigo" class="campo c3"><label :for="`q-${t.codigo}`">{{ t.nome }}</label><InputNumber v-model="form.quantidades[t.codigo]" :input-id="`q-${t.codigo}`" :min="0" :max="1000" /></div>
         <div class="campo c12"><label for="vob">Observação</label><Textarea id="vob" v-model="form.observacao" rows="2" maxlength="500" /></div>
+      </div>
+      <div v-if="pode(1303)" class="assinaturas-novo">
+        <section v-for="[quem, rotulo] in SIGNATARIOS" :key="quem" class="quadro-assinatura">
+          <div class="quadro-topo"><h4>Assinatura do {{ rotulo }} <span v-if="exigirAssinaturas" class="pilula aviso">obrigatória</span></h4><small class="texto-suave">{{ assinadoNovo[quem] ? 'Assinado' : 'Pendente' }}</small></div>
+          <div class="campo"><label :for="`an-${quem}`">Nome do {{ rotulo }}</label><InputText :id="`an-${quem}`" v-model="nomesNovo[quem]" maxlength="80" autocomplete="off" /></div>
+          <AssinaturaPad :ref="(el) => { padsNovo[quem] = el }" :aria-label="`Área para assinatura do ${rotulo}`" @alterado="(v) => { assinadoNovo[quem] = v }" />
+        </section>
       </div>
       <div class="rodape-form">
         <Button label="Voltar" type="button" class="btn-secundario" @click="router.back()" />
@@ -229,6 +257,11 @@ onMounted(carregar)
 .tabela-vale th:first-child, .tabela-vale td:first-child { text-align: left; }
 .tabela-vale thead, .tabela-vale tfoot { background: var(--cor-fundo); font-weight: 600; }
 .texto-legal { font-size: 12px; color: var(--cor-texto-suave); }
+.assinaturas-novo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.quadro-assinatura { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px; border: 1px solid var(--cor-linha); border-radius: var(--raio); background: var(--cor-fundo); }
+.quadro-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.quadro-topo h4 { margin: 0; font-size: 14px; }
+@media (max-width: 767px) { .assinaturas-novo { grid-template-columns: minmax(0, 1fr); } }
 .assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 16px; }
 .caixa-assinatura { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
 .caixa-assinatura img { height: 80px; max-width: 100%; object-fit: contain; border-bottom: 1px solid var(--cor-texto); width: 100%; }

@@ -64,7 +64,7 @@ Relatório de cobertura: `backend/target/site/jacoco/index.html`.
 - Ultrapassar a capacidade **não bloqueia**: o sistema mostra alerta na tela, no e-mail interno e via push.
 - Ao criar um agendamento, o fornecedor recebe e-mail com os dados e um **link público** para confirmar presença e informar placa/motorista.
 - Fluxo da portaria: Agendado → Confirmado → Chegou → Em recebimento → Recebido (com divergência automática se a contagem diferir), ou Cancelado / Não compareceu.
-- **Vale-palete** com assinatura do motorista e do conferente na tela (dedo ou mouse), impressão A4 e controle de devolução.
+- **Vale-palete** com assinatura do motorista e do conferente (dedo ou mouse), como no Gestão CD: os dois quadros já aparecem no **Novo vale-palete** (nome + assinatura, "Limpar / refazer", "obrigatória" quando a configuração exige as duas), e no vale emitido dá para assinar, refazer e imprimir com as assinaturas. A lista mostra "Pendente: Motorista e Conferente" ou "Assinada (2/2)". Print: `docs/prints/desktop-51-vale-palete-assinaturas.png`.
 - Auditoria (permissão 1005) de toda ação, incluindo login: quem, quando, ação, entidade e IP.
 
 ### Gestão de acessos (padrão do Gestão CD)

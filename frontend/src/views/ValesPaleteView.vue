@@ -16,6 +16,8 @@ const STATUS = [
   { label: 'Todos', value: null }, { label: 'Pendente de assinatura', value: 'PENDENTE' }, { label: 'Assinado', value: 'ASSINADO' },
   { label: 'Quitado', value: 'QUITADO' }, { label: 'Cancelado', value: 'CANCELADO' }
 ]
+/** Mesmo selo do Gestão CD: quem ainda falta assinar. */
+const pendentes = (v) => [!v.assinaturaMotorista && 'Motorista', !v.assinaturaConferente && 'Conferente'].filter(Boolean)
 const SEV = { PENDENTE: 'warn', ASSINADO: 'info', QUITADO: 'success', CANCELADO: 'danger' }
 
 async function buscar() {
@@ -66,6 +68,7 @@ onMounted(buscar)
       <Column field="placa" header="Placa" />
       <Column header="Entregues" class="num"><template #body="{ data }">{{ data.totalEntregues }}</template></Column>
       <Column header="Saldo" class="num"><template #body="{ data }"><b>{{ data.totalSaldo }}</b></template></Column>
+      <Column header="Assinaturas"><template #body="{ data }"><span class="pilula" :class="pendentes(data).length ? 'aviso' : 'ativo'" :title="pendentes(data).length ? `Assinatura pendente: ${pendentes(data).join(', ')}` : ''">{{ pendentes(data).length ? `Pendente: ${pendentes(data).join(' e ')}` : 'Assinada (2/2)' }}</span></template></Column>
       <Column header="Status"><template #body="{ data }"><Tag :value="STATUS.find((s) => s.value === data.status)?.label" :severity="SEV[data.status]" /></template></Column>
     </DataTable>
   </section>
