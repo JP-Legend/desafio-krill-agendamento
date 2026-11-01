@@ -97,7 +97,7 @@ Auditoria: `GERAR_LINK_AGENDAMENTO`, `REVOGAR_LINK_AGENDAMENTO` e `AGENDAR_PELO_
 | Formulário público | `docs/prints/desktop-49-agendar-pelo-link.png` |
 | Agendamento enviado | `docs/prints/desktop-50-agendamento-enviado.png` |
 
-A migração V9 inclui os CDs 801 e 805 (se não existirem) e cria o cadastro de lojas, já com as lojas usadas na capacidade, na entrega direta e nos romaneios; em instalação nova entram Loja 01, 02 e 03, editáveis.
+A migração V9 inclui os CDs 801 e 805 (se não existirem) e cria o cadastro de lojas, já com as lojas usadas na capacidade, na entrega direta e nos romaneios; a V10 cadastra as 24 lojas da Rede Krill (número e nome, como no Gestão CD) e retira as lojas de exemplo.
 
 ### Recebimento completo (porte do Gestão CD)
 

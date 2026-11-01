@@ -575,8 +575,11 @@ class ApiIntegracaoTest {
         String destinos = mvc.perform(get("/api/v1/links-agendamento/destinos").header("Authorization", admin))
                 .andExpect(jsonPath("$[0].descricao").value("Todos os CDs (fornecedor escolhe)"))
                 .andReturn().getResponse().getContentAsString();
-        // instalação nova: CDs 801, 805 e 806 e as lojas semeadas pela V9
-        assertThat(destinos).contains("CD 801", "CD 805", "CD 806", "Loja 01", "Loja 02", "Loja 03");
+        // instalação nova: CDs 801, 805 e 806 e as 24 lojas da Rede Krill (V10); lojas de exemplo removidas
+        assertThat(destinos).contains("CD 801", "CD 805", "CD 806", "Loja 01 - KRILL P. GRANDE", "Loja 28 - KRILL MARACANA");
+        assertThat(destinos).doesNotContain("\"Loja 01\"", "\"Loja 02\"", "\"Loja 03\"");
+        assertThat(json.readTree(mvc.perform(get("/api/v1/lojas").header("Authorization", usuario)).andReturn().getResponse()
+                .getContentAsString()).size()).isEqualTo(24);
         mvc.perform(post("/api/v1/lojas").header("Authorization", usuario).contentType(j).content("{\"nome\":\"Loja 20\"}"))
                 .andExpect(status().isForbidden());
         mvc.perform(post("/api/v1/lojas").header("Authorization", admin).contentType(j).content("{\"nome\":\"Loja 20 - Porto\",\"cdId\":1}"))
@@ -587,7 +590,8 @@ class ApiIntegracaoTest {
                 .getContentAsString()).findValues("codigo").stream().filter(n -> n.asText().equals("801")).count();
         assertThat(cd801).isEqualTo(1);
         mvc.perform(post("/api/v1/links-agendamento").header("Authorization", admin).contentType(j)
-                .content("{\"loja\":\"Loja 02\"}")).andExpect(status().isCreated()).andExpect(jsonPath("$.destino").value("Loja 02"));
+                .content("{\"loja\":\"Loja 27 - KRILL GONZAGA\"}")).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.destino").value("Loja 27 - KRILL GONZAGA"));
         JsonNode link = json.readTree(mvc.perform(post("/api/v1/links-agendamento").header("Authorization", admin)
                         .contentType(j).content("{\"cdId\":1}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
