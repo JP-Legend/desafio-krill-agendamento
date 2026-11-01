@@ -45,6 +45,7 @@ const GRUPOS = [
     grupo: 'Cadastros',
     itens: [
       { to: '/cadastros/cds', label: 'Centros de distribuição', icon: 'pi pi-building', p: 1401 },
+      { to: '/cadastros/lojas', label: 'Lojas', icon: 'pi pi-shop', p: 1401 },
       { to: '/cadastros/fornecedores', label: 'Fornecedores', icon: 'pi pi-users', p: 1402 },
       { to: '/cadastros/produtos', label: 'Produtos e pesos', icon: 'pi pi-barcode', p: 1403 },
       { to: '/cadastros/capacidade', label: 'Capacidade e faixas', icon: 'pi pi-sliders-h', p: 1404 },

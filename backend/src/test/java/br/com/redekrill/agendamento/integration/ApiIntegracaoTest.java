@@ -360,7 +360,7 @@ class ApiIntegracaoTest {
         long cd2 = json.readTree(mvc.perform(post("/api/v1/cds").header("Authorization", admin).contentType(json_)
                         .content("{\"codigo\":\"807\",\"nome\":\"CD 2\",\"capacidadeDiariaPaletes\":100,\"capacidadeFaixaPaletes\":30,\"ativo\":true}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).get("id").asLong();
-        mvc.perform(get("/api/v1/cds").header("Authorization", usuario)).andExpect(jsonPath("$.length()").value(2));
+        mvc.perform(get("/api/v1/cds").header("Authorization", usuario)).andExpect(jsonPath("$.length()").value(4));
         mvc.perform(post("/api/v1/fornecedores").header("Authorization", admin).contentType(json_)
                 .content("{\"cnpj\":\"11.222.333/0001-80\",\"razaoSocial\":\"X\",\"email\":\"x@x.com\",\"ativo\":true}"))
                 .andExpect(status().isUnprocessableEntity());
@@ -572,8 +572,22 @@ class ApiIntegracaoTest {
         mvc.perform(get("/api/v1/links-agendamento").header("Authorization", usuario)).andExpect(status().isForbidden());
         mvc.perform(post("/api/v1/links-agendamento").header("Authorization", usuario).contentType(j).content("{\"cdId\":1}"))
                 .andExpect(status().isForbidden());
+        String destinos = mvc.perform(get("/api/v1/links-agendamento/destinos").header("Authorization", admin))
+                .andExpect(jsonPath("$[0].descricao").value("Todos os CDs (fornecedor escolhe)"))
+                .andReturn().getResponse().getContentAsString();
+        // instalação nova: CDs 801, 805 e 806 e as lojas semeadas pela V9
+        assertThat(destinos).contains("CD 801", "CD 805", "CD 806", "Loja 01", "Loja 02", "Loja 03");
+        mvc.perform(post("/api/v1/lojas").header("Authorization", usuario).contentType(j).content("{\"nome\":\"Loja 20\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/lojas").header("Authorization", admin).contentType(j).content("{\"nome\":\"Loja 20 - Porto\",\"cdId\":1}"))
+                .andExpect(status().isCreated());
         mvc.perform(get("/api/v1/links-agendamento/destinos").header("Authorization", admin))
-                .andExpect(jsonPath("$[0].descricao").value("Todos os CDs (fornecedor escolhe)"));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Loja 20 - Porto")));
+        long cd801 = json.readTree(mvc.perform(get("/api/v1/cds").header("Authorization", admin)).andReturn().getResponse()
+                .getContentAsString()).findValues("codigo").stream().filter(n -> n.asText().equals("801")).count();
+        assertThat(cd801).isEqualTo(1);
+        mvc.perform(post("/api/v1/links-agendamento").header("Authorization", admin).contentType(j)
+                .content("{\"loja\":\"Loja 02\"}")).andExpect(status().isCreated()).andExpect(jsonPath("$.destino").value("Loja 02"));
         JsonNode link = json.readTree(mvc.perform(post("/api/v1/links-agendamento").header("Authorization", admin)
                         .contentType(j).content("{\"cdId\":1}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());

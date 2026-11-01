@@ -28,6 +28,7 @@ export const routes = [
   { path: '/paletes/recibos/:id(\\d+)', name: 'recibo', component: () => import('./views/ReciboPaleteView.vue'), meta: { permissao: 1304, titulo: 'Recibo de paletes' } },
   { path: '/paletes/lojas', name: 'lojas', component: () => import('./views/MovimentosPaleteView.vue'), meta: { permissao: 1307, titulo: 'Paletes nas lojas' } },
   { path: '/cadastros/cds', name: 'cds', component: () => import('./views/CentrosDistribuicaoView.vue'), meta: { permissao: 1401, titulo: 'Centros de distribuição' } },
+  { path: '/cadastros/lojas', name: 'cadastro-lojas', component: () => import('./views/LojasView.vue'), meta: { permissao: 1401, titulo: 'Lojas' } },
   { path: '/cadastros/fornecedores', name: 'fornecedores', component: () => import('./views/FornecedoresView.vue'), meta: { permissao: 1402, titulo: 'Fornecedores' } },
   { path: '/cadastros/produtos', name: 'produtos', component: () => import('./views/ProdutosView.vue'), meta: { permissao: 1403, titulo: 'Produtos e pesos' } },
   { path: '/cadastros/descarga', name: 'parametros-descarga', component: () => import('./views/ParametrosDescargaView.vue'), meta: { permissao: 1408, titulo: 'Tempos de descarga' } },

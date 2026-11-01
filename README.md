@@ -83,7 +83,7 @@ Relatório de cobertura: `backend/target/site/jacoco/index.html`.
 Mesmo fluxo da tela `/recebimento/agendamentos/links` do Gestão CD: um link fixo por CD, por loja ou para todos os CDs.
 
 1. Entre como `admin` e abra **Operação → Links de agendamento** (permissão 1107, só o perfil Administrador).
-2. Em **CD ou loja** escolha o destino (Todos os CDs, cada CD ativo ou cada loja com capacidade cadastrada) e clique em **Gerar / regenerar link**. O link sai copiado, no formato `http://localhost:8081/agendar/<token>` (token aleatório de 256 bits). Gerar de novo para o mesmo destino desativa o link anterior.
+2. Em **CD ou loja** escolha o destino (Todos os CDs, cada CD ativo — 801, 805, 806 e os que forem cadastrados — ou cada loja ativa de **Cadastros → Lojas**) e clique em **Gerar / regenerar link**. O link sai copiado, no formato `http://localhost:8081/agendar/<token>` (token aleatório de 256 bits). Gerar de novo para o mesmo destino desativa o link anterior.
 3. Mande o link aos fornecedores. Quem abre vê só um formulário em branco: fornecedor, CNPJ (opcional), e-mail, nº do pedido, tipo de caminhão, paletização, paletes, transportadora, observação e a grade dos próximos 14 dias × faixas com os paletes livres. Nenhum agendamento ou fornecedor é listado; só a ocupação agregada do CD.
 4. Faixa ou dia sem vaga **não bloqueia**: a tela avisa antes de enviar, o agendamento é gravado com os alertas (e o CD recebe o push "Capacidade excedida"), como no cadastro interno. No link de loja, entra também o alerta da capacidade diária da loja.
 5. Ao enviar, o fornecedor recebe o número do agendamento e o **link do seu agendamento** (copiar, WhatsApp, e-mail) para confirmar presença, informar placa e remarcar.
@@ -96,6 +96,8 @@ Auditoria: `GERAR_LINK_AGENDAMENTO`, `REVOGAR_LINK_AGENDAMENTO` e `AGENDAR_PELO_
 | Links de agendamento | `docs/prints/desktop-48-links-agendamento.png` |
 | Formulário público | `docs/prints/desktop-49-agendar-pelo-link.png` |
 | Agendamento enviado | `docs/prints/desktop-50-agendamento-enviado.png` |
+
+A migração V9 inclui os CDs 801 e 805 (se não existirem) e cria o cadastro de lojas, já com as lojas usadas na capacidade, na entrega direta e nos romaneios; em instalação nova entram Loja 01, 02 e 03, editáveis.
 
 ### Recebimento completo (porte do Gestão CD)
 

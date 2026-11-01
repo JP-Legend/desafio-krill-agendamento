@@ -63,6 +63,8 @@ final class RegrasAcesso {
             new Regra(POST, API + "/paletes/movimentos", PALETES_MOVIMENTO),
 
             new Regra(null, API + "/cds/**", CDS),
+            new Regra(POST, API + "/lojas/**", CDS),
+            new Regra(PUT, API + "/lojas/**", CDS),
             new Regra(null, API + "/fornecedores/**", FORNECEDORES),
             new Regra(null, API + "/produtos/**", PRODUTOS),
             new Regra(PUT, API + "/parametros/capacidade", CAPACIDADE_FAIXAS),

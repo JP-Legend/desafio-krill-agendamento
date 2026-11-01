@@ -66,6 +66,7 @@ async function copiar(l) {
 }
 
 onMounted(carregar)
+defineExpose({ destino })
 </script>
 
 <template>

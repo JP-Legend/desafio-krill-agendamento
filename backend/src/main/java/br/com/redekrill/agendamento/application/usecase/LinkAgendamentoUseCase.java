@@ -46,6 +46,7 @@ public class LinkAgendamentoUseCase {
     private final PatioUseCase patio;
     private final CentroDistribuicaoRepositorio cds;
     private final CapacidadeRecebimentoRepositorio capacidades;
+    private final br.com.redekrill.agendamento.application.port.LojaRepositorio lojas;
     private final FornecedorRepositorio fornecedores;
     private final TipoCaminhaoRepositorio caminhoes;
     private final TipoPaletizacaoRepositorio paletizacoes;
@@ -76,7 +77,7 @@ public class LinkAgendamentoUseCase {
 
     public LinkAgendamentoUseCase(LinkAgendamentoRepositorio links, AgendamentoUseCase agendamentos, PatioUseCase patio,
                                   CentroDistribuicaoRepositorio cds, CapacidadeRecebimentoRepositorio capacidades,
-                                  FornecedorRepositorio fornecedores, TipoCaminhaoRepositorio caminhoes,
+                                  br.com.redekrill.agendamento.application.port.LojaRepositorio lojas, FornecedorRepositorio fornecedores, TipoCaminhaoRepositorio caminhoes,
                                   TipoPaletizacaoRepositorio paletizacoes, GeradorToken tokens, AuditoriaUseCase auditoria,
                                   Transacao transacao, Clock clock, String urlPublica) {
         this.links = links;
@@ -84,6 +85,7 @@ public class LinkAgendamentoUseCase {
         this.patio = patio;
         this.cds = cds;
         this.capacidades = capacidades;
+        this.lojas = lojas;
         this.fornecedores = fornecedores;
         this.caminhoes = caminhoes;
         this.paletizacoes = paletizacoes;
@@ -96,14 +98,17 @@ public class LinkAgendamentoUseCase {
 
     // ---- Tela "Links de agendamento" (admin)
 
-    /** Destinos do select: todos os CDs, cada CD ativo e cada loja com capacidade cadastrada. */
+    /** Destinos do select: todos os CDs, cada CD ativo e cada loja ativa do cadastro (ou com capacidade cadastrada). */
     public List<Destino> destinos() {
         List<Destino> r = new ArrayList<>();
         r.add(new Destino(null, null, "Todos os CDs (fornecedor escolhe)"));
-        cds.listar().stream().filter(CentroDistribuicao::ativo).forEach(c -> r.add(new Destino(c.id(), null, descricaoCd(c))));
-        TreeSet<String> lojas = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        capacidades.listar().stream().map(CapacidadeRecebimento::loja).filter(Objects::nonNull).forEach(lojas::add);
-        lojas.forEach(l -> r.add(new Destino(null, l, descricaoLoja(l))));
+        cds.listar().stream().filter(CentroDistribuicao::ativo)
+                .sorted(java.util.Comparator.comparing(CentroDistribuicao::codigo)).forEach(c -> r.add(new Destino(c.id(), null, descricaoCd(c))));
+        TreeSet<String> nomes = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        lojas.listar().stream().filter(br.com.redekrill.agendamento.domain.model.Loja::ativo)
+                .map(br.com.redekrill.agendamento.domain.model.Loja::nome).forEach(nomes::add);
+        capacidades.listar().stream().map(CapacidadeRecebimento::loja).filter(Objects::nonNull).forEach(nomes::add);
+        nomes.forEach(l -> r.add(new Destino(null, l, descricaoLoja(l))));
         return r;
     }
 

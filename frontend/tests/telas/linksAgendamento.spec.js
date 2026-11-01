@@ -4,9 +4,12 @@ import { guarda, routes } from '../../src/router'
 import { menuItens } from '../../src/menu'
 import LinksAgendamentoView from '../../src/views/LinksAgendamentoView.vue'
 import AgendarView from '../../src/views/AgendarView.vue'
+import LojasView from '../../src/views/LojasView.vue'
 
 const DESTINOS = [
   { cdId: null, loja: null, descricao: 'Todos os CDs (fornecedor escolhe)' },
+  { cdId: 3, loja: null, descricao: 'CD 801 · CD 801' },
+  { cdId: 4, loja: null, descricao: 'CD 805 · CD 805' },
   { cdId: 1, loja: null, descricao: 'CD 806 · CD Rede Krill' },
   { cdId: null, loja: 'Loja Centro', descricao: 'Loja Centro' }
 ]
@@ -93,5 +96,39 @@ describe('links de agendamento (porte do Gestão CD)', () => {
     simularApi({ 'GET /publico/agendar/velho': erroHttp(404, 'Link não encontrado(a): desativado') })
     const { w } = await montar(AgendarView, { rota: '/agendar/velho' })
     expect(w.text()).toContain('Este link de agendamento foi desativado. Peça um novo link ao CD.')
+  })
+
+  it('select lista todos os CDs e lojas e gera o link da loja escolhida', async () => {
+    logar('ADMIN')
+    const api = simularApi({ 'GET /links-agendamento/destinos': DESTINOS, 'GET /links-agendamento': [], 'POST /links-agendamento': LINKS[0] })
+    const { w, tela } = await montar(LinksAgendamentoView)
+    await w.find('#la-destino').trigger('click')
+    await flushPromises()
+    const opcoes = [...document.querySelectorAll('[role=option]')].map((o) => o.textContent)
+    expect(opcoes).toEqual(['Todos os CDs (fornecedor escolhe)', 'CD 801 · CD 801', 'CD 805 · CD 805', 'CD 806 · CD Rede Krill', 'Loja Centro'])
+    tela.vm.destino = DESTINOS.length - 1
+    await flushPromises()
+    expect(w.find('.campo-destino').text()).toContain('Loja Centro')
+    await botao(w, 'Gerar / regenerar link').trigger('click')
+    await flushPromises()
+    docBotao('Gerar link').click()
+    await flushPromises()
+    expect(api.ultima('POST /links-agendamento').corpo).toEqual({ cdId: null, loja: 'Loja Centro' })
+  })
+
+  it('cadastro de lojas inclui loja com o CD que abastece', async () => {
+    logar('ADMIN')
+    const api = simularApi({ 'GET /cds': [{ id: 1, codigo: '806', nome: 'CD Rede Krill', ativo: true }], 'GET /lojas': [{ id: 1, nome: 'Loja 01', cdId: 1, ativo: true }], 'POST /lojas': { id: 2 } })
+    const { w } = await montar(LojasView)
+    expect(w.text()).toContain('Loja 01')
+    expect(w.text()).toContain('CD 806')
+    await w.findAll('button').find((b) => b.text().includes('Nova loja')).trigger('click')
+    await flushPromises()
+    const nome = document.querySelector('#nome')
+    nome.value = 'Loja 04 - Centro'
+    nome.dispatchEvent(new Event('input'))
+    docBotao('Salvar').click()
+    await flushPromises()
+    expect(api.ultima('POST /lojas').corpo).toMatchObject({ nome: 'Loja 04 - Centro', ativo: true })
   })
 })

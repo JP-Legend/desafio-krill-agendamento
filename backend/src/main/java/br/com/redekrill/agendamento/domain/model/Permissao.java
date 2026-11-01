@@ -41,7 +41,7 @@ public enum Permissao {
     PALETES_LOJAS(1307, "Paletes", "Paletes nas lojas: consultar", "lojas"),
     PALETES_MOVIMENTO(1308, "Paletes", "Paletes nas lojas: lançar movimento", "lojas"),
 
-    CDS(1401, "Cadastros", "Centros de distribuição", "cds"),
+    CDS(1401, "Cadastros", "Centros de distribuição e lojas", "cds", "cadastro-lojas"),
     FORNECEDORES(1402, "Cadastros", "Fornecedores", "fornecedores"),
     PRODUTOS(1403, "Cadastros", "Produtos e pesos", "produtos"),
     CAPACIDADE_FAIXAS(1404, "Cadastros", "Capacidade diária e faixas horárias", "capacidade", "faixas"),

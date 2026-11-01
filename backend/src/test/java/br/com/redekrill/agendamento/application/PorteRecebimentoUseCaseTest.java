@@ -661,8 +661,13 @@ class PorteRecebimentoUseCaseTest {
         var cap = mock(br.com.redekrill.agendamento.application.port.CapacidadeRecebimentoRepositorio.class);
         org.mockito.Mockito.when(cap.listar()).thenReturn(List.of(
                 new br.com.redekrill.agendamento.domain.model.CapacidadeRecebimento(1L, null, "Loja Centro", null, 40, null)));
+        var lojas = mock(br.com.redekrill.agendamento.application.port.LojaRepositorio.class);
+        org.mockito.Mockito.when(lojas.listar()).thenReturn(List.of(
+                new br.com.redekrill.agendamento.domain.model.Loja(1L, "Loja 02", 1L, true),
+                new br.com.redekrill.agendamento.domain.model.Loja(2L, "loja centro", null, true),
+                new br.com.redekrill.agendamento.domain.model.Loja(3L, "Loja 09", null, false)));
         return new br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase(linksRepo, agendamentos, patio, cds,
-                cap, fornecedores, caminhoes, mock(TipoPaletizacaoRepositorio.class), tokensLink,
+                cap, lojas, fornecedores, caminhoes, mock(TipoPaletizacaoRepositorio.class), tokensLink,
                 new AuditoriaUseCase(audit, CLOCK), TX, CLOCK, "http://app/");
     }
 
@@ -677,7 +682,7 @@ class PorteRecebimentoUseCaseTest {
         var uc = linkUc(audit, mock(br.com.redekrill.agendamento.application.usecase.PatioUseCase.class));
         Long cd = cds.listar().get(0).id();
         assertThat(uc.destinos()).extracting(br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase.Destino::descricao)
-                .containsExactly("Todos os CDs (fornecedor escolhe)", "CD 806 · CD Rede Krill", "Loja Centro");
+                .containsExactly("Todos os CDs (fornecedor escolhe)", "CD 806 · CD Rede Krill", "Loja 02", "loja centro");
         var primeiro = uc.gerar(cd, null, ADMIN);
         assertThat(primeiro.url()).isEqualTo("http://app/agendar/link-secreto-de-teste-1");
         assertThat(primeiro.destino()).isEqualTo("CD 806 · CD Rede Krill");
