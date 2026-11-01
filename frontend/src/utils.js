@@ -63,7 +63,7 @@ export function validarAgendamento(f) {
   const e = {}
   if (!f.data) e.data = 'Informe a data'
   if (!f.faixaHorariaId) e.faixaHorariaId = 'Selecione a faixa horária'
-  if (!f.idPedido || f.idPedido < 1) e.idPedido = 'Informe o ID do pedido'
+  if (!f.idPedido || f.idPedido < 1) e.idPedido = 'Informe o nº do pedido de compra'
   if (!f.fornecedor?.trim()) e.fornecedor = 'Informe o fornecedor'
   else if (f.fornecedor.length > 80) e.fornecedor = 'Máximo de 80 caracteres'
   if (!f.emailFornecedor?.trim()) e.emailFornecedor = 'Informe o e-mail'
@@ -105,6 +105,25 @@ export function cnpjValido(v) {
   }
   const d1 = dv(c.slice(0, 12))
   return d1 === Number(c[12]) && dv(c.slice(0, 13)) === Number(c[13])
+}
+
+/** Máscara 00.000.000/0000-00 aplicada enquanto digita. */
+export function mascaraCnpj(v) {
+  const c = soDigitos(v).slice(0, 14)
+  return c.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2')
+}
+
+/** Mensagem do CNPJ digitado ('' quando vazio ou válido). */
+export function erroCnpj(v) {
+  const c = soDigitos(v)
+  if (!c) return ''
+  if (c.length < 14) return 'CNPJ incompleto'
+  return cnpjValido(c) ? '' : 'CNPJ inválido (dígitos verificadores)'
+}
+
+export function emailValido(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v ?? '').trim())
 }
 
 export function fmtCnpj(v) {

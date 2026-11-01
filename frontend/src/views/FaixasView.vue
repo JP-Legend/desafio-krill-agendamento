@@ -4,7 +4,7 @@ import CadastroCrud from '../components/CadastroCrud.vue'
 const campos = [
   { campo: 'horaInicio', rotulo: 'Hora inicial', tipo: 'hora', obrigatorio: true },
   { campo: 'horaFim', rotulo: 'Hora final', tipo: 'hora', obrigatorio: true },
-  { campo: 'capacidadePaletes', rotulo: 'Capacidade (paletes)', tipo: 'numero', obrigatorio: true, min: 1, maxNum: 100000, dica: 'Ao exceder, o sistema avisa mas não bloqueia' },
+  { campo: 'capacidadePaletes', rotulo: 'Capacidade (paletes)', tipo: 'numero', obrigatorio: true, min: 1, maxNum: 100000 },
   { campo: 'ativo', rotulo: 'Situação', tipo: 'ativo' }
 ]
 const novo = () => ({ horaInicio: '', horaFim: '', capacidadePaletes: 120, ativo: true })
@@ -16,7 +16,7 @@ const validarExtra = (f) => (f.horaInicio && f.horaFim && f.horaFim <= f.horaIni
   <CadastroCrud titulo="Faixas horárias" recurso="/faixas-horarias" :campos="campos" :novo-padrao="novo" :para-form="paraForm"
                 :validar-extra="validarExtra" rotulo-novo="Nova faixa">
     <template #rodape="{ lista }">
-      <p class="texto-suave">{{ lista.filter((f) => f.ativo).length }} faixa(s) ativa(s). Duração e quantidade máxima seguem o cadastro de capacidade.</p>
+      <p class="texto-suave">{{ lista.filter((f) => f.ativo).length }} faixa(s) ativa(s).</p>
     </template>
   </CadastroCrud>
 </template>

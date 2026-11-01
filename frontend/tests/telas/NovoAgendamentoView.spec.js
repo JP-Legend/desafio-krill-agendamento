@@ -41,7 +41,7 @@ describe('NovoAgendamentoView', () => {
     await w.find('form').trigger('submit')
     await flushPromises()
     const t = w.text()
-    for (const m of ['Selecione a faixa horária', 'Informe o ID do pedido', 'Informe o fornecedor', 'Informe o e-mail', 'Selecione o tipo de caminhão', 'Selecione o tipo de paletização', 'Informe a quantidade de paletes']) expect(t).toContain(m)
+    for (const m of ['Selecione a faixa horária', 'Informe o nº do pedido de compra', 'Informe o fornecedor', 'Informe o e-mail', 'Selecione o tipo de caminhão', 'Selecione o tipo de paletização', 'Informe a quantidade de paletes']) expect(t).toContain(m)
     expect(api.chamadas.some((c) => c.chave === 'POST /agendamentos')).toBe(false)
   })
 

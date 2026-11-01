@@ -5,10 +5,10 @@ import CadastroCrud from '../components/CadastroCrud.vue'
 
 const cds = ref([])
 const campos = ref([
-  { campo: 'codigo', rotulo: 'Código', tipo: 'texto', obrigatorio: true, max: 10, dica: 'Ex.: D01. Único dentro do CD' },
+  { campo: 'codigo', rotulo: 'Código', tipo: 'texto', obrigatorio: true, max: 10 },
   { campo: 'nome', rotulo: 'Nome', tipo: 'texto', obrigatorio: true, max: 40 },
   { campo: 'cdId', rotulo: 'CD', tipo: 'select', obrigatorio: true, opcoes: [], formatar: (r) => cds.value.find((c) => c.id === r.cdId)?.nome || r.cdId },
-  { campo: 'ativa', rotulo: 'Situação', tipo: 'ativo', dica: 'Inativa não aparece no pátio nem na lotação do CD' }
+  { campo: 'ativa', rotulo: 'Situação', tipo: 'ativo' }
 ])
 const novo = () => ({ codigo: '', nome: '', cdId: cds.value[0]?.id ?? 1, ativa: true })
 

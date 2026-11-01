@@ -36,7 +36,6 @@ onMounted(carregar)
 <template>
   <div class="cabecalho"><h1>Tempos de descarga</h1></div>
   <section class="painel">
-    <p class="texto-suave">Tempo previsto de descarga por tipo de caminhão, tolerância de espera no pátio e custo de descarga por palete (chapa).</p>
     <DataTable :value="linhas" size="small" striped-rows data-key="tipoCaminhaoId">
       <Column field="nome" header="Tipo de caminhão" />
       <Column header="Descarga prevista (min)"><template #body="{ data }"><InputNumber v-model="data.minutosPrevistos" :min="1" :max="1440" :input-id="`mp${data.tipoCaminhaoId}`" /></template></Column>

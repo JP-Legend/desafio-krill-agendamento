@@ -202,7 +202,7 @@ onMounted(() => {
     <div class="campo"><label for="fs">Status</label><Select v-model="filtro.status" input-id="fs" :options="status" option-label="label" option-value="value" /></div>
     <div class="campo"><label for="ffor">Fornecedor</label><InputText id="ffor" v-model="filtro.fornecedor" /></div>
     <SeletorCd v-model="filtro.cdId" input-id="fcd" />
-    <div class="campo"><label for="fp">ID do pedido</label><InputNumber v-model="filtro.idPedido" input-id="fp" :use-grouping="false" /></div>
+    <div class="campo"><label for="fp">Nº do pedido de compra</label><InputNumber v-model="filtro.idPedido" input-id="fp" :use-grouping="false" /></div>
     <Button type="submit" label="Buscar" icon="pi pi-search" class="btn-confirmar" :loading="carregando" />
   </form>
 
@@ -229,7 +229,7 @@ onMounted(() => {
       <dl class="detalhes">
         <dt>Status</dt><dd><StatusAgendamento :status="detalhe.status" /></dd>
         <dt>Data / faixa</dt><dd>{{ fmtData(detalhe.data) }} · {{ detalhe.faixaHoraria }}</dd>
-        <dt>ID do pedido</dt><dd>{{ detalhe.idPedido }}</dd>
+        <dt>Nº do pedido de compra</dt><dd>{{ detalhe.idPedido }}</dd>
         <dt>Fornecedor</dt><dd>{{ detalhe.fornecedor }}</dd>
         <dt>E-mail</dt><dd>{{ detalhe.emailFornecedor }}</dd>
         <dt>Caminhão</dt><dd>{{ detalhe.tipoCaminhao }}</dd>
@@ -251,7 +251,6 @@ onMounted(() => {
       </dl>
       <div v-if="remarcando" class="painel acao-op">
         <h2>Remarcar entrega</h2>
-        <p class="texto-suave">Escolha o novo dia e faixa. Faixas sem vaga podem ser usadas pelo CD (apenas alerta), o fornecedor só vê as que têm vaga.</p>
         <EscolhaHorario v-model="novoHorario" :dias="diasRemarcar" :paletes="detalhe.paletesEquivalentes" :atual="{ data: detalhe.data, faixaHorariaId: detalhe.faixaHorariaId }" />
         <div class="acoes">
           <Button label="Voltar" class="btn-secundario" :disabled="enviando" @click="remarcando = false" />
@@ -277,9 +276,8 @@ onMounted(() => {
           </div>
           <template v-if="acao === 'CONCLUIR'">
             <div class="campo c4"><label for="op-pal">Paletes recebidos <span class="obrig">*</span></label><InputNumber v-model="op.paletesRecebidos" input-id="op-pal" :min="0" :max="10000" /></div>
-            <div class="campo c8"><label for="op-div">Divergência</label><InputText id="op-div" v-model="op.divergencia" maxlength="255" /><small class="texto-suave">Se a contagem diferir do agendado, a divergência é registrada automaticamente.</small></div>
+            <div class="campo c8"><label for="op-div">Divergência</label><InputText id="op-div" v-model="op.divergencia" maxlength="255" /></div>
           </template>
-          <p v-if="acao === 'CONFIRMAR' || acao === 'NAO_COMPARECEU'" class="c12 texto-suave">{{ acao === 'CONFIRMAR' ? 'Confirma que o fornecedor virá na data e faixa agendadas.' : 'O agendamento deixa de ocupar capacidade.' }}</p>
         </div>
         <div class="acoes">
           <Button label="Voltar" type="button" class="btn-secundario" :disabled="enviando" @click="acao = null" />

@@ -13,12 +13,12 @@ const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
 const cds = ref([])
 const campos = ref([
-  { campo: 'codigo', rotulo: 'Código', tipo: 'texto', obrigatorio: true, max: 20, dica: 'Letras, números ou _ (ex.: PBR). Não muda depois de criado.' },
+  { campo: 'codigo', rotulo: 'Código', tipo: 'texto', obrigatorio: true, max: 20 },
   { campo: 'nome', rotulo: 'Nome', tipo: 'texto', obrigatorio: true, max: 40 },
-  { campo: 'cdId', rotulo: 'CD', tipo: 'select', opcoes: [], dica: 'Vazio = aceito em todos os CDs', formatar: (r) => (r.cdId ? cds.value.find((c) => c.id === r.cdId)?.nome || r.cdId : 'Todos os CDs') },
-  { campo: 'valorReposicao', rotulo: 'Valor de reposição', tipo: 'numero', min: 0, maxNum: 99999, decimais: 2, formatar: (r) => fmtMoeda(r.valorReposicao), dica: 'Sugestão de valor por palete na cobrança' },
+  { campo: 'cdId', rotulo: 'CD', tipo: 'select', opcoes: [], formatar: (r) => (r.cdId ? cds.value.find((c) => c.id === r.cdId)?.nome || r.cdId : 'Todos os CDs') },
+  { campo: 'valorReposicao', rotulo: 'Valor de reposição', tipo: 'numero', min: 0, maxNum: 99999, decimais: 2, formatar: (r) => fmtMoeda(r.valorReposicao) },
   { campo: 'ordem', rotulo: 'Ordem', tipo: 'numero', min: 0, maxNum: 999 },
-  { campo: 'ativo', rotulo: 'Situação', tipo: 'ativo', dica: 'Inativo some dos novos vales e romaneios; os antigos continuam mostrando o tipo' }
+  { campo: 'ativo', rotulo: 'Situação', tipo: 'ativo' }
 ])
 const novo = () => ({ codigo: '', nome: '', cdId: null, valorReposicao: 0, ordem: 10, ativo: true })
 const validar = (f) => (/^[A-Za-z0-9_ ]{2,20}$/.test((f.codigo || '').trim()) ? null : { codigo: 'Use de 2 a 20 letras, números ou _' })

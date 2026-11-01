@@ -17,6 +17,12 @@ const pushAtivo = ref(false)
 const mostrarTopo = computed(() => !route.meta.publica)
 
 const itens = computed(() => menuItens())
+const menuGrupo = ref()
+const modeloGrupo = ref([])
+function abrirGrupo(e, g) {
+  modeloGrupo.value = g.itens.map((i) => ({ label: i.label, icon: i.icon, command: () => router.push(i.to) }))
+  menuGrupo.value.show(e)
+}
 const itensPlanos = computed(() => itens.value.flatMap((g) => g.itens))
 
 const atualizarRede = () => { online.value = navigator.onLine }
@@ -64,9 +70,13 @@ async function sair() {
         <span>Agendamento Rede Krill</span>
       </RouterLink>
       <nav class="menu">
-        <RouterLink v-for="i in itens[0]?.itens || []" :key="i.to" :to="i.to">{{ i.label }}</RouterLink>
-        <RouterLink v-if="pode(1201)" to="/rotina">Rotina</RouterLink>
+        <RouterLink to="/inicio">Início</RouterLink>
+        <button
+          v-for="g in itens" :key="g.grupo" type="button" class="menu-grupo" :class="{ ativo: g.itens.some((i) => route.path.startsWith(i.to)) }"
+          aria-haspopup="true" @click="(e) => abrirGrupo(e, g)"
+        >{{ g.grupo }}<i class="pi pi-angle-down" /></button>
       </nav>
+      <Menu ref="menuGrupo" :model="modeloGrupo" popup />
       <div class="espaco" />
       <div class="usuario">
         <button
@@ -87,6 +97,7 @@ async function sair() {
     <div v-if="!online" class="offline">Sem conexão. Os dados serão atualizados quando a rede voltar.</div>
     <Drawer v-model:visible="menuAberto" header="Menu">
       <nav class="menu-lateral" @click="menuAberto = false">
+        <RouterLink to="/inicio"><i class="pi pi-home" />Início</RouterLink>
         <template v-for="g in itens" :key="g.grupo">
           <div class="grupo">{{ g.grupo }}</div>
           <RouterLink v-for="i in g.itens" :key="i.to" :to="i.to"><i :class="i.icon" />{{ i.label }}</RouterLink>

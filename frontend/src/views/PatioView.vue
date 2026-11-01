@@ -66,7 +66,7 @@ onUnmounted(() => clearInterval(timer))
   </div>
 
   <template v-if="quadro">
-    <p class="texto-suave">{{ diaSemana(quadro.data) }}, {{ fmtData(quadro.data) }} — atualiza sozinho a cada 30 segundos.</p>
+    <p class="texto-suave">{{ diaSemana(quadro.data) }}, {{ fmtData(quadro.data) }}</p>
 
     <div class="patio-indicadores">
       <section class="painel indicador" :class="ind.lotadoAgora ? 'cheio' : 'livre'">
@@ -92,7 +92,7 @@ onUnmounted(() => clearInterval(timer))
           <small v-if="d.fornecedor">{{ d.fornecedor }}</small>
         </div>
       </div>
-      <p v-else class="texto-suave">Nenhuma doca ativa neste CD. Cadastre em Cadastros → Docas.</p>
+      <p v-else class="texto-suave">Nenhuma doca ativa neste CD.</p>
     </section>
 
     <div class="patio-colunas">

@@ -1,32 +1,29 @@
 import { pode } from './sessao'
 
-/** Menu do sistema, agrupado como as centrais do Gestão CD (usado no topo, no menu lateral e na home). */
+/** Menu único do sistema: o mesmo agrupamento no topo (desktop) e no menu lateral (celular). */
 export const CENTRAIS = {
-  'Operação': { sigla: 'OPE', titulo: 'Operação do dia', icone: 'pi pi-th-large' },
-  Recebimento: { sigla: 'REC', titulo: 'Recebimento', icone: 'pi pi-clipboard' },
-  Paletes: { sigla: 'PAL', titulo: 'Paletes', icone: 'pi pi-box' },
-  Cadastros: { sigla: 'CAD', titulo: 'Cadastros', icone: 'pi pi-database' },
-  'Administração': { sigla: 'ADM', titulo: 'Acessos e auditoria', icone: 'pi pi-cog' }
+  Agendamentos: { icone: 'pi pi-calendar' },
+  Recebimento: { icone: 'pi pi-clipboard' },
+  Paletes: { icone: 'pi pi-box' },
+  Cadastros: { icone: 'pi pi-database' },
+  'Acessos e auditoria': { icone: 'pi pi-shield' }
 }
 
 /** p = permissão numerada exigida (lista: basta uma). */
 const GRUPOS = [
   {
-    grupo: 'Operação',
+    grupo: 'Agendamentos',
     itens: [
-      { to: '/inicio', label: 'Início', icon: 'pi pi-home' },
-      { to: '/painel', label: 'Ocupação', icon: 'pi pi-chart-bar', p: 1101 },
-      { to: '/agendamentos/novo', label: 'Novo agendamento', icon: 'pi pi-plus', p: 1103 },
+      { to: '/painel', label: 'Ocupação da semana', icon: 'pi pi-chart-bar', p: 1101 },
       { to: '/agendamentos', label: 'Agendamentos', icon: 'pi pi-calendar', p: 1102 },
-      { to: '/vales-palete', label: 'Vale-palete', icon: 'pi pi-ticket', p: 1301 },
-      { to: '/relatorio', label: 'Relatório', icon: 'pi pi-file', p: 1106 },
-      { to: '/links-agendamento', label: 'Links de agendamento', icon: 'pi pi-link', p: 1107 }
+      { to: '/agendamentos/novo', label: 'Novo agendamento', icon: 'pi pi-plus', p: 1103 },
+      { to: '/links-agendamento', label: 'Links de agendamento', icon: 'pi pi-link', p: 1107 },
+      { to: '/relatorio', label: 'Relatório', icon: 'pi pi-file', p: 1106 }
     ]
   },
   {
     grupo: 'Recebimento',
     itens: [
-      { to: '/rotina', label: 'Rotina do dia', icon: 'pi pi-list-check', p: 1201 },
       { to: '/patio', label: 'Pátio e docas', icon: 'pi pi-truck', p: 1205 },
       { to: '/divergencias', label: 'Divergências', icon: 'pi pi-exclamation-triangle', p: 1202 },
       { to: '/relatorios/descarga', label: 'Tempos de descarga', icon: 'pi pi-stopwatch', p: 1203 }
@@ -48,12 +45,12 @@ const GRUPOS = [
       { to: '/cadastros/lojas', label: 'Lojas', icon: 'pi pi-shop', p: 1401 },
       { to: '/cadastros/fornecedores', label: 'Fornecedores', icon: 'pi pi-users', p: 1402 },
       { to: '/cadastros/produtos', label: 'Produtos e pesos', icon: 'pi pi-barcode', p: 1403 },
-      { to: '/cadastros/capacidade', label: 'Capacidade e faixas', icon: 'pi pi-sliders-h', p: 1404 },
+      { to: '/cadastros/capacidade', label: 'Capacidade diária', icon: 'pi pi-sliders-h', p: 1404 },
       { to: '/cadastros/capacidade-recebimento', label: 'Capacidade por CD e loja', icon: 'pi pi-chart-pie', p: 1405 },
       { to: '/cadastros/docas', label: 'Docas', icon: 'pi pi-sign-in', p: 1406 },
       { to: '/cadastros/faixas', label: 'Faixas horárias', icon: 'pi pi-clock', p: 1404 },
       { to: '/cadastros/caminhoes', label: 'Caminhões', icon: 'pi pi-truck', p: 1407 },
-      { to: '/cadastros/descarga', label: 'Tempos de descarga', icon: 'pi pi-stopwatch', p: 1408 },
+      { to: '/cadastros/descarga', label: 'Parâmetros de descarga', icon: 'pi pi-stopwatch', p: 1408 },
       { to: '/cadastros/taxas-descarga', label: 'Taxa de descarga', icon: 'pi pi-dollar', p: 1409 },
       { to: '/cadastros/paletizacao', label: 'Paletização', icon: 'pi pi-box', p: 1407 },
       { to: '/cadastros/tipos-palete', label: 'Tipos de palete', icon: 'pi pi-th-large', p: 1410 },
@@ -61,7 +58,7 @@ const GRUPOS = [
     ]
   },
   {
-    grupo: 'Administração',
+    grupo: 'Acessos e auditoria',
     itens: [
       { to: '/acessos/usuarios', label: 'Usuários', icon: 'pi pi-user', p: [1001, 1002] },
       { to: '/acessos/perfis', label: 'Perfis e permissões', icon: 'pi pi-key', p: 1003 },

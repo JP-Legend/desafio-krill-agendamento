@@ -93,6 +93,7 @@ const destinoApos = computed(() => {
 })
 watch(form, () => { if (tentouEnviar.value) erros.value = validarAgendamento(payload()) })
 
+const lojas = ref([])
 onMounted(async () => {
   consultarDestino()
   try {
@@ -100,6 +101,7 @@ onMounted(async () => {
     caminhoes.value = c.filter((x) => x.ativo)
     paletizacoes.value = p.filter((x) => x.ativo)
     api('/fornecedores', { params: { ativo: true } }).then((f) => (fornecedores.value = f)).catch(() => {})
+    api('/lojas').then((l) => (lojas.value = l.filter((x) => x.ativo).map((x) => x.nome))).catch(() => {})
     await simular()
   } catch (e) {
     notificar.erro(e)
@@ -198,7 +200,7 @@ function limpar() {
         <span v-if="erros.faixaHorariaId" class="erro">{{ erros.faixaHorariaId }}</span>
       </div>
       <div class="campo">
-        <label for="pedido">ID do pedido <span class="obrig">*</span></label>
+        <label for="pedido">Nº do pedido de compra <span class="obrig">*</span></label>
         <InputNumber v-model="form.idPedido" input-id="pedido" :use-grouping="false" :min="1" :max="999999999999" :invalid="!!erros.idPedido" @blur="buscarPedido" @keydown.enter.prevent="buscarPedido" />
         <small v-if="erp" class="texto-suave">{{ erp.pedido.situacao || "Pedido" }} · {{ erp.provedor === "bluesoft" ? "Bluesoft" : "base local" }}<template v-if="erp.pedido.lojaDestino"> · {{ erp.pedido.lojaDestino }}</template></small>
         <span v-if="erros.idPedido" class="erro">{{ erros.idPedido }}</span>
@@ -214,7 +216,7 @@ function limpar() {
       <div v-if="fornecedores.length" class="campo c12">
         <label for="fcad">Fornecedor cadastrado</label>
         <Select v-model="form.fornecedorId" input-id="fcad" :options="fornecedores" :option-label="(f) => `${f.nomeFantasia || f.razaoSocial} · ${fmtCnpj(f.cnpj)}`" option-value="id"
-                filter show-clear placeholder="Opcional: preenche nome e e-mail" @update:model-value="escolherFornecedor" />
+                filter show-clear @update:model-value="escolherFornecedor" />
       </div>
       <div class="campo c6">
         <label for="fornecedor">Fornecedor <span class="obrig">*</span></label>
@@ -240,8 +242,7 @@ function limpar() {
       </div>
       <div class="campo c6">
         <label for="loja">Entrega direta na loja</label>
-        <InputText id="loja" v-model="form.loja" maxlength="80" />
-        <span class="dica">Vazio = entrega no CD. Com loja, vale a capacidade diária da loja.</span>
+        <Select v-model="form.loja" input-id="loja" :options="lojas" filter show-clear placeholder="Não (entrega no CD)" />
       </div>
       <div class="campo c6">
         <label for="transp">Transportadora</label>

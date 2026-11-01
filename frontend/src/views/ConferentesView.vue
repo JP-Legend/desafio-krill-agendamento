@@ -5,9 +5,9 @@ import CadastroCrud from '../components/CadastroCrud.vue'
 
 const cds = ref([])
 const campos = ref([
-  { campo: 'nome', rotulo: 'Nome completo', tipo: 'texto', obrigatorio: true, max: 80, dica: 'Aparece no campo Conferente ao iniciar a conferência deste CD' },
+  { campo: 'nome', rotulo: 'Nome completo', tipo: 'texto', obrigatorio: true, max: 80 },
   { campo: 'cdId', rotulo: 'CD', tipo: 'select', obrigatorio: true, opcoes: [], formatar: (r) => cds.value.find((c) => c.id === r.cdId)?.nome || r.cdId },
-  { campo: 'ativo', rotulo: 'Situação', tipo: 'ativo', dica: 'Pausado não aparece ao iniciar a conferência' }
+  { campo: 'ativo', rotulo: 'Situação', tipo: 'ativo' }
 ])
 const novo = () => ({ nome: '', cdId: cds.value[0]?.id ?? 1, ativo: true })
 const validar = (f) => ((f.nome || '').trim().includes(' ') ? null : { nome: 'Informe nome e sobrenome' })

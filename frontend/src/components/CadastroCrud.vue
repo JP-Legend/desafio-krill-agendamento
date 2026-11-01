@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { api } from '../api'
+import { erroCnpj, mascaraCnpj, soDigitos } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
 
@@ -51,7 +52,8 @@ function validar() {
   const e = {}
   props.campos.forEach((c) => {
     const v = form[c.campo]
-    if (c.obrigatorio && (v === null || v === undefined || v === '' || (typeof v === 'string' && !v.trim()))) e[c.campo] = `Informe ${c.rotulo.toLowerCase()}`
+    if (c.tipo === 'cnpj' && erroCnpj(v)) e[c.campo] = erroCnpj(v)
+    else if (c.obrigatorio && (v === null || v === undefined || v === '' || (typeof v === 'string' && !v.trim()))) e[c.campo] = `Informe ${c.rotulo.toLowerCase()}`
     else if (c.max && typeof v === 'string' && v.length > c.max) e[c.campo] = `Máximo de ${c.max} caracteres`
   })
   const extra = props.validarExtra(form)
@@ -105,9 +107,10 @@ defineExpose({ carregar })
 
   <Dialog v-model:visible="visivel" modal :header="form.id ? `Editar · ID ${form.id}` : rotuloNovo" :style="{ width: '520px' }" :breakpoints="{ '560px': '96vw' }">
     <form class="grade" novalidate @submit.prevent="salvar">
-      <div v-for="c in campos" :key="c.campo" class="campo" :class="c.tipo === 'texto' ? 'c12' : 'c6'">
+      <div v-for="c in campos" :key="c.campo" class="campo" :class="c.tipo === 'texto' || c.tipo === 'cnpj' ? 'c12' : 'c6'">
         <label :for="c.campo">{{ c.rotulo }} <span v-if="c.obrigatorio" class="obrig">*</span></label>
-        <InputText v-if="c.tipo === 'texto'" :id="c.campo" v-model="form[c.campo]" :maxlength="c.max" :invalid="!!erros[c.campo]" />
+        <InputText v-if="c.tipo === 'cnpj'" :id="c.campo" :model-value="form[c.campo]" maxlength="18" inputmode="numeric" :invalid="!!erros[c.campo]" @update:model-value="(v) => { form[c.campo] = mascaraCnpj(v); if (erros[c.campo] || soDigitos(v).length === 14) erros[c.campo] = erroCnpj(form[c.campo]) }" />
+        <InputText v-else-if="c.tipo === 'texto'" :id="c.campo" v-model="form[c.campo]" :type="c.email ? 'email' : 'text'" :maxlength="c.max" :invalid="!!erros[c.campo]" />
         <InputNumber v-else-if="c.tipo === 'numero'" v-model="form[c.campo]" :input-id="c.campo" :min="c.min ?? 0" :max="c.maxNum" :max-fraction-digits="c.decimais ?? 0" :invalid="!!erros[c.campo]" />
         <InputText v-else-if="c.tipo === 'hora'" :id="c.campo" v-model="form[c.campo]" type="time" step="900" :invalid="!!erros[c.campo]" />
         <Select v-else-if="c.tipo === 'select'" v-model="form[c.campo]" :input-id="c.campo" :options="c.opcoes" option-label="label" option-value="value" :invalid="!!erros[c.campo]" show-clear />

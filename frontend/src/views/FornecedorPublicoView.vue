@@ -107,7 +107,6 @@ defineExpose({ abrirRemarcar, remarcar, escolha })
       <section v-if="ag.editavel" class="painel">
         <div class="painel-titulo"><h2>Remarcar entrega</h2><Button v-if="!remarcando" label="Escolher outra data" icon="pi pi-calendar" class="btn-secundario" size="small" @click="abrirRemarcar" /></div>
         <template v-if="remarcando">
-          <p class="texto-suave">Somente faixas com vaga para {{ ag.paletesEquivalentes }} palete(s) podem ser escolhidas.</p>
           <EscolhaHorario v-model="escolha" :dias="dias" :paletes="ag.paletesEquivalentes" :atual="{ data: ag.data, faixaHorariaId: ag.faixaHorariaId }" somente-com-vaga />
           <p v-if="escolha" class="destaque-escolha">Nova entrega: <strong>{{ diaSemana(escolha.data) }}, {{ fmtData(escolha.data) }} · {{ escolha.descricao }}</strong></p>
           <div class="linha-botoes">
@@ -115,7 +114,6 @@ defineExpose({ abrirRemarcar, remarcar, escolha })
             <Button label="Confirmar nova data" icon="pi pi-check" class="btn-confirmar" :loading="enviando" :disabled="enviando || !escolha" @click="remarcar" />
           </div>
         </template>
-        <p v-else class="texto-suave">Não vai conseguir vir em {{ fmtData(ag.data) }}? Escolha outro dia e faixa com vaga.</p>
       </section>
 
       <form v-if="ag.editavel" class="painel" @submit.prevent="salvarVeiculo">

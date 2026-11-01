@@ -223,6 +223,7 @@ public class LinkAgendamentoUseCase {
     }
 
     private String descricaoCd(CentroDistribuicao c) {
-        return "CD " + c.codigo() + " · " + c.nome();
+        String cd = "CD " + c.codigo();
+        return c.nome() == null || c.nome().isBlank() || c.nome().equalsIgnoreCase(cd) ? cd : cd + " · " + c.nome();
     }
 }

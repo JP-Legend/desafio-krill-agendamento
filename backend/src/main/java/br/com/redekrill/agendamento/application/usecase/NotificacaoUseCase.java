@@ -184,7 +184,7 @@ public class NotificacaoUseCase {
         return "Olá, " + a.getFornecedor() + ". Agendamento #" + a.getId() + " na Rede Krill: " + a.getData().format(BR)
                 + ", faixa " + d.faixaDescricao() + ", pedido " + a.getIdPedido() + ", " + a.getQuantidadePaletes()
                 + " paletes (" + d.tipoCaminhao() + "). Status: " + a.getStatus().rotulo()
-                + ". Apresente o ID do pedido na portaria. Para confirmar presença e informar a placa, use o link enviado por e-mail.";
+                + ". Apresente o Nº do pedido de compra na portaria. Para confirmar presença e informar a placa, use o link enviado por e-mail.";
     }
 
     static EmailDocumento montarEmail(CobrancaPalete c) {

@@ -31,3 +31,23 @@ describe('utils', () => {
     expect(Object.keys(validarAgendamento({})).length).toBe(8)
   })
 })
+
+import { emailValido, erroCnpj, mascaraCnpj } from '../src/utils'
+describe('máscara e validação de CNPJ', () => {
+  it('formata enquanto digita e limita a 14 dígitos', () => {
+    expect(mascaraCnpj('11')).toBe('11')
+    expect(mascaraCnpj('11222')).toBe('11.222')
+    expect(mascaraCnpj('11222333')).toBe('11.222.333')
+    expect(mascaraCnpj('112223330001')).toBe('11.222.333/0001')
+    expect(mascaraCnpj('11222333000181999')).toBe('11.222.333/0001-81')
+  })
+  it('explica o erro', () => {
+    expect(erroCnpj('')).toBe('')
+    expect(erroCnpj('11.222.333/0001')).toBe('CNPJ incompleto')
+    expect(erroCnpj('11.222.333/0001-00')).toBe('CNPJ inválido (dígitos verificadores)')
+    expect(erroCnpj('11.222.333/0001-81')).toBe('')
+    expect(emailValido('a@b.com')).toBe(true)
+    expect(emailValido('a@b')).toBe(false)
+  })
+})
+

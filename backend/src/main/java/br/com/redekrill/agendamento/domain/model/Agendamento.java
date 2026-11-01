@@ -106,7 +106,7 @@ public class Agendamento {
     private void validar() {
         if (data == null) throw new RegraNegocioException("Data é obrigatória");
         if (faixaHorariaId == null) throw new RegraNegocioException("Faixa horária é obrigatória");
-        if (idPedido == null || idPedido <= 0) throw new RegraNegocioException("ID do pedido deve ser um número positivo");
+        if (idPedido == null || idPedido <= 0) throw new RegraNegocioException("Nº do pedido de compra deve ser um número positivo");
         exigirTexto(fornecedor, "Fornecedor");
         exigirTexto(emailFornecedor, "E-mail do fornecedor");
         if (!EMAIL.matcher(emailFornecedor).matches()) throw new RegraNegocioException("E-mail do fornecedor inválido");

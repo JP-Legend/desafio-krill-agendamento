@@ -10,9 +10,9 @@ const DIAS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domi
 const notificar = useNotificar()
 const cds = ref([])
 const campos = ref([
-  { campo: 'cdId', rotulo: 'CD', tipo: 'select', opcoes: [], dica: 'Deixe vazio e informe a loja para entrega direta', formatar: (r) => (r.cdId ? cds.value.find((c) => c.id === r.cdId)?.nome || r.cdId : '—') },
+  { campo: 'cdId', rotulo: 'CD', tipo: 'select', opcoes: [], formatar: (r) => (r.cdId ? cds.value.find((c) => c.id === r.cdId)?.nome || r.cdId : '—') },
   { campo: 'loja', rotulo: 'Loja (entrega direta)', tipo: 'texto', max: 80, formatar: (r) => r.loja || '—' },
-  { campo: 'diaSemana', rotulo: 'Dia da semana', tipo: 'select', opcoes: DIAS.map((d, i) => ({ label: d, value: i + 1 })), dica: 'Vazio = todos os dias', formatar: (r) => (r.diaSemana ? DIAS[r.diaSemana - 1] : 'Todos os dias') },
+  { campo: 'diaSemana', rotulo: 'Dia da semana', tipo: 'select', opcoes: DIAS.map((d, i) => ({ label: d, value: i + 1 })), formatar: (r) => (r.diaSemana ? DIAS[r.diaSemana - 1] : 'Todos os dias') },
   { campo: 'paletes', rotulo: 'Paletes por dia', tipo: 'numero', min: 1, maxNum: 100000 },
   { campo: 'caminhoes', rotulo: 'Caminhões por dia', tipo: 'numero', min: 1, maxNum: 10000 }
 ])
@@ -52,12 +52,6 @@ onMounted(async () => {
 <template>
   <CadastroCrud titulo="Capacidade de recebimento por dia" recurso="/capacidades-recebimento" :campos="campos" :novo-padrao="novo"
                 :validar-extra="validar" :para-body="paraBody" rotulo-novo="Nova capacidade" @salvo="consultar">
-    <template #rodape>
-      <p class="texto-suave">
-        Cada CD e cada loja (entregas diretas) podem ter limite de paletes e/ou caminhões por dia. A regra do dia da semana
-        vale sobre a regra geral. CD sem regra usa a capacidade diária do cadastro de CDs; loja sem regra não tem limite.
-      </p>
-    </template>
   </CadastroCrud>
 
   <section class="painel consulta">

@@ -75,7 +75,7 @@ public class NotificadorEmailSmtp implements NotificadorEmail {
         linha(sb, "Agendamento", "#" + a.getId());
         linha(sb, "Data", a.getData().format(BR));
         linha(sb, "Faixa horária", d.faixaDescricao());
-        linha(sb, "ID do pedido", String.valueOf(a.getIdPedido()));
+        linha(sb, "Nº do pedido de compra", String.valueOf(a.getIdPedido()));
         linha(sb, "Fornecedor", a.getFornecedor());
         linha(sb, "Tipo de caminhão", d.tipoCaminhao());
         linha(sb, "Tipo de paletização", d.tipoPaletizacao());
@@ -87,7 +87,7 @@ public class NotificadorEmailSmtp implements NotificadorEmail {
             sb.append("<p><a href=\"").append(HtmlUtils.htmlEscape(link)).append("\" style=\"display:inline-block;background:#148a42;color:#fff;")
                     .append("padding:8px 14px;border-radius:8px;text-decoration:none\">Confirmar presença e informar placa</a></p>");
         }
-        sb.append("<p style=\"color:#64748b;font-size:12px\">Apresente o ID do pedido na portaria.</p></div>");
+        sb.append("<p style=\"color:#64748b;font-size:12px\">Apresente o Nº do pedido de compra na portaria.</p></div>");
         return sb.toString();
     }
 

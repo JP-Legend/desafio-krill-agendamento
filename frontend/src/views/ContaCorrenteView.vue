@@ -119,7 +119,7 @@ defineExpose({ abrir, confirmar, dlg, erro })
   </section>
 
   <section v-else-if="aba === 'transportadoras'" class="painel">
-    <div class="painel-titulo"><h2>Vales agrupados por transportadora</h2><span class="texto-suave">Sem transportadora no agendamento, entra o fornecedor</span></div>
+    <div class="painel-titulo"><h2>Vales agrupados por transportadora</h2></div>
     <DataTable :value="porTransportadora" size="small" striped-rows>
       <template #empty><div class="vazio">Nenhum vale-palete emitido</div></template>
       <Column field="transportadora" header="Transportadora / fornecedor" sortable />

@@ -39,7 +39,6 @@ function salvar() {
       <div class="campo">
         <label for="cap">Capacidade por dia (paletes) <span class="obrig">*</span></label>
         <InputNumber v-model="form.capacidadeDiariaPaletes" input-id="cap" :min="1" :max="100000" />
-        <span class="dica">Ao exceder, o sistema avisa mas não bloqueia</span>
       </div>
       <div class="campo">
         <label for="qf">Quantidade de faixas ativas <span class="obrig">*</span></label>

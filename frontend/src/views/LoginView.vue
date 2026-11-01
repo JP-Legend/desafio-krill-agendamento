@@ -20,7 +20,7 @@ function entrar() {
   enviar(async () => {
     try {
       iniciarSessao(await api('/auth/login', { method: 'POST', body: { usuario: form.usuario.trim(), senha: form.senha } }))
-      router.replace(route.query.voltar || '/painel')
+      router.replace(route.query.voltar || '/inicio')
     } catch (e) {
       erro.value = e.message
     }

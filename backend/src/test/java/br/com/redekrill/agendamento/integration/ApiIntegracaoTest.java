@@ -573,7 +573,7 @@ class ApiIntegracaoTest {
         mvc.perform(post("/api/v1/links-agendamento").header("Authorization", usuario).contentType(j).content("{\"cdId\":1}"))
                 .andExpect(status().isForbidden());
         String destinos = mvc.perform(get("/api/v1/links-agendamento/destinos").header("Authorization", admin))
-                .andExpect(jsonPath("$[0].descricao").value("CD 801 · CD 801"))
+                .andExpect(jsonPath("$[0].descricao").value("CD 801"))
                 .andReturn().getResponse().getContentAsString();
         // instalação nova: CDs 801, 805 e 806 e as 24 lojas da Rede Krill (V10); lojas de exemplo removidas
         assertThat(destinos).contains("CD 801", "CD 805", "CD 806", "Loja 01 - KRILL P. GRANDE", "Loja 28 - KRILL MARACANA");
@@ -612,6 +612,14 @@ class ApiIntegracaoTest {
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.alertas.length()").value(org.hamcrest.Matchers.greaterThan(0)))
                 .andExpect(jsonPath("$.linkFornecedor").value(org.hamcrest.Matchers.containsString("/fornecedor/")));
+        verify(mailSender, timeout(3000).atLeastOnce()).send(org.mockito.ArgumentMatchers.<MimeMessage>argThat(m -> {
+            try {
+                return java.util.Arrays.toString(m.getAllRecipients()).contains("agenda@serraazul.com.br")
+                        && m.getSubject().contains("Pedido 77001");
+            } catch (jakarta.mail.MessagingException e) {
+                return false;
+            }
+        }));
         mvc.perform(get("/api/v1/agendamentos").param("fornecedor", "serra azul").header("Authorization", usuario))
                 .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("fornecedor:agenda@serraazul.com.br")));
         mvc.perform(get("/api/v1/publico/agendar/token-inexistente-com-mais-de-vinte")).andExpect(status().isNotFound());

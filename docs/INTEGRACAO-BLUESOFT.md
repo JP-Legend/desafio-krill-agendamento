@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Quando o usuário digita o **ID do pedido** no novo agendamento, o sistema busca o pedido de compra no ERP e preenche sozinho o fornecedor, o e-mail, a quantidade de paletes e a paletização. O usuário confere e salva.
+Quando o usuário digita o **Nº do pedido de compra** no novo agendamento, o sistema busca o pedido de compra no ERP e preenche sozinho o fornecedor, o e-mail, a quantidade de paletes e a paletização. O usuário confere e salva.
 
 ## Como está montado
 

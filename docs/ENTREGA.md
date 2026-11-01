@@ -34,7 +34,7 @@ docker compose up --build
 | Relatório de segurança (OWASP Dependency-Check) | ✅ configurado, veja [SEGURANCA.md](SEGURANCA.md) |
 | **Extra:** PWA instalável + Web Push (novo, cancelado, capacidade excedida, chegada, divergência) | ✅ |
 | **Extra:** Início/dashboard, portaria e conferência, link público do fornecedor, vale-palete com assinatura e impressão | ✅ (porte do Gestão CD, veja [PORTE-GESTAO-CD.md](PORTE-GESTAO-CD.md)) |
-| **Extra:** Preenchimento pelo ID do pedido via ERP (Bluesoft pronto, desligado) | ✅ [INTEGRACAO-BLUESOFT.md](INTEGRACAO-BLUESOFT.md) |
+| **Extra:** Preenchimento pelo nº do pedido de compra via ERP (Bluesoft pronto, desligado) | ✅ [INTEGRACAO-BLUESOFT.md](INTEGRACAO-BLUESOFT.md) |
 | **Extra:** Remarcação pelo fornecedor (só com vaga) e pelo CD, multi-CD, fornecedores, produtos/pesos, XML da NF-e, divergências com CSV, tempos de descarga, rotina do dia | ✅ |
 | **Extra:** Conta-corrente de paletes, cobrança com recibo, romaneios e saldo por loja | ✅ |
 | **Extra:** Gestão de acessos no padrão do Gestão CD: usuários, perfis, permissões numeradas 1001+, botão Permissões em cada tela, troca de senha provisória e logs de acesso | ✅ |

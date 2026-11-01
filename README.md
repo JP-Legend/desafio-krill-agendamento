@@ -57,6 +57,20 @@ cd frontend && npm test           # Vitest + Vue Test Utils (npm run test:covera
 
 Relatório de cobertura: `backend/target/site/jacoco/index.html`.
 
+## Menu
+
+Um único menu, igual no topo (computador) e no menu lateral (celular). A tela inicial é o painel do dia: ocupação do dia e por faixa, status, próximos caminhões e alertas.
+
+| Grupo | Telas |
+|---|---|
+| Agendamentos | Ocupação da semana, Agendamentos, Novo agendamento, Links de agendamento, Relatório |
+| Recebimento | Pátio e docas, Divergências, Tempos de descarga |
+| Paletes | Vale-palete, Conta-corrente, Cobranças e recibos, Paletes nas lojas |
+| Cadastros | CDs, Lojas, Fornecedores, Produtos, Capacidade diária, Capacidade por CD e loja, Docas, Faixas horárias, Caminhões, Parâmetros de descarga, Taxa de descarga, Paletização, Tipos de palete, Conferentes |
+| Acessos e auditoria | Usuários, Perfis e permissões, Logs de acesso, Auditoria |
+
+Cada usuário só vê os itens que o perfil permite. CNPJ é digitado com máscara (00.000.000/0000-00) e o erro aparece embaixo do campo antes de enviar. O e-mail de confirmação sai ao agendar pelo sistema e pelo link; com `docker compose up`, as mensagens ficam em http://localhost:8025 (Mailpit).
+
 ## Regras de negócio
 
 - Capacidade padrão de **480 paletes/dia**, em **4 faixas de 2 horas** com **120 paletes** cada (tudo editável nos cadastros).
@@ -135,7 +149,7 @@ backend/src/main/java/br/com/redekrill/agendamento
 
 ## Integração com o ERP (Bluesoft)
 
-O formulário preenche fornecedor, e-mail, paletes e paletização a partir do **ID do pedido**. A consulta passa pela porta `PedidoCompraGateway`, que tem dois adaptadores:
+O formulário preenche fornecedor, e-mail, paletes e paletização a partir do **Nº do pedido de compra**. A consulta passa pela porta `PedidoCompraGateway`, que tem dois adaptadores:
 
 - `local` (padrão): base de demonstração com os pedidos 450001, 450002 e 450003.
 - `bluesoft`: OAuth `client_credentials` em `erp.bluesoft.com.br/<tenant>/oauth2/token` + `GET /api/compras/pedidos-de-compra`. Ative com `ERP_PROVEDOR=bluesoft` e as variáveis `BLUESOFT_*`.

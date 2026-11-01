@@ -27,7 +27,7 @@ public final class Requisicoes {
     public record CriarAgendamento(
             @NotNull(message = "Data é obrigatória") @Schema(example = "2026-11-04") LocalDate data,
             @NotNull(message = "Faixa horária é obrigatória") @Schema(example = "1") Long faixaHorariaId,
-            @NotNull(message = "ID do pedido é obrigatório") @Positive(message = "ID do pedido deve ser positivo") @Schema(example = "450001") Long idPedido,
+            @NotNull(message = "Nº do pedido de compra é obrigatório") @Positive(message = "Nº do pedido de compra deve ser positivo") @Schema(example = "450001") Long idPedido,
             @NotBlank(message = "Fornecedor é obrigatório") @Size(max = 80, message = "Fornecedor deve ter no máximo 80 caracteres") @Schema(example = "Distribuidora Litoral Alimentos Ltda") String fornecedor,
             @NotBlank(message = "E-mail do fornecedor é obrigatório") @Size(max = 80, message = "E-mail deve ter no máximo 80 caracteres")
             @Email(message = "E-mail do fornecedor inválido") @Schema(example = "agenda@litoralalimentos.com.br") String emailFornecedor,

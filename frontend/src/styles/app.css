@@ -55,11 +55,14 @@ h1, h2, h3 { color: var(--cor-titulo); }
 .marca span { font-size: 17px; font-weight: 700; }
 .marca small { font-weight: 500; font-size: 13px; color: var(--gc-tab-text); }
 .menu { display: flex; gap: 2px; flex: 1; overflow-x: auto; }
-.menu a {
+.menu a, .menu-grupo {
+  display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; cursor: pointer; font-family: inherit;
   color: var(--gc-tab-text); text-decoration: none; padding: 8px 10px; border-radius: var(--raio);
   white-space: nowrap; font-size: 13px; font-weight: 500;
 }
-.menu a:hover { background: var(--gc-topbar-hover); color: var(--gc-topbar-text); }
+.menu-grupo .pi { font-size: 11px; }
+.menu-grupo.ativo { background: var(--gc-topbar-hover); color: var(--gc-topbar-text); box-shadow: inset 0 -2px 0 var(--gc-panel); }
+.menu a:hover, .menu-grupo:hover { background: var(--gc-topbar-hover); color: var(--gc-topbar-text); }
 .menu a.router-link-active { background: var(--gc-topbar-hover); color: var(--gc-topbar-text); box-shadow: inset 0 -2px 0 var(--gc-panel); }
 .usuario { display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }
 .usuario .perfil { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: var(--gc-topbar-hover); color: var(--gc-yellow-400); font-weight: 600; }

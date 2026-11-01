@@ -22,7 +22,7 @@ public class PedidoCompraUseCase {
     }
 
     public Sugestao consultar(Long idPedido) {
-        if (idPedido == null || idPedido <= 0) throw new RegraNegocioException("ID do pedido deve ser um número positivo");
+        if (idPedido == null || idPedido <= 0) throw new RegraNegocioException("Nº do pedido de compra deve ser um número positivo");
         PedidoCompraErp p = gateway.buscarPedido(idPedido)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pedido no ERP (" + gateway.provedor() + ")", idPedido));
         Long tipo = null;

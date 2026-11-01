@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api'
-import { diaSemana, fmtData } from '../utils'
+import { diaSemana, emailValido, erroCnpj, fmtData, mascaraCnpj } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
 import EscolhaHorario from '../components/EscolhaHorario.vue'
@@ -20,6 +20,9 @@ const enviado = ref(null)
 const form = reactive({ fornecedor: '', cnpj: '', emailFornecedor: '', idPedido: null, tipoCaminhaoId: null, tipoPaletizacaoId: null, quantidadePaletes: null, transportadora: '', observacao: '', siteWeb: '' })
 
 const paletes = computed(() => form.quantidadePaletes || 0)
+const tocado = reactive({ cnpj: false, email: false })
+const msgCnpj = computed(() => (tocado.cnpj || form.cnpj.replace(/\D/g, '').length === 14 ? erroCnpj(form.cnpj) : ''))
+const msgEmail = computed(() => (tocado.email && form.emailFornecedor.trim() && !emailValido(form.emailFornecedor) ? 'E-mail inválido' : ''))
 
 async function carregar() {
   try {
@@ -44,7 +47,7 @@ function validar() {
   if (!escolha.value) faltando.push('o dia e a faixa')
   if (!form.fornecedor.trim()) faltando.push('o fornecedor')
   if (!form.emailFornecedor.trim()) faltando.push('o e-mail')
-  if (!form.idPedido) faltando.push('o nº do pedido')
+  if (!form.idPedido) faltando.push('o nº do pedido de compra')
   if (!form.tipoCaminhaoId) faltando.push('o tipo de caminhão')
   if (!form.tipoPaletizacaoId) faltando.push('a paletização')
   if (!form.quantidadePaletes) faltando.push('a quantidade de paletes')
@@ -54,6 +57,10 @@ function validar() {
 function agendarEntrega() {
   const faltando = validar()
   if (faltando.length) return notificar.aviso(`Informe ${faltando.join(', ')}`)
+  tocado.cnpj = true
+  tocado.email = true
+  if (erroCnpj(form.cnpj)) return notificar.aviso(erroCnpj(form.cnpj))
+  if (!emailValido(form.emailFornecedor)) return notificar.aviso('E-mail inválido')
   enviar(async () => {
     try {
       enviado.value = await api(base, {
@@ -114,9 +121,9 @@ defineExpose({ escolha, form, agendarEntrega })
       <div class="painel-titulo"><h2>Agendar entrega</h2><span class="texto-suave">{{ info.destino }}</span></div>
       <div class="form-grade">
         <div class="campo c8"><label for="ag-forn">Fornecedor <span class="obrig">*</span></label><InputText id="ag-forn" v-model="form.fornecedor" maxlength="80" autocomplete="organization" /></div>
-        <div class="campo c4"><label for="ag-cnpj">CNPJ</label><InputText id="ag-cnpj" v-model="form.cnpj" maxlength="18" inputmode="numeric" /></div>
-        <div class="campo c8"><label for="ag-email">E-mail <span class="obrig">*</span></label><InputText id="ag-email" v-model="form.emailFornecedor" type="email" maxlength="80" autocomplete="email" /></div>
-        <div class="campo c4"><label for="ag-ped">Nº do pedido <span class="obrig">*</span></label><InputNumber v-model="form.idPedido" input-id="ag-ped" :use-grouping="false" :min="1" /></div>
+        <div class="campo c4"><label for="ag-cnpj">CNPJ</label><InputText id="ag-cnpj" :model-value="form.cnpj" maxlength="18" inputmode="numeric" :invalid="!!msgCnpj" @update:model-value="(v) => { form.cnpj = mascaraCnpj(v) }" @blur="tocado.cnpj = true" /><span v-if="msgCnpj" class="erro">{{ msgCnpj }}</span></div>
+        <div class="campo c8"><label for="ag-email">E-mail <span class="obrig">*</span></label><InputText id="ag-email" v-model="form.emailFornecedor" type="email" maxlength="80" autocomplete="email" :invalid="!!msgEmail" @blur="tocado.email = true" /><span v-if="msgEmail" class="erro">{{ msgEmail }}</span></div>
+        <div class="campo c4"><label for="ag-ped">Nº do pedido de compra <span class="obrig">*</span></label><InputNumber v-model="form.idPedido" input-id="ag-ped" :use-grouping="false" :min="1" /></div>
         <div class="campo c4"><label for="ag-cam">Tipo de caminhão <span class="obrig">*</span></label><Select v-model="form.tipoCaminhaoId" input-id="ag-cam" :options="info.tiposCaminhao" option-label="nome" option-value="id" /></div>
         <div class="campo c4"><label for="ag-pal">Paletização <span class="obrig">*</span></label><Select v-model="form.tipoPaletizacaoId" input-id="ag-pal" :options="info.tiposPaletizacao" option-label="nome" option-value="id" /></div>
         <div class="campo c4"><label for="ag-qtd">Paletes <span class="obrig">*</span></label><InputNumber v-model="form.quantidadePaletes" input-id="ag-qtd" :min="1" :max="10000" /></div>

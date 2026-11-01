@@ -38,7 +38,6 @@ function alternar() {
       <div class="acoes-rodape">
         <Button :label="semPeso ? 'Mostrar todos' : 'Somente sem peso'" icon="pi pi-filter" class="btn-secundario" @click="alternar" />
         <Button label="Exportar catálogo (CSV)" icon="pi pi-download" class="btn-secundario" @click="exportar" />
-        <span class="texto-suave">Produtos novos entram automaticamente ao importar o XML da NF-e. Informe o peso para o cálculo de carga.</span>
       </div>
     </template>
   </CadastroCrud>
