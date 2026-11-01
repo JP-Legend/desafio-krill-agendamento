@@ -11,6 +11,7 @@ describe('InicioView e menu único', () => {
     simularApi({ 'GET /dashboard': erroHttp(500, 'fora') })
     const { w } = await montar(InicioView)
     expect(w.find('h1').text()).toContain('Hoje')
+    expect(w.findAll('.centrais-coluna').map((c) => c.findAll('.central-card').length)).toEqual([3, 2])
     const cards = w.findAll('.central-card')
     expect(cards.map((c) => c.find('.eyebrow').text())).toEqual(['AGE', 'REC', 'PAL', 'CAD', 'ADM'])
     await cards[0].find('button').trigger('click')

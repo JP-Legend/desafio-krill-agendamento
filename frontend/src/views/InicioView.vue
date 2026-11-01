@@ -16,6 +16,7 @@ const carregando = ref(false)
 let timer
 
 const centrais = computed(() => menuItens().map((g) => ({ ...g, ...CENTRAIS[g.grupo] })))
+const colunas = computed(() => [centrais.value.slice(0, 3), centrais.value.slice(3)].filter((c) => c.length))
 const aberta = ref(null)
 const alternar = (g) => { aberta.value = aberta.value === g ? null : g }
 
@@ -44,7 +45,8 @@ onUnmounted(() => clearInterval(timer))
 
 <template>
   <div class="centrais">
-    <div v-for="c in centrais" :key="c.grupo" class="central-card" :class="{ aberto: aberta === c.grupo }">
+    <div v-for="(coluna, ci) in colunas" :key="ci" class="centrais-coluna">
+    <div v-for="c in coluna" :key="c.grupo" class="central-card" :class="{ aberto: aberta === c.grupo }">
       <button type="button" class="central-gatilho" :aria-expanded="aberta === c.grupo" @click="alternar(c.grupo)">
         <span class="central-icone"><i :class="c.icone" /></span>
         <span class="central-nome"><span class="eyebrow">{{ c.sigla }}</span><strong>{{ c.titulo }}</strong></span>
@@ -53,6 +55,7 @@ onUnmounted(() => clearInterval(timer))
       <nav v-if="aberta === c.grupo" class="central-links">
         <RouterLink v-for="i in c.itens" :key="i.to" :to="i.to"><i :class="i.icon" />{{ i.label }}</RouterLink>
       </nav>
+    </div>
     </div>
   </div>
 
