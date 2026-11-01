@@ -608,4 +608,132 @@ class PorteRecebimentoUseCaseTest {
         assertThat(relatorios.rotina(HOJE, null).itens().stream().filter(i -> i.codigo().equals("COBRANCAS"))
                 .findFirst().orElseThrow().itens()).hasSize(1);
     }
+
+    // ---------- links públicos de agendamento por CD / loja (porte do Gestão CD)
+
+    final List<br.com.redekrill.agendamento.domain.model.LinkAgendamento> linksMem = new java.util.ArrayList<>();
+    final br.com.redekrill.agendamento.application.port.LinkAgendamentoRepositorio linksRepo =
+            new br.com.redekrill.agendamento.application.port.LinkAgendamentoRepositorio() {
+        public List<br.com.redekrill.agendamento.domain.model.LinkAgendamento> listar() {
+            return List.copyOf(linksMem);
+        }
+
+        public Optional<br.com.redekrill.agendamento.domain.model.LinkAgendamento> buscarPorId(Long id) {
+            return linksMem.stream().filter(l -> l.id().equals(id)).findFirst();
+        }
+
+        public Optional<br.com.redekrill.agendamento.domain.model.LinkAgendamento> buscarAtivoPorToken(String t) {
+            return linksMem.stream().filter(l -> l.ativo() && l.token().equals(t)).findFirst();
+        }
+
+        public void revogarAtivos(Long cdId, String loja, String u, OffsetDateTime q) {
+            linksMem.replaceAll(l -> l.ativo() && java.util.Objects.equals(l.cdId(), cdId) && java.util.Objects.equals(l.loja(), loja)
+                    ? new br.com.redekrill.agendamento.domain.model.LinkAgendamento(l.id(), l.token(), l.cdId(), l.loja(), false,
+                    l.criadoPor(), l.criadoEm(), u, q) : l);
+        }
+
+        public void revogar(Long id, String u, OffsetDateTime q) {
+            linksMem.replaceAll(l -> l.id().equals(id)
+                    ? new br.com.redekrill.agendamento.domain.model.LinkAgendamento(l.id(), l.token(), l.cdId(), l.loja(), false,
+                    l.criadoPor(), l.criadoEm(), u, q) : l);
+        }
+
+        public br.com.redekrill.agendamento.domain.model.LinkAgendamento salvar(br.com.redekrill.agendamento.domain.model.LinkAgendamento l) {
+            var s = new br.com.redekrill.agendamento.domain.model.LinkAgendamento((long) linksMem.size() + 1, l.token(), l.cdId(),
+                    l.loja(), l.ativo(), l.criadoPor(), l.criadoEm(), null, null);
+            linksMem.add(s);
+            return s;
+        }
+    };
+    final AtomicLong tokenSeq = new AtomicLong();
+    final GeradorToken tokensLink = new GeradorToken() {
+        public String novo() {
+            return "link-secreto-de-teste-" + tokenSeq.incrementAndGet();
+        }
+
+        public String hash(String t) {
+            return "h:" + t;
+        }
+    };
+
+    br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase linkUc(AuditoriaRepositorio audit,
+                                                                                   br.com.redekrill.agendamento.application.usecase.PatioUseCase patio) {
+        var cap = mock(br.com.redekrill.agendamento.application.port.CapacidadeRecebimentoRepositorio.class);
+        org.mockito.Mockito.when(cap.listar()).thenReturn(List.of(
+                new br.com.redekrill.agendamento.domain.model.CapacidadeRecebimento(1L, null, "Loja Centro", null, 40, null)));
+        return new br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase(linksRepo, agendamentos, patio, cds,
+                cap, fornecedores, caminhoes, mock(TipoPaletizacaoRepositorio.class), tokensLink,
+                new AuditoriaUseCase(audit, CLOCK), TX, CLOCK, "http://app/");
+    }
+
+    br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase.PedidoPublico pedidoPublico(Long cd, LocalDate d, int paletes) {
+        return new br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase.PedidoPublico(cd, d, 1L, 4501L,
+                "Bebidas Vale Ltda", null, "agenda@bebidasvale.com.br", 1L, 1L, paletes, null, null);
+    }
+
+    @Test
+    void linkDeAgendamentoPorCdRegeneraRevogaEAudita() {
+        AuditoriaRepositorio audit = mock(AuditoriaRepositorio.class);
+        var uc = linkUc(audit, mock(br.com.redekrill.agendamento.application.usecase.PatioUseCase.class));
+        Long cd = cds.listar().get(0).id();
+        assertThat(uc.destinos()).extracting(br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase.Destino::descricao)
+                .containsExactly("Todos os CDs (fornecedor escolhe)", "CD 806 · CD Rede Krill", "Loja Centro");
+        var primeiro = uc.gerar(cd, null, ADMIN);
+        assertThat(primeiro.url()).isEqualTo("http://app/agendar/link-secreto-de-teste-1");
+        assertThat(primeiro.destino()).isEqualTo("CD 806 · CD Rede Krill");
+        var segundo = uc.gerar(cd, null, ADMIN);
+        assertThat(uc.listar()).filteredOn(r -> r.link().ativo()).extracting(r -> r.link().id()).containsExactly(segundo.link().id());
+        assertThatThrownBy(() -> uc.formulario("link-secreto-de-teste-1"))
+                .isInstanceOf(br.com.redekrill.agendamento.domain.exception.RecursoNaoEncontradoException.class);
+        assertThat(uc.formulario("link-secreto-de-teste-2").destino()).isEqualTo("CD 806 · CD Rede Krill");
+        var revogado = uc.revogar(segundo.link().id(), ADMIN);
+        assertThat(revogado.url()).isNull();
+        assertThat(revogado.link().revogadoPor()).isEqualTo("admin");
+        assertThatThrownBy(() -> uc.revogar(segundo.link().id(), ADMIN)).hasMessage("Link já revogado");
+        assertThatThrownBy(() -> uc.disponibilidade("link-secreto-de-teste-2", null))
+                .isInstanceOf(br.com.redekrill.agendamento.domain.exception.RecursoNaoEncontradoException.class);
+        var cap = org.mockito.ArgumentCaptor.forClass(br.com.redekrill.agendamento.application.dto.RegistroAuditoria.class);
+        org.mockito.Mockito.verify(audit, org.mockito.Mockito.times(3)).registrar(cap.capture());
+        assertThat(cap.getAllValues()).extracting(br.com.redekrill.agendamento.application.dto.RegistroAuditoria::acao)
+                .containsExactly("GERAR_LINK_AGENDAMENTO", "GERAR_LINK_AGENDAMENTO", "REVOGAR_LINK_AGENDAMENTO");
+    }
+
+    @Test
+    void agendarPeloLinkAlertaSemBloquearEFicaNoCdDoLink() {
+        AuditoriaRepositorio audit = mock(AuditoriaRepositorio.class);
+        var uc = linkUc(audit, mock(br.com.redekrill.agendamento.application.usecase.PatioUseCase.class));
+        Long cd = cds.listar().get(0).id();
+        String token = uc.gerar(cd, null, ADMIN).url().replace("http://app/agendar/", "");
+        assertThat(uc.disponibilidade(token, 999L)).hasSize(14);
+        ag(1, HOJE.plusDays(1), 1, 110, StatusAgendamento.AGENDADO).vincular(cd, null);
+        var r = uc.agendar(token, pedidoPublico(999L, HOJE.plusDays(1), 20), "200.1.1.1");
+        assertThat(r.alertas()).isNotEmpty();
+        var criado = r.resultado().agendamento().agendamento();
+        assertThat(criado.getCdId()).isEqualTo(cd);
+        assertThat(criado.getCriadoPor()).isEqualTo("fornecedor:agenda@bebidasvale.com.br");
+        assertThat(r.resultado().linkFornecedor()).startsWith("http://app/fornecedor/");
+        assertThatThrownBy(() -> uc.agendar(token, pedidoPublico(null, HOJE.plusDays(20), 5), "200.1.1.1"))
+                .hasMessageContaining("próximos 14 dias");
+        var cap = org.mockito.ArgumentCaptor.forClass(br.com.redekrill.agendamento.application.dto.RegistroAuditoria.class);
+        org.mockito.Mockito.verify(audit, org.mockito.Mockito.times(2)).registrar(cap.capture());
+        assertThat(cap.getAllValues().get(1).acao()).isEqualTo("AGENDAR_PELO_LINK");
+        assertThat(cap.getAllValues().get(1).detalhes()).containsEntry("destino", "CD 806 · CD Rede Krill");
+    }
+
+    @Test
+    void linkDeLojaGravaALojaELinkDeTodosExigeCd() {
+        var patio = mock(br.com.redekrill.agendamento.application.usecase.PatioUseCase.class);
+        org.mockito.Mockito.when(patio.registrarLogistica(org.mockito.ArgumentMatchers.anyLong(), eq("Loja Centro"),
+                        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(List.of("Limite diário de paletes de Loja Centro excedido"));
+        var uc = linkUc(mock(AuditoriaRepositorio.class), patio);
+        String loja = uc.gerar(null, " Loja Centro ", ADMIN).url().replace("http://app/agendar/", "");
+        assertThat(uc.formulario(loja).destino()).isEqualTo("Loja Centro");
+        var r = uc.agendar(loja, pedidoPublico(null, HOJE, 5), "200.1.1.1");
+        assertThat(r.alertas()).containsExactly("Limite diário de paletes de Loja Centro excedido");
+        String todos = uc.gerar(null, null, ADMIN).url().replace("http://app/agendar/", "");
+        assertThat(uc.formulario(todos).cds()).hasSize(1);
+        assertThatThrownBy(() -> uc.agendar(todos, pedidoPublico(null, HOJE, 5), "200.1.1.1")).hasMessage("Escolha o CD");
+        assertThatThrownBy(() -> uc.formulario("curto")).hasMessageContaining("inválido");
+    }
 }

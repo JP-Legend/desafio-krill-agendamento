@@ -5,6 +5,8 @@ export const routes = [
   { path: '/', redirect: '/inicio' },
   { path: '/inicio', name: 'inicio', component: () => import('./views/InicioView.vue'), meta: { titulo: 'Início' } },
   { path: '/fornecedor/:token', name: 'fornecedor', component: () => import('./views/FornecedorPublicoView.vue'), meta: { publica: true, livre: true, titulo: 'Seu agendamento' } },
+  { path: '/agendar/:token', name: 'agendar', component: () => import('./views/AgendarView.vue'), meta: { publica: true, livre: true, titulo: 'Agendar entrega' } },
+  { path: '/links-agendamento', name: 'links-agendamento', component: () => import('./views/LinksAgendamentoView.vue'), meta: { permissao: 1107, titulo: 'Links de agendamento' } },
   { path: '/vales-palete', name: 'vales', component: () => import('./views/ValesPaleteView.vue'), meta: { permissao: 1301, titulo: 'Vale-palete' } },
   { path: '/vales-palete/novo', name: 'vale-novo', component: () => import('./views/ValePaleteView.vue'), meta: { permissao: 1302, titulo: 'Novo vale-palete' } },
   { path: '/vales-palete/:id(\\d+)', name: 'vale', component: () => import('./views/ValePaleteView.vue'), meta: { permissao: 1301, titulo: 'Vale-palete' } },

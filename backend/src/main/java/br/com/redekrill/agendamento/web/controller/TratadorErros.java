@@ -33,6 +33,11 @@ public class TratadorErros {
         return erro(HttpStatus.BAD_REQUEST, "Dados inválidos", det);
     }
 
+    @ExceptionHandler(LimitadorPublico.LimiteExcedidoException.class)
+    ResponseEntity<Erro> limite(LimitadorPublico.LimiteExcedidoException e) {
+        return erro(HttpStatus.TOO_MANY_REQUESTS, e.getMessage(), List.of());
+    }
+
     @ExceptionHandler(RegraNegocioException.class)
     ResponseEntity<Erro> regra(RegraNegocioException e) {
         return erro(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage(), List.of());

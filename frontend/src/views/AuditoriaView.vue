@@ -6,7 +6,7 @@ import { useNotificar } from '../composables/useNotificar'
 
 const notificar = useNotificar()
 const filtro = reactive({ inicio: deIso(somarDias(hoje(), -7)), fim: deIso(hoje()), usuario: '', acao: null, entidade: null })
-const acoes = ['LOGIN', 'LOGIN_FALHA', 'CRIAR', 'ALTERAR', 'CANCELAR', 'EXPORTAR'].map((v) => ({ label: v, value: v }))
+const acoes = ['LOGIN', 'LOGIN_FALHA', 'CRIAR', 'ALTERAR', 'CANCELAR', 'EXPORTAR', 'GERAR_LINK_AGENDAMENTO', 'REVOGAR_LINK_AGENDAMENTO', 'AGENDAR_PELO_LINK'].map((v) => ({ label: v, value: v }))
 const entidades = ['SESSAO', 'AGENDAMENTO', 'FAIXA_HORARIA', 'TIPO_CAMINHAO', 'TIPO_PALETIZACAO', 'PARAMETRO_CAPACIDADE', 'RELATORIO'].map((v) => ({ label: v, value: v }))
 const pagina = ref({ itens: [], total: 0 })
 const primeiro = ref(0)

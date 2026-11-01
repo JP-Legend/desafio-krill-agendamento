@@ -19,7 +19,8 @@ const GRUPOS = [
       { to: '/agendamentos/novo', label: 'Novo agendamento', icon: 'pi pi-plus', p: 1103 },
       { to: '/agendamentos', label: 'Agendamentos', icon: 'pi pi-calendar', p: 1102 },
       { to: '/vales-palete', label: 'Vale-palete', icon: 'pi pi-ticket', p: 1301 },
-      { to: '/relatorio', label: 'Relatório', icon: 'pi pi-file', p: 1106 }
+      { to: '/relatorio', label: 'Relatório', icon: 'pi pi-file', p: 1106 },
+      { to: '/links-agendamento', label: 'Links de agendamento', icon: 'pi pi-link', p: 1107 }
     ]
   },
   {

@@ -22,6 +22,7 @@ public enum Permissao {
     AGENDAMENTO_ALTERAR(1104, "Operação", "Agendamentos: remarcar e cancelar", "agendamentos", "detalhe"),
     LINK_FORNECEDOR(1105, "Operação", "Gerar link do fornecedor", "detalhe"),
     RELATORIO(1106, "Operação", "Relatório de agendamentos", "relatorio"),
+    LINKS_AGENDAMENTO(1107, "Operação", "Links de agendamento por CD e loja", "links-agendamento"),
 
     ROTINA(1201, "Recebimento", "Rotina do dia", "rotina"),
     DIVERGENCIAS(1202, "Recebimento", "Divergências", "divergencias"),

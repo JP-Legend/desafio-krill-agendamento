@@ -78,6 +78,25 @@ Relatório de cobertura: `backend/target/site/jacoco/index.html`.
 - **Logs de acesso** (permissão 1004): entradas, saídas, senhas recusadas e trocas de senha, com IP e navegador.
 - **Push** só chega a quem tem a permissão 1102 (Agendamentos: consultar), como o Gestão CD faz com `agendamento_ver`.
 
+### Links de agendamento por CD e loja (porte do Gestão CD)
+
+Mesmo fluxo da tela `/recebimento/agendamentos/links` do Gestão CD: um link fixo por CD, por loja ou para todos os CDs.
+
+1. Entre como `admin` e abra **Operação → Links de agendamento** (permissão 1107, só o perfil Administrador).
+2. Em **CD ou loja** escolha o destino (Todos os CDs, cada CD ativo ou cada loja com capacidade cadastrada) e clique em **Gerar / regenerar link**. O link sai copiado, no formato `http://localhost:8081/agendar/<token>` (token aleatório de 256 bits). Gerar de novo para o mesmo destino desativa o link anterior.
+3. Mande o link aos fornecedores. Quem abre vê só um formulário em branco: fornecedor, CNPJ (opcional), e-mail, nº do pedido, tipo de caminhão, paletização, paletes, transportadora, observação e a grade dos próximos 14 dias × faixas com os paletes livres. Nenhum agendamento ou fornecedor é listado; só a ocupação agregada do CD.
+4. Faixa ou dia sem vaga **não bloqueia**: a tela avisa antes de enviar, o agendamento é gravado com os alertas (e o CD recebe o push "Capacidade excedida"), como no cadastro interno. No link de loja, entra também o alerta da capacidade diária da loja.
+5. Ao enviar, o fornecedor recebe o número do agendamento e o **link do seu agendamento** (copiar, WhatsApp, e-mail) para confirmar presença, informar placa e remarcar.
+6. Na tela de links, **Revogar** desativa o link na hora: quem abrir vê "Este link de agendamento foi desativado. Peça um novo link ao CD."
+
+Auditoria: `GERAR_LINK_AGENDAMENTO`, `REVOGAR_LINK_AGENDAMENTO` e `AGENDAR_PELO_LINK` (com destino, IP e alertas), além do `CRIAR` do agendamento. As rotas públicas `/api/v1/publico/agendar/{token}` têm limite por IP (8 envios a cada 10 minutos e 60 consultas por minuto) e campo-isca contra robôs.
+
+| Tela | Print |
+|------|-------|
+| Links de agendamento | `docs/prints/desktop-48-links-agendamento.png` |
+| Formulário público | `docs/prints/desktop-49-agendar-pelo-link.png` |
+| Agendamento enviado | `docs/prints/desktop-50-agendamento-enviado.png` |
+
 ### Recebimento completo (porte do Gestão CD)
 
 - **Remarcação:** o fornecedor remarca pelo link público, só em faixa com vaga (o servidor recusa se estourar). O CD remarca pelo detalhe e pode exceder, com alerta.

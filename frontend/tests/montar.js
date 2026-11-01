@@ -48,7 +48,7 @@ function resposta(status, corpo) {
 const faixa = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i)
 /** Permissões dos perfis semeados na V7: Administrador tem todas; Consulta só leitura. */
 export const PERMISSOES = {
-  ADMIN: [...faixa(1001, 1005), ...faixa(1101, 1106), ...faixa(1201, 1207), ...faixa(1301, 1308), ...faixa(1401, 1411)],
+  ADMIN: [...faixa(1001, 1005), ...faixa(1101, 1107), ...faixa(1201, 1207), ...faixa(1301, 1308), ...faixa(1401, 1411)],
   USUARIO: [1101, 1102, 1106, 1201, 1202, 1203, 1205, 1301, 1304, 1307]
 }
 
@@ -60,7 +60,7 @@ export const sair = encerrarSessao
 export async function montar(componente, { props, rota = '/', rotas, stubs } = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: rotas || ['/agendamentos/:id(\\d+)', '/fornecedor/:token', '/paletes/recibos/:id', '/vales-palete/:id(\\d+)', '/:p(.*)*']
+    routes: rotas || ['/agendamentos/:id(\\d+)', '/fornecedor/:token', '/agendar/:token', '/paletes/recibos/:id', '/vales-palete/:id(\\d+)', '/:p(.*)*']
       .map((path) => ({ path, component: { render: () => null } }))
   })
   router.push(rota)

@@ -563,4 +563,45 @@ class ApiIntegracaoTest {
         mvc.perform(get("/api/v1/tipos-palete").param("ativos", "true").param("cdId", "1").header("Authorization", usuario))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void linkPublicoDeAgendamentoPorCd() throws Exception {
+        String admin = token("admin", "admin123");
+        String usuario = token("usuario", "usuario123");
+        var j = MediaType.APPLICATION_JSON;
+        mvc.perform(get("/api/v1/links-agendamento").header("Authorization", usuario)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/links-agendamento").header("Authorization", usuario).contentType(j).content("{\"cdId\":1}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/links-agendamento/destinos").header("Authorization", admin))
+                .andExpect(jsonPath("$[0].descricao").value("Todos os CDs (fornecedor escolhe)"));
+        JsonNode link = json.readTree(mvc.perform(post("/api/v1/links-agendamento").header("Authorization", admin)
+                        .contentType(j).content("{\"cdId\":1}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+        String tk = link.get("url").asText().replaceAll(".*/agendar/", "");
+        assertThat(tk.length()).isGreaterThanOrEqualTo(40);
+
+        mvc.perform(get("/api/v1/publico/agendar/" + tk)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.destino").exists()).andExpect(jsonPath("$.cds.length()").value(1));
+        mvc.perform(get("/api/v1/publico/agendar/" + tk + "/disponibilidade")).andExpect(jsonPath("$.length()").value(14))
+                .andExpect(jsonPath("$[0].quantidadeAgendamentos").exists());
+        String corpo = """
+                {"data":"%s","faixaHorariaId":1,"idPedido":77001,"fornecedor":"Laticínios Serra Azul",
+                 "emailFornecedor":"agenda@serraazul.com.br","tipoCaminhaoId":2,"tipoPaletizacaoId":1,
+                 "quantidadePaletes":130}""".formatted(LocalDate.now(ZoneId.of("America/Sao_Paulo")).plusDays(2));
+        mvc.perform(post("/api/v1/publico/agendar/" + tk).contentType(j).content(corpo))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.alertas.length()").value(org.hamcrest.Matchers.greaterThan(0)))
+                .andExpect(jsonPath("$.linkFornecedor").value(org.hamcrest.Matchers.containsString("/fornecedor/")));
+        mvc.perform(get("/api/v1/agendamentos").param("fornecedor", "serra azul").header("Authorization", usuario))
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("fornecedor:agenda@serraazul.com.br")));
+        mvc.perform(get("/api/v1/publico/agendar/token-inexistente-com-mais-de-vinte")).andExpect(status().isNotFound());
+
+        mvc.perform(patch("/api/v1/links-agendamento/" + link.get("id").asLong() + "/revogacao").header("Authorization", admin))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.ativo").value(false));
+        mvc.perform(get("/api/v1/publico/agendar/" + tk)).andExpect(status().isNotFound());
+        mvc.perform(post("/api/v1/publico/agendar/" + tk).contentType(j).content(corpo)).andExpect(status().isNotFound());
+        String aud = mvc.perform(get("/api/v1/auditoria").param("tamanho", "100").header("Authorization", admin))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(aud).contains("GERAR_LINK_AGENDAMENTO", "REVOGAR_LINK_AGENDAMENTO", "AGENDAR_PELO_LINK");
+    }
 }

@@ -103,6 +103,18 @@ public class UseCaseConfig {
     }
 
     @Bean
+    br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase linkAgendamentoUseCase(
+            br.com.redekrill.agendamento.application.port.LinkAgendamentoRepositorio l, AgendamentoUseCase uc,
+            br.com.redekrill.agendamento.application.usecase.PatioUseCase patio, CentroDistribuicaoRepositorio cds,
+            br.com.redekrill.agendamento.application.port.CapacidadeRecebimentoRepositorio cap,
+            FornecedorRepositorio fornecedores, TipoCaminhaoRepositorio c, TipoPaletizacaoRepositorio t,
+            GeradorToken tokens, AuditoriaUseCase a, Transacao tx, Clock clock,
+            @Value("${app.url-publica}") String urlPublica) {
+        return new br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase(l, uc, patio, cds, cap,
+                fornecedores, c, t, tokens, a, tx, clock, urlPublica);
+    }
+
+    @Bean
     FornecedorLinkUseCase fornecedorLinkUseCase(AgendamentoRepositorio ag, AgendamentoUseCase uc, GeradorToken tokens,
                                                 AuditoriaUseCase a, Transacao tx, Clock clock) {
         return new FornecedorLinkUseCase(ag, uc, tokens, a, tx, clock);
