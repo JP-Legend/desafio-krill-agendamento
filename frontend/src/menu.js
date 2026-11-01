@@ -1,12 +1,12 @@
 import { pode } from './sessao'
 
-/** Menu único do sistema: o mesmo agrupamento no topo (desktop) e no menu lateral (celular). */
+/** Menu único do sistema: a grade da tela inicial e o menu lateral usam estes grupos; cada tela aparece uma vez. */
 export const CENTRAIS = {
-  Agendamentos: { icone: 'pi pi-calendar' },
-  Recebimento: { icone: 'pi pi-clipboard' },
-  Paletes: { icone: 'pi pi-box' },
-  Cadastros: { icone: 'pi pi-database' },
-  'Acessos e auditoria': { icone: 'pi pi-shield' }
+  Agendamentos: { sigla: 'AGE', titulo: 'Agendamentos', icone: 'pi pi-calendar' },
+  Recebimento: { sigla: 'REC', titulo: 'Recebimento', icone: 'pi pi-clipboard' },
+  Paletes: { sigla: 'PAL', titulo: 'Paletes', icone: 'pi pi-box' },
+  Cadastros: { sigla: 'CAD', titulo: 'Cadastros', icone: 'pi pi-database' },
+  'Acessos e auditoria': { sigla: 'ADM', titulo: 'Acessos e auditoria', icone: 'pi pi-shield' }
 }
 
 /** p = permissão numerada exigida (lista: basta uma). */
@@ -77,3 +77,4 @@ export function permiteItem(item, podeFn = pode) {
 export function menuItens(podeFn = pode) {
   return GRUPOS.map((g) => ({ grupo: g.grupo, itens: g.itens.filter((i) => permiteItem(i, podeFn)) })).filter((g) => g.itens.length)
 }
+

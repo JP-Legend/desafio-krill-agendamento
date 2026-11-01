@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { pode } from '../sessao'
+import { CENTRAIS, menuItens } from '../menu'
 import { diaSemana, fmtData, fmtPct, hoje, nivelOcupacao } from '../utils'
 import { useNotificar } from '../composables/useNotificar'
 import BarraOcupacao from '../components/BarraOcupacao.vue'
@@ -13,6 +14,10 @@ const notificar = useNotificar()
 const d = ref(null)
 const carregando = ref(false)
 let timer
+
+const centrais = computed(() => menuItens().map((g) => ({ ...g, ...CENTRAIS[g.grupo] })))
+const aberta = ref(null)
+const alternar = (g) => { aberta.value = aberta.value === g ? null : g }
 
 const STATUS = [
   ['AGENDADO', 'Agendados'], ['CONFIRMADO', 'Confirmados'], ['CHEGOU', 'Na portaria'], ['EM_RECEBIMENTO', 'Em conferência'],
@@ -38,6 +43,19 @@ onUnmounted(() => clearInterval(timer))
 </script>
 
 <template>
+  <div class="centrais">
+    <div v-for="c in centrais" :key="c.grupo" class="central-card" :class="{ aberto: aberta === c.grupo }">
+      <button type="button" class="central-gatilho" :aria-expanded="aberta === c.grupo" @click="alternar(c.grupo)">
+        <span class="central-icone"><i :class="c.icone" /></span>
+        <span class="central-nome"><span class="eyebrow">{{ c.sigla }}</span><strong>{{ c.titulo }}</strong></span>
+        <i class="pi pi-chevron-down central-chevron" />
+      </button>
+      <nav v-if="aberta === c.grupo" class="central-links">
+        <RouterLink v-for="i in c.itens" :key="i.to" :to="i.to"><i :class="i.icon" />{{ i.label }}</RouterLink>
+      </nav>
+    </div>
+  </div>
+
   <div class="cabecalho">
     <h1>Hoje · {{ fmtData(hoje()) }}</h1>
     <div class="acoes">

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { sessao, pode, logado, encerrarSessao, atualizarSessao } from './sessao'
 import { api } from './api'
@@ -7,9 +7,12 @@ import BotaoPermissoes from './components/BotaoPermissoes.vue'
 import { ativarPush, desativarPush, inscricaoAtual, pushSuportado } from './push'
 import { useNotificar } from './composables/useNotificar'
 import { menuItens } from './menu'
+import { abrirAba, chaveCache, limparAbas } from './abas'
+import AbasMdi from './components/AbasMdi.vue'
 
 const route = useRoute()
 const router = useRouter()
+watch(() => route.fullPath, () => { if (logado.value) abrirAba(route) }, { immediate: true })
 const notificar = useNotificar()
 const menuAberto = ref(false)
 const online = ref(navigator.onLine)
@@ -17,12 +20,6 @@ const pushAtivo = ref(false)
 const mostrarTopo = computed(() => !route.meta.publica)
 
 const itens = computed(() => menuItens())
-const menuGrupo = ref()
-const modeloGrupo = ref([])
-function abrirGrupo(e, g) {
-  modeloGrupo.value = g.itens.map((i) => ({ label: i.label, icon: i.icon, command: () => router.push(i.to) }))
-  menuGrupo.value.show(e)
-}
 const itensPlanos = computed(() => itens.value.flatMap((g) => g.itens))
 
 const atualizarRede = () => { online.value = navigator.onLine }
@@ -56,6 +53,7 @@ async function alternarPush() {
 async function sair() {
   await api('/auth/logout', { method: 'POST' }).catch(() => {})
   encerrarSessao()
+  limparAbas()
   router.push({ name: 'login' })
 }
 </script>
@@ -69,14 +67,6 @@ async function sair() {
         <img src="/img/rede-krill-logo.png" alt="Rede Krill" width="570" height="528" />
         <span>Agendamento Rede Krill</span>
       </RouterLink>
-      <nav class="menu">
-        <RouterLink to="/inicio">Início</RouterLink>
-        <button
-          v-for="g in itens" :key="g.grupo" type="button" class="menu-grupo" :class="{ ativo: g.itens.some((i) => route.path.startsWith(i.to)) }"
-          aria-haspopup="true" @click="(e) => abrirGrupo(e, g)"
-        >{{ g.grupo }}<i class="pi pi-angle-down" /></button>
-      </nav>
-      <Menu ref="menuGrupo" :model="modeloGrupo" popup />
       <div class="espaco" />
       <div class="usuario">
         <button
@@ -95,6 +85,7 @@ async function sair() {
       </div>
     </header>
     <div v-if="!online" class="offline">Sem conexão. Os dados serão atualizados quando a rede voltar.</div>
+    <AbasMdi />
     <Drawer v-model:visible="menuAberto" header="Menu">
       <nav class="menu-lateral" @click="menuAberto = false">
         <RouterLink to="/inicio"><i class="pi pi-home" />Início</RouterLink>
@@ -106,7 +97,9 @@ async function sair() {
     </Drawer>
     <main class="conteudo">
       <div v-if="route.name && !route.meta.semPermissoes" class="barra-permissoes"><BotaoPermissoes :tela="route.name" /></div>
-      <RouterView />
+      <RouterView v-slot="{ Component, route: r }">
+        <KeepAlive :max="12"><component :is="Component" :key="chaveCache(r)" /></KeepAlive>
+      </RouterView>
     </main>
   </template>
   <RouterView v-else />

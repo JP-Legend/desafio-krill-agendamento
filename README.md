@@ -59,7 +59,9 @@ Relatório de cobertura: `backend/target/site/jacoco/index.html`.
 
 ## Menu
 
-Um único menu, igual no topo (computador) e no menu lateral (celular). A tela inicial é o painel do dia: ocupação do dia e por faixa, status, próximos caminhões e alertas.
+Um único menu: a grade de módulos da tela inicial (AGE, REC, PAL, CAD, ADM) e o menu lateral (☰) usam os mesmos grupos, e cada tela aparece uma vez só. Abaixo da grade fica o painel do dia: ocupação do dia e por faixa, status, próximos caminhões e alertas.
+
+Cada tela aberta vira uma aba abaixo do cabeçalho (Início fica fixa): a aba guarda o estado da tela, fecha no × ou com o botão do meio do mouse e pode ser arrastada para mudar a ordem. No celular, a barra mostra o nome da tela e um atalho para o Início.
 
 | Grupo | Telas |
 |---|---|
