@@ -67,7 +67,7 @@ public class LinkAgendamentoUseCase {
                              List<TipoPaletizacao> paletizacoes) {
     }
 
-    public record PedidoPublico(Long cdId, LocalDate data, Long faixaHorariaId, Long idPedido, String fornecedor,
+    public record PedidoPublico(LocalDate data, Long faixaHorariaId, Long idPedido, String fornecedor,
                                 String cnpj, String emailFornecedor, Long tipoCaminhaoId, Long tipoPaletizacaoId,
                                 Integer quantidadePaletes, String transportadora, String observacao) {
     }
@@ -98,10 +98,9 @@ public class LinkAgendamentoUseCase {
 
     // ---- Tela "Links de agendamento" (admin)
 
-    /** Destinos do select: todos os CDs, cada CD ativo e cada loja ativa do cadastro (ou com capacidade cadastrada). */
+    /** Destinos do select: cada CD ativo e cada loja ativa do cadastro (ou com capacidade cadastrada). */
     public List<Destino> destinos() {
         List<Destino> r = new ArrayList<>();
-        r.add(new Destino(null, null, "Todos os CDs (fornecedor escolhe)"));
         cds.listar().stream().filter(CentroDistribuicao::ativo)
                 .sorted(java.util.Comparator.comparing(CentroDistribuicao::codigo)).forEach(c -> r.add(new Destino(c.id(), null, descricaoCd(c))));
         TreeSet<String> nomes = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
@@ -119,6 +118,7 @@ public class LinkAgendamentoUseCase {
     /** Gera (ou regenera) o link do destino: o link ativo do mesmo CD/loja deixa de funcionar. */
     public LinkResumo gerar(Long cdId, String loja, Solicitante s) {
         String lojaLimpa = loja == null || loja.isBlank() ? null : loja.trim();
+        if ((cdId == null) == (lojaLimpa == null)) throw new RegraNegocioException("Escolha um CD ou uma loja");
         if (cdId != null) cdAtivo(cdId);
         return transacao.executar(() -> {
             OffsetDateTime agora = OffsetDateTime.now(clock);
@@ -145,25 +145,22 @@ public class LinkAgendamentoUseCase {
 
     public Formulario formulario(String token) {
         LinkAgendamento l = ativo(token);
-        List<CentroDistribuicao> lista = l.todosOsCds()
-                ? cds.listar().stream().filter(CentroDistribuicao::ativo).toList()
-                : l.cdId() == null ? List.of() : List.of(cdAtivo(l.cdId()));
-        return new Formulario(destino(l), l.loja(), lista,
+        return new Formulario(destino(l), l.loja(), l.cdId() == null ? List.of() : List.of(cdAtivo(l.cdId())),
                 caminhoes.listar().stream().filter(TipoCaminhao::ativo).toList(),
                 paletizacoes.listar().stream().filter(TipoPaletizacao::ativo).toList());
     }
 
     /** Ocupação agregada dos próximos 14 dias do CD do link (nenhum dado de outros agendamentos). */
-    public List<OcupacaoDia> disponibilidade(String token, Long cdId) {
+    public List<OcupacaoDia> disponibilidade(String token) {
         LinkAgendamento l = ativo(token);
         LocalDate hoje = LocalDate.now(clock);
-        return agendamentos.ocupacaoPeriodo(hoje, hoje.plusDays(DIAS_DISPONIVEIS - 1), cdDoPedido(l, cdId));
+        return agendamentos.ocupacaoPeriodo(hoje, hoje.plusDays(DIAS_DISPONIVEIS - 1), l.cdId());
     }
 
     /** Cria o agendamento pelo link. Excesso de capacidade não bloqueia: volta como alerta e avisa o CD. */
     public Agendado agendar(String token, PedidoPublico p, String ip) {
         LinkAgendamento l = ativo(token);
-        Long cdId = cdDoPedido(l, p.cdId());
+        Long cdId = l.cdId();
         LocalDate hoje = LocalDate.now(clock);
         if (p.data() == null) throw new RegraNegocioException("Data é obrigatória");
         if (p.data().isBefore(hoje) || p.data().isAfter(hoje.plusDays(DIAS_DISPONIVEIS - 1))) {
@@ -200,15 +197,9 @@ public class LinkAgendamentoUseCase {
         if (token == null || token.length() < 20 || token.length() > 64) {
             throw new RecursoNaoEncontradoException("Link", "inválido");
         }
-        return links.buscarAtivoPorToken(token)
+        // Links antigos "todos os CDs" (sem CD nem loja) não abrem mais: só ficam na lista para revogar.
+        return links.buscarAtivoPorToken(token).filter(l -> !l.todosOsCds())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Link", "desativado"));
-    }
-
-    private Long cdDoPedido(LinkAgendamento l, Long cdId) {
-        if (!l.todosOsCds()) return l.cdId();
-        if (cdId == null) throw new RegraNegocioException("Escolha o CD");
-        cdAtivo(cdId);
-        return cdId;
     }
 
     private CentroDistribuicao cdAtivo(Long cdId) {
@@ -223,7 +214,7 @@ public class LinkAgendamentoUseCase {
 
     private String destino(LinkAgendamento l) {
         if (l.loja() != null) return descricaoLoja(l.loja());
-        if (l.cdId() == null) return "Todos os CDs";
+        if (l.cdId() == null) return "Todos os CDs (link antigo)";
         return cds.buscarPorId(l.cdId()).map(this::descricaoCd).orElse("CD " + l.cdId());
     }
 

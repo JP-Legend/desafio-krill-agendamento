@@ -7,7 +7,6 @@ import AgendarView from '../../src/views/AgendarView.vue'
 import LojasView from '../../src/views/LojasView.vue'
 
 const DESTINOS = [
-  { cdId: null, loja: null, descricao: 'Todos os CDs (fornecedor escolhe)' },
   { cdId: 3, loja: null, descricao: 'CD 801 · CD 801' },
   { cdId: 4, loja: null, descricao: 'CD 805 · CD 805' },
   { cdId: 1, loja: null, descricao: 'CD 806 · CD Rede Krill' },
@@ -54,7 +53,7 @@ describe('links de agendamento (porte do Gestão CD)', () => {
     expect(document.body.textContent).toContain('O link ativo deste destino deixa de funcionar')
     docBotao('Gerar link').click()
     await flushPromises()
-    expect(api.ultima('POST /links-agendamento').corpo).toEqual({ cdId: null, loja: null })
+    expect(api.ultima('POST /links-agendamento').corpo).toEqual({ cdId: 3, loja: null })
     expect(toast()).toContain('Novo link público gerado')
 
     await botao(w, 'Revogar').trigger('click')
@@ -86,7 +85,8 @@ describe('links de agendamento (porte do Gestão CD)', () => {
     await w.find('form').trigger('submit')
     await flushPromises()
     const corpo = api.ultima('POST /publico/agendar/tk').corpo
-    expect(corpo).toMatchObject({ cdId: 1, faixaHorariaId: 1, data: hoje, quantidadePaletes: 30, cnpj: null, siteWeb: '' })
+    expect(corpo.cdId).toBeUndefined()
+    expect(corpo).toMatchObject({ faixaHorariaId: 1, data: hoje, quantidadePaletes: 30, cnpj: null, siteWeb: '' })
     expect(w.text()).toContain('Agendamento nº 55 enviado')
     expect(w.text()).toContain('excedida')
     expect(w.find('.link-copia input').element.value).toBe('http://localhost:8081/fornecedor/segredo')
@@ -105,7 +105,7 @@ describe('links de agendamento (porte do Gestão CD)', () => {
     await w.find('#la-destino').trigger('click')
     await flushPromises()
     const opcoes = [...document.querySelectorAll('[role=option]')].map((o) => o.textContent)
-    expect(opcoes).toEqual(['Todos os CDs (fornecedor escolhe)', 'CD 801 · CD 801', 'CD 805 · CD 805', 'CD 806 · CD Rede Krill', 'Loja Centro'])
+    expect(opcoes).toEqual(['CD 801 · CD 801', 'CD 805 · CD 805', 'CD 806 · CD Rede Krill', 'Loja Centro'])
     tela.vm.destino = DESTINOS.length - 1
     await flushPromises()
     expect(w.find('.campo-destino').text()).toContain('Loja Centro')

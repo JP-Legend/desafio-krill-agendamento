@@ -671,8 +671,8 @@ class PorteRecebimentoUseCaseTest {
                 new AuditoriaUseCase(audit, CLOCK), TX, CLOCK, "http://app/");
     }
 
-    br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase.PedidoPublico pedidoPublico(Long cd, LocalDate d, int paletes) {
-        return new br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase.PedidoPublico(cd, d, 1L, 4501L,
+    br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase.PedidoPublico pedidoPublico(LocalDate d, int paletes) {
+        return new br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase.PedidoPublico(d, 1L, 4501L,
                 "Bebidas Vale Ltda", null, "agenda@bebidasvale.com.br", 1L, 1L, paletes, null, null);
     }
 
@@ -682,7 +682,7 @@ class PorteRecebimentoUseCaseTest {
         var uc = linkUc(audit, mock(br.com.redekrill.agendamento.application.usecase.PatioUseCase.class));
         Long cd = cds.listar().get(0).id();
         assertThat(uc.destinos()).extracting(br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase.Destino::descricao)
-                .containsExactly("Todos os CDs (fornecedor escolhe)", "CD 806 · CD Rede Krill", "Loja 02", "loja centro");
+                .containsExactly("CD 806 · CD Rede Krill", "Loja 02", "loja centro");
         var primeiro = uc.gerar(cd, null, ADMIN);
         assertThat(primeiro.url()).isEqualTo("http://app/agendar/link-secreto-de-teste-1");
         assertThat(primeiro.destino()).isEqualTo("CD 806 · CD Rede Krill");
@@ -695,7 +695,7 @@ class PorteRecebimentoUseCaseTest {
         assertThat(revogado.url()).isNull();
         assertThat(revogado.link().revogadoPor()).isEqualTo("admin");
         assertThatThrownBy(() -> uc.revogar(segundo.link().id(), ADMIN)).hasMessage("Link já revogado");
-        assertThatThrownBy(() -> uc.disponibilidade("link-secreto-de-teste-2", null))
+        assertThatThrownBy(() -> uc.disponibilidade("link-secreto-de-teste-2"))
                 .isInstanceOf(br.com.redekrill.agendamento.domain.exception.RecursoNaoEncontradoException.class);
         var cap = org.mockito.ArgumentCaptor.forClass(br.com.redekrill.agendamento.application.dto.RegistroAuditoria.class);
         org.mockito.Mockito.verify(audit, org.mockito.Mockito.times(3)).registrar(cap.capture());
@@ -709,15 +709,15 @@ class PorteRecebimentoUseCaseTest {
         var uc = linkUc(audit, mock(br.com.redekrill.agendamento.application.usecase.PatioUseCase.class));
         Long cd = cds.listar().get(0).id();
         String token = uc.gerar(cd, null, ADMIN).url().replace("http://app/agendar/", "");
-        assertThat(uc.disponibilidade(token, 999L)).hasSize(14);
+        assertThat(uc.disponibilidade(token)).hasSize(14);
         ag(1, HOJE.plusDays(1), 1, 110, StatusAgendamento.AGENDADO).vincular(cd, null);
-        var r = uc.agendar(token, pedidoPublico(999L, HOJE.plusDays(1), 20), "200.1.1.1");
+        var r = uc.agendar(token, pedidoPublico(HOJE.plusDays(1), 20), "200.1.1.1");
         assertThat(r.alertas()).isNotEmpty();
         var criado = r.resultado().agendamento().agendamento();
         assertThat(criado.getCdId()).isEqualTo(cd);
         assertThat(criado.getCriadoPor()).isEqualTo("fornecedor:agenda@bebidasvale.com.br");
         assertThat(r.resultado().linkFornecedor()).startsWith("http://app/fornecedor/");
-        assertThatThrownBy(() -> uc.agendar(token, pedidoPublico(null, HOJE.plusDays(20), 5), "200.1.1.1"))
+        assertThatThrownBy(() -> uc.agendar(token, pedidoPublico(HOJE.plusDays(20), 5), "200.1.1.1"))
                 .hasMessageContaining("próximos 14 dias");
         var cap = org.mockito.ArgumentCaptor.forClass(br.com.redekrill.agendamento.application.dto.RegistroAuditoria.class);
         org.mockito.Mockito.verify(audit, org.mockito.Mockito.times(2)).registrar(cap.capture());
@@ -726,7 +726,7 @@ class PorteRecebimentoUseCaseTest {
     }
 
     @Test
-    void linkDeLojaGravaALojaELinkDeTodosExigeCd() {
+    void linkDeLojaGravaALojaESemDestinoNaoGera() {
         var patio = mock(br.com.redekrill.agendamento.application.usecase.PatioUseCase.class);
         org.mockito.Mockito.when(patio.registrarLogistica(org.mockito.ArgumentMatchers.anyLong(), eq("Loja Centro"),
                         org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
@@ -734,11 +734,13 @@ class PorteRecebimentoUseCaseTest {
         var uc = linkUc(mock(AuditoriaRepositorio.class), patio);
         String loja = uc.gerar(null, " Loja Centro ", ADMIN).url().replace("http://app/agendar/", "");
         assertThat(uc.formulario(loja).destino()).isEqualTo("Loja Centro");
-        var r = uc.agendar(loja, pedidoPublico(null, HOJE, 5), "200.1.1.1");
+        var r = uc.agendar(loja, pedidoPublico(HOJE, 5), "200.1.1.1");
         assertThat(r.alertas()).containsExactly("Limite diário de paletes de Loja Centro excedido");
-        String todos = uc.gerar(null, null, ADMIN).url().replace("http://app/agendar/", "");
-        assertThat(uc.formulario(todos).cds()).hasSize(1);
-        assertThatThrownBy(() -> uc.agendar(todos, pedidoPublico(null, HOJE, 5), "200.1.1.1")).hasMessage("Escolha o CD");
+        assertThatThrownBy(() -> uc.gerar(null, " ", ADMIN)).hasMessage("Escolha um CD ou uma loja");
+        // link antigo "todos os CDs" (anterior à V11) não abre mais
+        linksMem.add(br.com.redekrill.agendamento.domain.model.LinkAgendamento.novo("link-antigo-todos-os-cds-0001", null, null, "admin", AGORA));
+        assertThatThrownBy(() -> uc.formulario("link-antigo-todos-os-cds-0001"))
+                .isInstanceOf(br.com.redekrill.agendamento.domain.exception.RecursoNaoEncontradoException.class);
         assertThatThrownBy(() -> uc.formulario("curto")).hasMessageContaining("inválido");
     }
 }

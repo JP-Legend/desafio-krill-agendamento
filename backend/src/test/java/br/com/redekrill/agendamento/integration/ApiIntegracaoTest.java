@@ -573,13 +573,15 @@ class ApiIntegracaoTest {
         mvc.perform(post("/api/v1/links-agendamento").header("Authorization", usuario).contentType(j).content("{\"cdId\":1}"))
                 .andExpect(status().isForbidden());
         String destinos = mvc.perform(get("/api/v1/links-agendamento/destinos").header("Authorization", admin))
-                .andExpect(jsonPath("$[0].descricao").value("Todos os CDs (fornecedor escolhe)"))
+                .andExpect(jsonPath("$[0].descricao").value("CD 801 · CD 801"))
                 .andReturn().getResponse().getContentAsString();
         // instalação nova: CDs 801, 805 e 806 e as 24 lojas da Rede Krill (V10); lojas de exemplo removidas
         assertThat(destinos).contains("CD 801", "CD 805", "CD 806", "Loja 01 - KRILL P. GRANDE", "Loja 28 - KRILL MARACANA");
-        assertThat(destinos).doesNotContain("\"Loja 01\"", "\"Loja 02\"", "\"Loja 03\"");
+        assertThat(destinos).doesNotContain("Todos os CDs", "\"Loja 01\"", "\"Loja 02\"", "\"Loja 03\"");
         assertThat(json.readTree(mvc.perform(get("/api/v1/lojas").header("Authorization", usuario)).andReturn().getResponse()
                 .getContentAsString()).size()).isEqualTo(24);
+        mvc.perform(post("/api/v1/links-agendamento").header("Authorization", admin).contentType(j).content("{}"))
+                .andExpect(status().isUnprocessableEntity());
         mvc.perform(post("/api/v1/lojas").header("Authorization", usuario).contentType(j).content("{\"nome\":\"Loja 20\"}"))
                 .andExpect(status().isForbidden());
         mvc.perform(post("/api/v1/lojas").header("Authorization", admin).contentType(j).content("{\"nome\":\"Loja 20 - Porto\",\"cdId\":1}"))

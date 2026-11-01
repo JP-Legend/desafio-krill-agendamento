@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -53,7 +52,7 @@ public class AgendarPublicoController {
                                  List<Opcao> tiposPaletizacao) {
     }
 
-    public record Agendar(Long cdId,
+    public record Agendar(
                           @NotNull(message = "Data é obrigatória") LocalDate data,
                           @NotNull(message = "Faixa horária é obrigatória") Long faixaHorariaId,
                           @NotNull(message = "Nº do pedido é obrigatório") @Positive(message = "Nº do pedido deve ser positivo") Long idPedido,
@@ -86,10 +85,9 @@ public class AgendarPublicoController {
 
     @GetMapping("/disponibilidade")
     @Operation(summary = "Ocupação agregada dos próximos 14 dias (paletes livres por faixa)")
-    public List<OcupacaoDiaResp> disponibilidade(@PathVariable String token, @RequestParam(required = false) Long cdId,
-                                                 HttpServletRequest req) {
+    public List<OcupacaoDiaResp> disponibilidade(@PathVariable String token, HttpServletRequest req) {
         limitador.consulta(Requisicao.ip(req));
-        return useCase.disponibilidade(token, cdId).stream().map(OcupacaoDiaResp::de).toList();
+        return useCase.disponibilidade(token).stream().map(OcupacaoDiaResp::de).toList();
     }
 
     @PostMapping
@@ -101,7 +99,7 @@ public class AgendarPublicoController {
             return new AgendadoResp(null, b.data(), null, null, 0, List.of(), null);
         }
         limitador.envio(Requisicao.ip(req));
-        var r = useCase.agendar(token, new PedidoPublico(b.cdId(), b.data(), b.faixaHorariaId(), b.idPedido(),
+        var r = useCase.agendar(token, new PedidoPublico(b.data(), b.faixaHorariaId(), b.idPedido(),
                 b.fornecedor(), b.cnpj(), b.emailFornecedor(), b.tipoCaminhaoId(), b.tipoPaletizacaoId(),
                 b.quantidadePaletes(), b.transportadora(), b.observacao()), Requisicao.ip(req));
         var d = r.resultado().agendamento();

@@ -80,10 +80,10 @@ Relatório de cobertura: `backend/target/site/jacoco/index.html`.
 
 ### Links de agendamento por CD e loja (porte do Gestão CD)
 
-Mesmo fluxo da tela `/recebimento/agendamentos/links` do Gestão CD: um link fixo por CD, por loja ou para todos os CDs.
+Mesmo fluxo da tela `/recebimento/agendamentos/links` do Gestão CD: um link fixo por CD ou por loja.
 
 1. Entre como `admin` e abra **Operação → Links de agendamento** (permissão 1107, só o perfil Administrador).
-2. Em **CD ou loja** escolha o destino (Todos os CDs, cada CD ativo — 801, 805, 806 e os que forem cadastrados — ou cada loja ativa de **Cadastros → Lojas**) e clique em **Gerar / regenerar link**. O link sai copiado, no formato `http://localhost:8081/agendar/<token>` (token aleatório de 256 bits). Gerar de novo para o mesmo destino desativa o link anterior.
+2. Em **CD ou loja** escolha o destino (cada CD ativo — 801, 805, 806 e os que forem cadastrados — ou cada loja ativa de **Cadastros → Lojas**) e clique em **Gerar / regenerar link**. O link sai copiado, no formato `http://localhost:8081/agendar/<token>` (token aleatório de 256 bits). Gerar de novo para o mesmo destino desativa o link anterior.
 3. Mande o link aos fornecedores. Quem abre vê só um formulário em branco: fornecedor, CNPJ (opcional), e-mail, nº do pedido, tipo de caminhão, paletização, paletes, transportadora, observação e a grade dos próximos 14 dias × faixas com os paletes livres. Nenhum agendamento ou fornecedor é listado; só a ocupação agregada do CD.
 4. Faixa ou dia sem vaga **não bloqueia**: a tela avisa antes de enviar, o agendamento é gravado com os alertas (e o CD recebe o push "Capacidade excedida"), como no cadastro interno. No link de loja, entra também o alerta da capacidade diária da loja.
 5. Ao enviar, o fornecedor recebe o número do agendamento e o **link do seu agendamento** (copiar, WhatsApp, e-mail) para confirmar presença, informar placa e remarcar.

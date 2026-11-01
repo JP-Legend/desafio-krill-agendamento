@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api'
 import { diaSemana, fmtData } from '../utils'
@@ -17,15 +17,14 @@ const erro = ref('')
 const dias = ref([])
 const escolha = ref(null)
 const enviado = ref(null)
-const form = reactive({ cdId: null, fornecedor: '', cnpj: '', emailFornecedor: '', idPedido: null, tipoCaminhaoId: null, tipoPaletizacaoId: null, quantidadePaletes: null, transportadora: '', observacao: '', siteWeb: '' })
+const form = reactive({ fornecedor: '', cnpj: '', emailFornecedor: '', idPedido: null, tipoCaminhaoId: null, tipoPaletizacaoId: null, quantidadePaletes: null, transportadora: '', observacao: '', siteWeb: '' })
 
 const paletes = computed(() => form.quantidadePaletes || 0)
 
 async function carregar() {
   try {
     info.value = await api(base)
-    if (info.value.cds.length === 1) form.cdId = info.value.cds[0].id
-    if (!info.value.cds.length || form.cdId) await carregarDias()
+    await carregarDias()
   } catch (e) {
     erro.value = e.status === 404 ? 'Este link de agendamento foi desativado. Peça um novo link ao CD.' : e.message
   }
@@ -34,17 +33,14 @@ async function carregar() {
 async function carregarDias() {
   escolha.value = null
   try {
-    dias.value = await api(`${base}/disponibilidade`, { params: { cdId: form.cdId } })
+    dias.value = await api(`${base}/disponibilidade`)
   } catch (e) {
     notificar.erro(e)
   }
 }
 
-watch(() => form.cdId, (novo, antigo) => { if (antigo !== null && novo) carregarDias() })
-
 function validar() {
   const faltando = []
-  if (info.value.cds.length > 1 && !form.cdId) faltando.push('o CD')
   if (!escolha.value) faltando.push('o dia e a faixa')
   if (!form.fornecedor.trim()) faltando.push('o fornecedor')
   if (!form.emailFornecedor.trim()) faltando.push('o e-mail')
@@ -116,9 +112,6 @@ defineExpose({ escolha, form, agendarEntrega })
 
     <form v-else-if="info" class="painel" @submit.prevent="agendarEntrega">
       <div class="painel-titulo"><h2>Agendar entrega</h2><span class="texto-suave">{{ info.destino }}</span></div>
-      <div v-if="info.cds.length > 1" class="form-grade">
-        <div class="campo c12"><label for="ag-cd">CD <span class="obrig">*</span></label><Select v-model="form.cdId" input-id="ag-cd" :options="info.cds" option-label="nome" option-value="id" /></div>
-      </div>
       <div class="form-grade">
         <div class="campo c8"><label for="ag-forn">Fornecedor <span class="obrig">*</span></label><InputText id="ag-forn" v-model="form.fornecedor" maxlength="80" autocomplete="organization" /></div>
         <div class="campo c4"><label for="ag-cnpj">CNPJ</label><InputText id="ag-cnpj" v-model="form.cnpj" maxlength="18" inputmode="numeric" /></div>
@@ -132,8 +125,7 @@ defineExpose({ escolha, form, agendarEntrega })
       <div class="campo-oculto" aria-hidden="true"><label for="ag-site">Site</label><input id="ag-site" v-model="form.siteWeb" tabindex="-1" autocomplete="off" /></div>
 
       <h3>Dia e faixa <span class="obrig">*</span></h3>
-      <p v-if="info.cds.length > 1 && !form.cdId" class="texto-suave">Escolha o CD para ver os dias.</p>
-      <EscolhaHorario v-else v-model="escolha" :dias="dias" :paletes="paletes" />
+      <EscolhaHorario v-model="escolha" :dias="dias" :paletes="paletes" />
       <p v-if="escolha" class="destaque-escolha">Entrega: <strong>{{ diaSemana(escolha.data) }}, {{ fmtData(escolha.data) }} · {{ escolha.descricao }}</strong></p>
       <div v-if="escolha && !escolha.cabe" class="alerta aviso">
         <i class="pi pi-exclamation-triangle" />
