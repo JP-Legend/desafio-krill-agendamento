@@ -66,10 +66,16 @@ Cada tela aberta vira uma aba abaixo do cabeçalho (Início fica fixa): a aba gu
 | Grupo | Telas |
 |---|---|
 | Agendamentos | Ocupação da semana, Agendamentos, Novo agendamento, Links de agendamento, Relatório |
-| Recebimento | Pátio e docas, Divergências, Tempos de descarga |
+| Recebimento | Portaria, Pátio e docas, Divergências, Tempos de descarga |
 | Paletes | Vale-palete, Conta-corrente, Cobranças e recibos, Paletes nas lojas |
 | Cadastros | CDs, Lojas, Fornecedores, Produtos, Capacidade diária, Capacidade por CD e loja, Docas, Faixas horárias, Caminhões, Parâmetros de descarga, Taxa de descarga, Paletização, Tipos de palete, Conferentes |
 | Acessos e auditoria | Usuários, Perfis e permissões, Logs de acesso, Auditoria |
+
+No topo ficam a **busca rápida** (lupa; `Ctrl+K` ou `/`), o **sino de notificações** e o nome do usuário:
+
+- **Busca rápida:** acha telas do menu e registros — agendamentos (fornecedor, nº do pedido, CNPJ, placa ou data dd/mm/aaaa), vales-palete, fornecedores, CDs e lojas. `↑`/`↓` escolhem, `Enter` abre na aba, `Esc` limpa e recolhe. O backend (`GET /api/v1/busca`) só procura nas telas que o perfil pode consultar.
+- **Sino:** cada evento que avisa a operação (novo agendamento, agendamento pelo link do fornecedor, caminhão na portaria, capacidade excedida, cancelamento, remarcação, divergência) fica gravado (`aviso`) e aparece no sino com o contador de não lidas; "Marcar lidas" vale por usuário. Com as notificações do navegador ativadas, o mesmo aviso chega por push.
+- **Portaria (1208 consultar; 1204 registrar; 1206 doca):** o porteiro registra a chegada (placa, motorista e hora), encaminha à doca e registra a saída depois da conferência. A chegada avisa todos (sino e push). Os mesmos dados alimentam Pátio e docas e Tempos de descarga, e cada ação entra na auditoria.
 
 Cada usuário só vê os itens que o perfil permite. CNPJ é digitado com máscara (00.000.000/0000-00) e o erro aparece embaixo do campo antes de enviar. O e-mail de confirmação sai ao agendar pelo sistema e pelo link; com `docker compose up`, as mensagens ficam em http://localhost:8025 (Mailpit).
 

@@ -345,6 +345,20 @@ class PatioCapacidadeTaxasTest {
     }
 
     @Test
+    void saidaDaPortariaSoDepoisDaConferenciaELiberaDoca() {
+        Doca d1 = patio.salvarDoca(null, new PatioUseCase.DadosDoca(1L, "D01", "Doca 1", true), ADMIN);
+        agendamento(7L, StatusAgendamento.CHEGOU, 1L);
+        patio.atribuirDoca(7L, d1.id(), ADMIN);
+        assertThatThrownBy(() -> patio.registrarSaida(7L, ADMIN)).hasMessageContaining("concluída a conferência");
+        agendamento(7L, StatusAgendamento.RECEBIDO, 1L);
+        LogisticaAgendamento l = patio.registrarSaida(7L, ADMIN);
+        assertThat(l.saidaEm()).isEqualTo(OffsetDateTime.now(CLOCK));
+        assertThat(l.docaId()).as("a saída libera a doca").isNull();
+        assertThatThrownBy(() -> patio.registrarSaida(7L, ADMIN)).hasMessageContaining("já registrada");
+        assertThatThrownBy(() -> patio.registrarSaida(99L, ADMIN)).isInstanceOf(RecursoNaoEncontradoException.class);
+    }
+
+    @Test
     void quadroDoPatioSeparaColunasEIndicaLotacao() {
         Doca d1 = patio.salvarDoca(null, new PatioUseCase.DadosDoca(1L, "D01", "Doca 1", true), ADMIN);
         Doca d2 = patio.salvarDoca(null, new PatioUseCase.DadosDoca(1L, "D02", "Doca 2", true), ADMIN);

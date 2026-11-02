@@ -214,7 +214,7 @@ public class LinkAgendamentoUseCase {
 
     private String destino(LinkAgendamento l) {
         if (l.loja() != null) return descricaoLoja(l.loja());
-        if (l.cdId() == null) return "Todos os CDs (link antigo)";
+        if (l.cdId() == null) return "Link antigo sem CD definido";
         return cds.buscarPorId(l.cdId()).map(this::descricaoCd).orElse("CD " + l.cdId());
     }
 

@@ -56,6 +56,7 @@ async function carregar() {
     }
     return
   }
+  if (!route.params.id) return
   try {
     vale.value = await api(`/vales-palete/${route.params.id}`)
     dev.value = zerar(tiposVale.value)
@@ -150,7 +151,9 @@ function cancelar() {
   })
 }
 
-watch(() => route.fullPath, carregar)
+/** Cada aba do KeepAlive tem a própria instância: só recarrega quando a rota é a desta aba. */
+const caminhoDaAba = route.path
+watch(() => route.fullPath, () => { if (route.path === caminhoDaAba) carregar() })
 onMounted(carregar)
 </script>
 

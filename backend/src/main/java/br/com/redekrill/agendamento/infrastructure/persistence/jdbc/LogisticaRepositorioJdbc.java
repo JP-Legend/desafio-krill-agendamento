@@ -19,7 +19,8 @@ import java.util.stream.Collectors;
 public class LogisticaRepositorioJdbc implements LogisticaRepositorio {
     private static final RowMapper<LogisticaAgendamento> MAP = (r, i) -> new LogisticaAgendamento(r.getLong("agendamento_id"),
             r.getString("loja"), r.getString("transportadora"), r.getObject("doca_id", Long.class),
-            r.getObject("doca_em", OffsetDateTime.class), r.getString("modal_descarga"));
+            r.getObject("doca_em", OffsetDateTime.class), r.getString("modal_descarga"),
+            r.getObject("saida_em", OffsetDateTime.class));
     /** Status que ocupam capacidade (mesma regra de StatusAgendamento.ocupaCapacidade). */
     private static final String ATIVOS = "a.status not in ('CANCELADO', 'NAO_COMPARECEU')";
     private final JdbcClient db;
@@ -44,11 +45,12 @@ public class LogisticaRepositorioJdbc implements LogisticaRepositorio {
     @Override
     public LogisticaAgendamento salvar(LogisticaAgendamento l) {
         db.sql("""
-                insert into agendamento_logistica (agendamento_id, loja, transportadora, doca_id, doca_em, modal_descarga)
-                values (?, ?, ?, ?, ?, ?)
+                insert into agendamento_logistica (agendamento_id, loja, transportadora, doca_id, doca_em, modal_descarga, saida_em)
+                values (?, ?, ?, ?, ?, ?, ?)
                 on conflict (agendamento_id) do update set loja = excluded.loja, transportadora = excluded.transportadora,
-                    doca_id = excluded.doca_id, doca_em = excluded.doca_em, modal_descarga = excluded.modal_descarga""")
-                .params(l.agendamentoId(), l.loja(), l.transportadora(), l.docaId(), l.docaEm(), l.modalDescarga()).update();
+                    doca_id = excluded.doca_id, doca_em = excluded.doca_em, modal_descarga = excluded.modal_descarga,
+                    saida_em = excluded.saida_em""")
+                .params(l.agendamentoId(), l.loja(), l.transportadora(), l.docaId(), l.docaEm(), l.modalDescarga(), l.saidaEm()).update();
         return buscar(l.agendamentoId()).orElseThrow();
     }
 

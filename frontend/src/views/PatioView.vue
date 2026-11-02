@@ -107,7 +107,7 @@ onUnmounted(() => clearInterval(timer))
           <div class="linha">{{ k.fornecedor }}</div>
           <div v-if="k.transportadora" class="linha suave"><i class="pi pi-truck" /> {{ k.transportadora }}</div>
           <div v-if="k.loja" class="linha suave"><i class="pi pi-shop" /> Entrega na {{ k.loja }}</div>
-          <div class="linha suave">{{ k.tipoCaminhao }} · {{ k.paletes }} paletes<span v-if="k.chegadaEm"> · chegou {{ hora(k.chegadaEm) }}</span></div>
+          <div class="linha suave">{{ k.tipoCaminhao }} · {{ k.paletes }} paletes<span v-if="k.chegadaEm"> · chegou {{ hora(k.chegadaEm) }}</span><span v-if="k.saidaEm"> · saiu {{ hora(k.saidaEm) }}</span></div>
           <div v-if="k.taxaDescarga != null" class="linha suave">Descarga {{ k.modal }}: {{ fmtMoeda(k.taxaDescarga) }}</div>
           <div v-if="k.doca" class="linha"><Tag :value="k.doca" /></div>
           <div v-if="pode(1206) && ['AGUARDANDO', 'NA_DOCA', 'DESCARREGANDO'].includes(c.chave)" class="acoes-cartao">

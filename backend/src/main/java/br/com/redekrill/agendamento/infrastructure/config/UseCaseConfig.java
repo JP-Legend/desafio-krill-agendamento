@@ -97,6 +97,18 @@ public class UseCaseConfig {
     }
 
     @Bean
+    br.com.redekrill.agendamento.application.usecase.AvisoUseCase avisoUseCase(
+            br.com.redekrill.agendamento.application.port.AvisoRepositorio avisos) {
+        return new br.com.redekrill.agendamento.application.usecase.AvisoUseCase(avisos);
+    }
+
+    @Bean
+    br.com.redekrill.agendamento.application.usecase.BuscaGlobalUseCase buscaGlobalUseCase(
+            br.com.redekrill.agendamento.application.port.BuscaRepositorio busca) {
+        return new br.com.redekrill.agendamento.application.usecase.BuscaGlobalUseCase(busca);
+    }
+
+    @Bean
     RecebimentoUseCase recebimentoUseCase(AgendamentoRepositorio ag, AgendamentoUseCase uc, AuditoriaUseCase a,
                                           NotificadorPush push, Transacao tx, Clock clock, ConferenteUseCase conf) {
         return new RecebimentoUseCase(ag, uc, a, push, tx, clock, conf);

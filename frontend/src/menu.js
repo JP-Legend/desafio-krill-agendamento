@@ -24,6 +24,7 @@ const GRUPOS = [
   {
     grupo: 'Recebimento',
     itens: [
+      { to: '/portaria', label: 'Portaria', icon: 'pi pi-car', p: 1208 },
       { to: '/patio', label: 'Pátio e docas', icon: 'pi pi-truck', p: 1205 },
       { to: '/divergencias', label: 'Divergências', icon: 'pi pi-exclamation-triangle', p: 1202 },
       { to: '/relatorios/descarga', label: 'Tempos de descarga', icon: 'pi pi-stopwatch', p: 1203 }

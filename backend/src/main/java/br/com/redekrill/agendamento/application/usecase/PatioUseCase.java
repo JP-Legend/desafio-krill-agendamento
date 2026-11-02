@@ -42,7 +42,8 @@ public class PatioUseCase {
 
     public record Cartao(Long agendamentoId, String fornecedor, String transportadora, String loja, String placa,
                          String status, String faixa, String tipoCaminhao, int paletes, Long docaId, String doca,
-                         OffsetDateTime chegadaEm, OffsetDateTime docaEm, String modal, BigDecimal taxaDescarga) {
+                         OffsetDateTime chegadaEm, OffsetDateTime docaEm, String modal, BigDecimal taxaDescarga,
+                         String motorista, Long idPedido, String codigoStatus, OffsetDateTime saidaEm) {
     }
 
     public record SituacaoDoca(Doca doca, Long agendamentoId, String placa, String fornecedor) {
@@ -153,6 +154,25 @@ public class PatioUseCase {
         });
     }
 
+    /** Portaria: registra a saída do caminhão depois da conferência e libera a doca. */
+    public LogisticaAgendamento registrarSaida(Long agendamentoId, Solicitante s) {
+        return transacao.executar(() -> {
+            Agendamento a = agendamentos.buscarPorId(agendamentoId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", agendamentoId));
+            if (a.getStatus() != StatusAgendamento.RECEBIDO) {
+                throw new RegraNegocioException("A saída é registrada depois de concluída a conferência");
+            }
+            LogisticaAgendamento atual = logistica(agendamentoId);
+            if (atual.saidaEm() != null) throw new RegraNegocioException("Saída já registrada para este caminhão");
+            LogisticaAgendamento salva = logistica.salvar(atual.comSaida(OffsetDateTime.now(clock)));
+            Map<String, Object> det = new HashMap<>();
+            if (a.getPlaca() != null) det.put("placa", a.getPlaca());
+            if (atual.docaId() != null) det.put("docaLiberada", atual.docaId());
+            auditoria.registrar(s, "SAIDA_PORTARIA", "AGENDAMENTO", agendamentoId, det);
+            return salva;
+        });
+    }
+
     // ---- Quadro do pátio
     public Quadro quadro(LocalDate data, Long cdId) {
         LocalDate dia = data == null ? LocalDate.now(clock) : data;
@@ -204,6 +224,7 @@ public class PatioUseCase {
                 det.faixaDescricao(), det.tipoCaminhao(), paletes, l.docaId(), doca == null ? null : doca.nome(),
                 a.getChegadaEm(), l.docaEm(),
                 cobranca.map(CalculadoraTaxaDescarga.Cobranca::nomeModal).orElse(null),
-                cobranca.map(CalculadoraTaxaDescarga.Cobranca::valor).orElse(null));
+                cobranca.map(CalculadoraTaxaDescarga.Cobranca::valor).orElse(null),
+                a.getMotorista(), a.getIdPedido(), a.getStatus().name(), l.saidaEm());
     }
 }

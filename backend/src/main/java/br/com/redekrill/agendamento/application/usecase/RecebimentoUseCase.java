@@ -10,7 +10,10 @@ import br.com.redekrill.agendamento.domain.exception.RegraNegocioException;
 import br.com.redekrill.agendamento.domain.model.Agendamento;
 
 import java.time.Clock;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -24,8 +27,14 @@ public class RecebimentoUseCase {
     public enum Acao { CONFIRMAR, CHEGADA, INICIAR, CONCLUIR, NAO_COMPARECEU }
 
     public record Comando(Acao acao, String placa, String motorista, String conferente, Integer paletesRecebidos,
-                          String divergencia, String motivo) {
+                          String divergencia, String motivo, LocalTime horaChegada) {
+        public Comando(Acao acao, String placa, String motorista, String conferente, Integer paletesRecebidos,
+                       String divergencia, String motivo) {
+            this(acao, placa, motorista, conferente, paletesRecebidos, divergencia, motivo, null);
+        }
     }
+
+    private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm");
 
     private final AgendamentoRepositorio agendamentos;
     private final AgendamentoUseCase agendamentoUseCase;
@@ -57,7 +66,7 @@ public class RecebimentoUseCase {
         OffsetDateTime agora = OffsetDateTime.now(clock);
         Consumer<Agendamento> op = switch (cmd.acao()) {
             case CONFIRMAR -> Agendamento::confirmar;
-            case CHEGADA -> a -> a.registrarChegada(cmd.placa(), cmd.motorista(), agora);
+            case CHEGADA -> a -> a.registrarChegada(cmd.placa(), cmd.motorista(), horaDaChegada(cmd.horaChegada(), agora));
             case INICIAR -> a -> a.iniciarRecebimento(conferentes == null ? cmd.conferente()
                     : conferentes.validarParaConferencia(a.getCdId(), cmd.conferente()), agora);
             case CONCLUIR -> a -> a.concluirRecebimento(cmd.paletesRecebidos(), cmd.divergencia(), agora);
@@ -82,10 +91,20 @@ public class RecebimentoUseCase {
         });
         Agendamento a = d.agendamento();
         if (cmd.acao() == Acao.CHEGADA) {
-            push.notificarTodos("Caminhão na portaria", a.getFornecedor() + " · placa " + a.getPlaca(), "/agendamentos/" + id);
+            String hora = a.getChegadaEm() == null ? "" : " · chegou às " + a.getChegadaEm().atZoneSameInstant(clock.getZone()).format(HORA);
+            push.notificarTodos("Caminhão na portaria", a.getFornecedor() + " · placa " + a.getPlaca() + hora, "/portaria");
         } else if (cmd.acao() == Acao.CONCLUIR && a.divergente()) {
             push.notificarTodos("Recebimento com divergência", a.getFornecedor() + " · " + a.getDivergencia(), "/agendamentos/" + id);
         }
         return d;
+    }
+
+    /** A portaria pode lançar a hora real da chegada (hoje); sem hora, vale o momento do registro. */
+    OffsetDateTime horaDaChegada(LocalTime hora, OffsetDateTime agora) {
+        if (hora == null) return agora;
+        ZonedDateTime local = agora.atZoneSameInstant(clock.getZone());
+        OffsetDateTime informada = local.with(hora.withSecond(0).withNano(0)).toOffsetDateTime();
+        if (informada.isAfter(agora.plusMinutes(5))) throw new RegraNegocioException("A hora de chegada não pode ser no futuro");
+        return informada;
     }
 }

@@ -20,13 +20,17 @@ self.addEventListener('push', (event) => {
   } catch {
     if (event.data) dados.body = event.data.text()
   }
-  event.waitUntil(self.registration.showNotification(dados.title, {
-    body: dados.body,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    tag: dados.url,
-    data: { url: dados.url }
-  }))
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(dados.title, {
+      body: dados.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: dados.url,
+      data: { url: dados.url }
+    }),
+    // Abas abertas atualizam o sino na hora
+    self.clients.matchAll({ type: 'window' }).then((janelas) => janelas.forEach((c) => c.postMessage({ tipo: 'aviso' })))
+  ]))
 })
 
 self.addEventListener('notificationclick', (event) => {

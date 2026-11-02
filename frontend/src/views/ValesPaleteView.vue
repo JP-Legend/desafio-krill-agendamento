@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onActivated, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { pode } from '../sessao'
@@ -41,6 +41,9 @@ async function porCodigo() {
   }
 }
 onMounted(buscar)
+/** Volta para a aba (ex.: depois de emitir um vale) com a lista atualizada. */
+let primeira = true
+onActivated(() => { if (primeira) { primeira = false; return } buscar() })
 </script>
 
 <template>

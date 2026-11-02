@@ -15,7 +15,7 @@ const cds = ref([])
 const campos = ref([
   { campo: 'codigo', rotulo: 'Código', tipo: 'texto', obrigatorio: true, max: 20 },
   { campo: 'nome', rotulo: 'Nome', tipo: 'texto', obrigatorio: true, max: 40 },
-  { campo: 'cdId', rotulo: 'CD', tipo: 'select', opcoes: [], formatar: (r) => (r.cdId ? cds.value.find((c) => c.id === r.cdId)?.nome || r.cdId : 'Todos os CDs') },
+  { campo: 'cdId', rotulo: 'CD', tipo: 'select', opcoes: [], formatar: (r) => (r.cdId ? cds.value.find((c) => c.id === r.cdId)?.nome || r.cdId : cds.value.map((c) => c.codigo).join('-')) },
   { campo: 'valorReposicao', rotulo: 'Valor de reposição', tipo: 'numero', min: 0, maxNum: 99999, decimais: 2, formatar: (r) => fmtMoeda(r.valorReposicao) },
   { campo: 'ordem', rotulo: 'Ordem', tipo: 'numero', min: 0, maxNum: 999 },
   { campo: 'ativo', rotulo: 'Situação', tipo: 'ativo' }

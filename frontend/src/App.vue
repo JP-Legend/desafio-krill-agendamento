@@ -3,7 +3,8 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { sessao, pode, logado, encerrarSessao, atualizarSessao } from './sessao'
 import { api } from './api'
-import BotaoPermissoes from './components/BotaoPermissoes.vue'
+import BuscaTopo from './components/BuscaTopo.vue'
+import SinoAvisos from './components/SinoAvisos.vue'
 import { ativarPush, desativarPush, inscricaoAtual, pushSuportado } from './push'
 import { useNotificar } from './composables/useNotificar'
 import { menuItens } from './menu'
@@ -14,6 +15,7 @@ const route = useRoute()
 const router = useRouter()
 const menuUsuario = ref(false)
 const iniciais = computed(() => (sessao.atual?.nome || sessao.atual?.usuario || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase())
+const primeiroNome = computed(() => (sessao.atual?.nome || sessao.atual?.usuario || '').split(/\s+/)[0])
 const fecharMenuUsuario = () => { menuUsuario.value = false }
 watch(() => route.fullPath, () => { if (logado.value) abrirAba(route) }, { immediate: true })
 const notificar = useNotificar()
@@ -30,7 +32,7 @@ onMounted(async () => {
   window.addEventListener('online', atualizarRede)
   document.addEventListener('click', fecharMenuUsuario)
   window.addEventListener('offline', atualizarRede)
-  pushAtivo.value = !!(await inscricaoAtual().catch(() => null))
+  sincronizarPush()
   if (logado.value) api('/auth/eu').then(atualizarSessao).catch(() => {})
 })
 onUnmounted(() => {
@@ -39,20 +41,28 @@ onUnmounted(() => {
   window.removeEventListener('offline', atualizarRede)
 })
 
+/** Mesma regra do Gestão CD: ativo = há inscrição push neste navegador E a permissão está concedida. */
+async function sincronizarPush() {
+  const sub = await inscricaoAtual().catch(() => null)
+  pushAtivo.value = !!sub && typeof Notification !== 'undefined' && Notification.permission === 'granted'
+}
+
+function abrirMenuUsuario() {
+  menuUsuario.value = !menuUsuario.value
+  if (menuUsuario.value) sincronizarPush()
+}
+
 async function alternarPush() {
+  const desativar = pushAtivo.value
   try {
-    if (pushAtivo.value) {
-      await desativarPush()
-      pushAtivo.value = false
-      notificar.sucesso('Notificações desativadas neste navegador')
-    } else {
-      await ativarPush()
-      pushAtivo.value = true
-      notificar.sucesso('Você receberá avisos de novos agendamentos, cancelamentos e capacidade excedida', 'Notificações ativas')
-    }
+    if (desativar) await desativarPush()
+    else await ativarPush()
   } catch (e) {
     notificar.erro(e)
   }
+  await sincronizarPush()
+  if (desativar && !pushAtivo.value) notificar.sucesso('Este navegador não receberá mais avisos', 'Notificações desativadas')
+  else if (!desativar && pushAtivo.value) notificar.sucesso('Você receberá avisos de chegada na portaria, novos agendamentos e capacidade excedida', 'Notificações ativadas')
 }
 
 async function sair() {
@@ -73,17 +83,23 @@ async function sair() {
         <span>Agendamento Rede Krill</span>
       </RouterLink>
       <div class="espaco" />
+      <div class="topo-acoes">
+      <BuscaTopo />
+      <SinoAvisos v-if="pode(1102)" />
       <div class="user-menu" :class="{ aberto: menuUsuario }">
-        <button type="button" class="user-trigger" aria-haspopup="true" :aria-expanded="menuUsuario" :title="sessao.atual?.nome" @click.stop="menuUsuario = !menuUsuario">
+        <button type="button" class="user-trigger" aria-haspopup="true" :aria-expanded="menuUsuario" :title="`${sessao.atual?.nome} · ${sessao.atual?.perfil}`" @click.stop="abrirMenuUsuario">
           <span class="user-avatar">{{ iniciais }}</span>
-          <span class="user-ident"><strong>{{ sessao.atual?.nome }}</strong><small>{{ sessao.atual?.perfil }}</small></span>
+          <span class="user-nome">{{ sessao.atual?.nome }}</span>
+          <span class="user-nome-curto">{{ primeiroNome }}</span>
           <i class="pi pi-angle-down" />
         </button>
         <div v-if="menuUsuario" class="user-dropdown" role="menu" @click="menuUsuario = false">
+          <p class="user-perfil">{{ sessao.atual?.perfil }}</p>
           <button v-if="pushSuportado()" type="button" role="menuitem" @click="alternarPush">{{ pushAtivo ? 'Desativar notificações' : 'Ativar notificações' }}<span>›</span></button>
           <RouterLink to="/trocar-senha" role="menuitem">Trocar senha<span>›</span></RouterLink>
           <button type="button" class="sair" role="menuitem" @click="sair">Sair<span>›</span></button>
         </div>
+      </div>
       </div>
     </header>
     <div v-if="!online" class="offline">Sem conexão. Os dados serão atualizados quando a rede voltar.</div>
@@ -98,7 +114,6 @@ async function sair() {
       </nav>
     </Drawer>
     <main class="conteudo">
-      <div v-if="route.name && !route.meta.semPermissoes" class="barra-permissoes"><BotaoPermissoes :tela="route.name" /></div>
       <RouterView v-slot="{ Component, route: r }">
         <KeepAlive :max="12"><component :is="Component" :key="chaveCache(r)" /></KeepAlive>
       </RouterView>

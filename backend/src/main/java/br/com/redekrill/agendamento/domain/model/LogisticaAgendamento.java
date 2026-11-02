@@ -4,10 +4,10 @@ import java.time.OffsetDateTime;
 
 /**
  * Dados logísticos do agendamento: entrega direta na loja (nulo = no CD), transportadora,
- * doca atribuída no pátio e modal de descarga informado (nulo = deduzido do tipo de caminhão).
+ * doca atribuída no pátio, saída registrada na portaria e modal de descarga informado (nulo = deduzido do tipo de caminhão).
  */
 public record LogisticaAgendamento(Long agendamentoId, String loja, String transportadora, Long docaId,
-                                   OffsetDateTime docaEm, String modalDescarga) {
+                                   OffsetDateTime docaEm, String modalDescarga, OffsetDateTime saidaEm) {
     public LogisticaAgendamento {
         loja = Textos.opcional(loja, "Loja", 80);
         transportadora = Textos.opcional(transportadora, "Transportadora", 80);
@@ -15,15 +15,20 @@ public record LogisticaAgendamento(Long agendamentoId, String loja, String trans
     }
 
     public static LogisticaAgendamento vazia(Long agendamentoId) {
-        return new LogisticaAgendamento(agendamentoId, null, null, null, null, null);
+        return new LogisticaAgendamento(agendamentoId, null, null, null, null, null, null);
     }
 
     public LogisticaAgendamento comDoca(Long doca, OffsetDateTime em) {
-        return new LogisticaAgendamento(agendamentoId, loja, transportadora, doca, doca == null ? null : em, modalDescarga);
+        return new LogisticaAgendamento(agendamentoId, loja, transportadora, doca, doca == null ? null : em, modalDescarga, saidaEm);
     }
 
     public LogisticaAgendamento comDados(String novaLoja, String novaTransportadora, String modal) {
-        return new LogisticaAgendamento(agendamentoId, novaLoja, novaTransportadora, docaId, docaEm, modal);
+        return new LogisticaAgendamento(agendamentoId, novaLoja, novaTransportadora, docaId, docaEm, modal, saidaEm);
+    }
+
+    /** Portaria: o caminhão deixou o CD; a doca fica livre. */
+    public LogisticaAgendamento comSaida(OffsetDateTime em) {
+        return new LogisticaAgendamento(agendamentoId, loja, transportadora, null, null, modalDescarga, em);
     }
 
     public boolean entregaNaLoja() {

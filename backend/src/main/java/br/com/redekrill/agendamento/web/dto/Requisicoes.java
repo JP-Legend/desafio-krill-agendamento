@@ -134,7 +134,8 @@ public final class Requisicoes {
             @Size(max = 80) @Schema(example = "Carlos (conferente)") String conferente,
             @Min(0) @Max(10000) Integer paletesRecebidos,
             @Size(max = 255) String divergencia,
-            @Size(max = 255) String motivo) {
+            @Size(max = 255) String motivo,
+            @Schema(description = "Hora da chegada na portaria (vazio = agora)", example = "08:15") java.time.LocalTime horaChegada) {
     }
 
     public record VeiculoFornecedor(@Size(max = 8) @Schema(example = "ABC1D23") String placa,

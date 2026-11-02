@@ -65,6 +65,12 @@ public class PatioController {
         return useCase.atribuirDoca(id, b.docaId(), Requisicao.solicitante(req));
     }
 
+    @org.springframework.web.bind.annotation.PatchMapping("/agendamentos/{id}/saida")
+    @Operation(summary = "Portaria: registra a saída do caminhão (depois da conferência) e libera a doca")
+    public LogisticaAgendamento saida(@PathVariable Long id, HttpServletRequest req) {
+        return useCase.registrarSaida(id, Requisicao.solicitante(req));
+    }
+
     @GetMapping("/agendamentos/{id}/logistica")
     public LogisticaAgendamento logistica(@PathVariable Long id) {
         return useCase.logistica(id);

@@ -27,10 +27,11 @@ public enum Permissao {
     ROTINA(1201, "Recebimento", "Rotina do dia", "rotina"),
     DIVERGENCIAS(1202, "Recebimento", "Divergências", "divergencias"),
     TEMPOS_DESCARGA(1203, "Recebimento", "Tempos de descarga", "descarga"),
-    PORTARIA_CONFERENCIA(1204, "Recebimento", "Registrar portaria e conferência", "detalhe", "rotina", "patio"),
+    PORTARIA_CONFERENCIA(1204, "Recebimento", "Registrar portaria e conferência", "detalhe", "rotina", "patio", "portaria"),
     PATIO_VER(1205, "Recebimento", "Pátio e docas: consultar", "patio"),
-    PATIO_DOCA(1206, "Recebimento", "Atribuir doca e logística", "patio", "detalhe"),
+    PATIO_DOCA(1206, "Recebimento", "Atribuir doca e logística", "patio", "detalhe", "portaria"),
     NOTAS_AVULSOS(1207, "Recebimento", "Notas fiscais e produto avulso", "detalhe"),
+    PORTARIA_VER(1208, "Recebimento", "Portaria: consultar chegadas e saídas", "portaria"),
 
     VALE_VER(1301, "Paletes", "Vale-palete: consultar", "vales", "vale"),
     VALE_EMITIR(1302, "Paletes", "Vale-palete: emitir", "vale-novo", "vales"),

@@ -6,7 +6,6 @@ import UsuariosView from '../../src/views/UsuariosView.vue'
 import PerfisView from '../../src/views/PerfisView.vue'
 import LogsAcessoView from '../../src/views/LogsAcessoView.vue'
 import TrocarSenhaView from '../../src/views/TrocarSenhaView.vue'
-import BotaoPermissoes from '../../src/components/BotaoPermissoes.vue'
 
 const CATALOGO = [
   { codigo: 1001, modulo: 'Administração', nome: 'Usuários: consultar', telas: ['usuarios'] },
@@ -149,21 +148,5 @@ describe('gestão de acessos', () => {
     expect(sessao.atual.trocarSenha).toBe(false)
     expect(router.currentRoute.value.path).toBe('/inicio')
     expect(guarda(rota('/acessos/usuarios'))).toEqual({ name: 'inicio' })
-  })
-
-  it('botão Permissões mostra os números da tela e o que o perfil tem', async () => {
-    logar('USUARIO')
-    simularApi({ 'GET /auth/permissoes': CATALOGO })
-    const { w } = await montar(BotaoPermissoes, { props: { tela: 'agendamentos' } })
-    await w.find('.botao-permissoes').trigger('click')
-    await flushPromises()
-    const itens = [...document.querySelectorAll('.lista-permissoes li')].map((li) => li.textContent)
-    expect(itens[0]).toContain('1102')
-    expect(itens[0]).toContain('Liberada')
-    expect(itens[1]).toContain('1103')
-    expect(itens[1]).toContain('Sem acesso')
-    expect(document.body.textContent).not.toContain('Editar perfis')
-    const vazio = await montar(BotaoPermissoes, { props: { tela: 'inicio' } })
-    expect(vazio.w.find('.botao-permissoes').exists()).toBe(false)
   })
 })

@@ -317,6 +317,12 @@ class ApiIntegracaoTest {
         mvc.perform(patch("/api/v1/agendamentos/" + id + "/status").header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"acao\":\"CONCLUIR\",\"paletesRecebidos\":9}")).andExpect(jsonPath("$.status").value("RECEBIDO"))
                 .andExpect(jsonPath("$.divergencia").isString());
+        mvc.perform(get("/api/v1/avisos").header("Authorization", admin))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Caminhão na portaria")));
+        mvc.perform(patch("/api/v1/agendamentos/" + id + "/saida").header("Authorization", usuario)).andExpect(status().isForbidden());
+        mvc.perform(patch("/api/v1/agendamentos/" + id + "/saida").header("Authorization", admin))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.saidaEm").isString()).andExpect(jsonPath("$.docaId").doesNotExist());
+        mvc.perform(patch("/api/v1/agendamentos/" + id + "/saida").header("Authorization", admin)).andExpect(status().isUnprocessableEntity());
         mvc.perform(post("/api/v1/agendamentos/" + id + "/link-fornecedor").header("Authorization", admin))
                 .andExpect(jsonPath("$.linkFornecedor").isString());
         mvc.perform(get("/api/v1/publico/fornecedor/" + tk)).andExpect(status().isNotFound());
@@ -631,5 +637,24 @@ class ApiIntegracaoTest {
         String aud = mvc.perform(get("/api/v1/auditoria").param("tamanho", "100").header("Authorization", admin))
                 .andReturn().getResponse().getContentAsString();
         assertThat(aud).contains("GERAR_LINK_AGENDAMENTO", "REVOGAR_LINK_AGENDAMENTO", "AGENDAR_PELO_LINK");
+
+        // Sino: o agendamento pelo link vira aviso persistido; cada usuário marca as suas como lidas
+        mvc.perform(get("/api/v1/avisos").header("Authorization", usuario)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.naoLidos").value(org.hamcrest.Matchers.greaterThan(0)))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Agendamento pelo link do fornecedor")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Laticínios Serra Azul")));
+        mvc.perform(post("/api/v1/avisos/lidas").header("Authorization", usuario)).andExpect(jsonPath("$.naoLidos").value(0));
+        mvc.perform(get("/api/v1/avisos").header("Authorization", admin)).andExpect(jsonPath("$.naoLidos").value(org.hamcrest.Matchers.greaterThan(0)));
+        mvc.perform(get("/api/v1/avisos")).andExpect(status().isUnauthorized());
+
+        // Busca do topo: o perfil Consulta acha agendamentos, mas não fornecedores/CDs (sem 1401/1402)
+        mvc.perform(get("/api/v1/busca").param("q", "serra azul").header("Authorization", usuario))
+                .andExpect(jsonPath("$[0].grupo").value("Agendamentos")).andExpect(jsonPath("$[0].url").value(org.hamcrest.Matchers.startsWith("/agendamentos/")));
+        mvc.perform(get("/api/v1/busca").param("q", "801").header("Authorization", usuario))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Centros de distribuição"))));
+        mvc.perform(get("/api/v1/busca").param("q", "801").header("Authorization", admin))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Centros de distribuição")));
+        mvc.perform(get("/api/v1/busca").param("q", "77001").header("Authorization", admin))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Pedido 77001")));
     }
 }

@@ -333,6 +333,24 @@ class AgendamentoUseCaseTest {
     }
 
     @Test
+    void portariaLancaHoraRealDaChegadaEAvisaTodos() {
+        Long id = useCase.criar(cmd(1, 1, 20), ADMIN).agendamento().agendamento().getId();
+        RecebimentoUseCase r = recebimento();
+        assertThatThrownBy(() -> r.executar(id, new RecebimentoUseCase.Comando(RecebimentoUseCase.Acao.CHEGADA, "ABC1D23", "João",
+                null, null, null, null, java.time.LocalTime.of(10, 0)), ADMIN)).hasMessageContaining("futuro");
+        AgendamentoDetalhe d = r.executar(id, new RecebimentoUseCase.Comando(RecebimentoUseCase.Acao.CHEGADA, "ABC1D23", "João",
+                null, null, null, null, java.time.LocalTime.of(8, 15)), ADMIN);
+        assertThat(d.agendamento().getChegadaEm().atZoneSameInstant(SP).toLocalTime()).isEqualTo(java.time.LocalTime.of(8, 15));
+        verify(push).notificarTodos(eq("Caminhão na portaria"), contains("chegou às 08:15"), eq("/portaria"));
+    }
+
+    @Test
+    void agendamentoPeloLinkDoFornecedorTemAvisoProprio() {
+        useCase.criar(cmd(1, 1, 10), new Solicitante("fornecedor:logistica@beta.com.br", "10.0.0.9"));
+        verify(push).notificarTodos(eq("Agendamento pelo link do fornecedor"), anyString(), anyString());
+    }
+
+    @Test
     void concluirSemDivergenciaENaoComparecimento() {
         RecebimentoUseCase r = recebimento();
         Long id = useCase.criar(cmd(1, 1, 48), ADMIN).agendamento().agendamento().getId();

@@ -126,7 +126,7 @@ public class AgendamentoUseCase {
         });
         Agendamento a = resultado.agendamento().agendamento();
         email.enviarConfirmacao(resultado.agendamento(), resultado.linkFornecedor());
-        push.notificarTodos("Novo agendamento",
+        push.notificarTodos(solicitante.usuario().startsWith("fornecedor:") ? "Agendamento pelo link do fornecedor" : "Novo agendamento",
                 a.getFornecedor() + " · " + a.getData().format(BR) + " " + resultado.agendamento().faixaDescricao()
                         + " · " + a.getPaletesEquivalentes() + " paletes", "/agendamentos/" + a.getId());
         if (!resultado.alertas().isEmpty()) {

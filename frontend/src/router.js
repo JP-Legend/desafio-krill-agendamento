@@ -34,6 +34,7 @@ export const routes = [
   { path: '/cadastros/descarga', name: 'parametros-descarga', component: () => import('./views/ParametrosDescargaView.vue'), meta: { permissao: 1408, titulo: 'Tempos de descarga' } },
   { path: '/cadastros/tipos-palete', name: 'tipos-palete', component: () => import('./views/TiposPaleteView.vue'), meta: { permissao: 1410, titulo: 'Tipos de palete' } },
   { path: '/cadastros/conferentes', name: 'conferentes', component: () => import('./views/ConferentesView.vue'), meta: { permissao: 1411, titulo: 'Conferentes' } },
+  { path: '/portaria', name: 'portaria', component: () => import('./views/PortariaView.vue'), meta: { permissao: 1208, titulo: 'Portaria' } },
   { path: '/patio', name: 'patio', component: () => import('./views/PatioView.vue'), meta: { permissao: 1205, titulo: 'Pátio e docas' } },
   { path: '/cadastros/docas', name: 'docas', component: () => import('./views/DocasView.vue'), meta: { permissao: 1406, titulo: 'Docas' } },
   { path: '/cadastros/capacidade-recebimento', name: 'capacidade-recebimento', component: () => import('./views/CapacidadeRecebimentoView.vue'), meta: { permissao: 1405, titulo: 'Capacidade por CD e loja' } },
@@ -42,7 +43,7 @@ export const routes = [
   { path: '/acessos/usuarios', name: 'usuarios', component: () => import('./views/UsuariosView.vue'), meta: { permissao: [1001, 1002], titulo: 'Usuários' } },
   { path: '/acessos/perfis', name: 'perfis', component: () => import('./views/PerfisView.vue'), meta: { permissao: 1003, titulo: 'Perfis e permissões' } },
   { path: '/acessos/logs', name: 'logs-acesso', component: () => import('./views/LogsAcessoView.vue'), meta: { permissao: 1004, titulo: 'Logs de acesso' } },
-  { path: '/trocar-senha', name: 'trocar-senha', component: () => import('./views/TrocarSenhaView.vue'), meta: { semPermissoes: true, titulo: 'Trocar senha' } },
+  { path: '/trocar-senha', name: 'trocar-senha', component: () => import('./views/TrocarSenhaView.vue'), meta: { titulo: 'Trocar senha' } },
   { path: '/:pathMatch(.*)*', redirect: '/inicio' }
 ]
 

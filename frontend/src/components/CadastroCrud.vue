@@ -1,5 +1,6 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { api } from '../api'
 import { erroCnpj, mascaraCnpj, soDigitos } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
@@ -29,6 +30,7 @@ const carregando = ref(false)
 const visivel = ref(false)
 const form = reactive({})
 const erros = ref({})
+const route = useRoute()
 
 async function carregar() {
   carregando.value = true
@@ -79,7 +81,18 @@ function salvar() {
   })
 }
 
-onMounted(carregar)
+/** ?id=N (vindo da busca do topo) abre o registro direto. */
+function abrirDaRota() {
+  const id = Number(route.query.id)
+  if (!id) return
+  const r = lista.value.find((x) => x.id === id)
+  if (r) abrir(r)
+}
+onMounted(async () => {
+  await carregar()
+  abrirDaRota()
+})
+watch(() => route.query.id, () => abrirDaRota())
 defineExpose({ carregar })
 </script>
 

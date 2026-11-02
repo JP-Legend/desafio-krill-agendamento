@@ -16,7 +16,11 @@ const carregando = ref(false)
 let timer
 
 const centrais = computed(() => menuItens().map((g) => ({ ...g, ...CENTRAIS[g.grupo] })))
-const colunas = computed(() => [centrais.value.slice(0, 3), centrais.value.slice(3)].filter((c) => c.length))
+/** Duas colunas sem buracos: a da esquerda leva a metade arredondada para cima (admin 3 + 2; perfil com 3 grupos, 2 + 1). */
+const colunas = computed(() => {
+  const meio = Math.ceil(centrais.value.length / 2)
+  return [centrais.value.slice(0, meio), centrais.value.slice(meio)].filter((c) => c.length)
+})
 const aberta = ref(null)
 const alternar = (g) => { aberta.value = aberta.value === g ? null : g }
 
