@@ -34,8 +34,10 @@ async function buscar() {
 async function porCodigo() {
   if (!codigo.value.trim()) return
   try {
-    const v = await api(`/vales-palete/codigo/${encodeURIComponent(codigo.value.trim().toUpperCase())}`)
-    router.push(`/vales-palete/${v.id}`)
+    // leitura do código de barras (EMPRESA-VP-...) ou código digitado: abre o vale já na devolução
+    const v = await api('/vales-palete/leitura', { params: { codigo: codigo.value.trim() } })
+    codigo.value = ''
+    router.push(`/vales-palete/${v.id}?devolver=1`)
   } catch (e) {
     notificar.erro(e)
   }
@@ -50,7 +52,7 @@ onActivated(() => { if (primeira) { primeira = false; return } buscar() })
   <div class="cabecalho">
     <h1>Vale-palete</h1>
     <div class="acoes">
-      <form class="busca-codigo" @submit.prevent="porCodigo"><InputText v-model="codigo" placeholder="VP-AAAAMMDD-0001" aria-label="Código do vale" /><Button type="submit" icon="pi pi-search" class="btn-secundario" aria-label="Abrir vale" /></form>
+      <form class="busca-codigo" @submit.prevent="porCodigo"><InputText v-model="codigo" placeholder="Bipe ou digite o código do vale" aria-label="Código do vale (leitor de código de barras)" class="campo-leitura" /><Button type="submit" icon="pi pi-search" class="btn-secundario" aria-label="Abrir vale" /></form>
       <Button v-if="pode(1302)" label="Novo vale" icon="pi pi-plus" class="btn-confirmar" @click="router.push('/vales-palete/novo')" />
     </div>
   </div>

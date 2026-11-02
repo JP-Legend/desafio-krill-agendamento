@@ -10,13 +10,16 @@ const props = defineProps({
   dias: { type: Array, default: () => [] },
   paletes: { type: Number, required: true },
   atual: { type: Object, default: null },
-  somenteComVaga: { type: Boolean, default: false }
+  somenteComVaga: { type: Boolean, default: false },
+  /** { 'AAAA-MM-DD': 'motivo' } dos dias em que o destino não recebe (calendário de recebimento). */
+  fechados: { type: Object, default: () => ({}) }
 })
 const modelo = defineModel({ type: Object, default: null })
 
 const linhas = computed(() =>
   props.dias.map((d) => ({
     data: d.data,
+    fechado: props.fechados[d.data] || null,
     faixas: d.faixas.map((f) => {
       const livreFaixa = f.capacidade - f.paletesOcupados
       const livreDia = d.capacidade - d.paletesOcupados
@@ -36,7 +39,8 @@ const selecionada = (d, f) => modelo.value?.data === d.data && modelo.value?.fai
   <div class="escolha">
     <div v-for="d in linhas" :key="d.data" class="dia">
       <span class="rotulo">{{ diaSemana(d.data) }} <strong>{{ fmtData(d.data).slice(0, 5) }}</strong></span>
-      <button v-for="f in d.faixas" :key="f.faixaHorariaId" type="button" class="faixa"
+      <div v-if="d.fechado" class="fechado" role="note"><i class="pi pi-ban" /> Não recebe · {{ d.fechado }}</div>
+      <button v-for="f in d.fechado ? [] : d.faixas" :key="f.faixaHorariaId" type="button" class="faixa"
               :class="{ cheia: !f.cabe, atual: f.atual, sel: selecionada(d, f) }" :disabled="f.bloqueada"
               :aria-label="`${fmtData(d.data)} ${f.descricao}`" @click="escolher(d, f)">
         <span>{{ f.descricao }}</span>
@@ -56,5 +60,6 @@ const selecionada = (d, f) => modelo.value?.data === d.data && modelo.value?.fai
 .faixa.atual { border-style: dashed; background: var(--gc-input-disabled); }
 .faixa.sel { outline: 2px solid var(--gc-blue-700); background: var(--gc-toast-info-bg); }
 .faixa:disabled { cursor: not-allowed; opacity: 0.55; }
-@media (max-width: 560px) { .dia { grid-template-columns: 1fr 1fr; } .rotulo { grid-column: span 2; flex-direction: row; gap: 4px; } }
+.fechado { grid-column: 2 / -1; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 10px; border: 1px dashed var(--gc-border); border-radius: 6px; background: var(--gc-input-disabled); color: var(--cor-texto-suave); font-size: 12px; }
+@media (max-width: 560px) { .dia { grid-template-columns: 1fr 1fr; } .rotulo { grid-column: span 2; flex-direction: row; gap: 4px; } .fechado { grid-column: span 2; } }
 </style>

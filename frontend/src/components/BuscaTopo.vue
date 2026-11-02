@@ -81,7 +81,24 @@ function aoDigitar() {
   }, ATRASO_MS)
 }
 
-function abrir(r) {
+/** Código de barras do vale-palete (EMPRESA-VP-... ou VP-...): abre o vale direto na devolução. */
+const LEITURA_VALE = /^(?:[A-Z0-9]{2,12}-)?VP-\d{8}-[0-9A-Z]{4,8}$/i
+async function abrirLeitura() {
+  const codigo = termo.value.trim()
+  try {
+    const v = await api('/vales-palete/leitura', { params: { codigo } })
+    router.push(`/vales-palete/${v.id}?devolver=1`)
+    termo.value = ''
+    registros.value = []
+    recolher()
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function abrir(r) {
+  if (LEITURA_VALE.test(termo.value.trim()) && await abrirLeitura()) return
   if (!r) return
   router.push(r.url)
   termo.value = ''

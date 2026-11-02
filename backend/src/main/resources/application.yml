@@ -38,6 +38,8 @@ spring:
 app:
   timezone: America/Sao_Paulo
   url-publica: ${APP_URL_PUBLICA:http://localhost:8081}
+  # Prefixo da empresa no código de barras do vale-palete (identifica o dono do vale na leitura)
+  empresa-codigo: ${APP_EMPRESA_CODIGO:KRILL}
   erp:
     provedor: ${ERP_PROVEDOR:local}
     bluesoft:

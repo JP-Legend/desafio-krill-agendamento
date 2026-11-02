@@ -21,12 +21,13 @@ const inicial = computed(() => {
 })
 const primeiroNome = computed(() => (sessao.atual?.nome || sessao.atual?.usuario || '').trim().split(/\s+/)[0])
 const fecharMenuUsuario = () => { menuUsuario.value = false }
-watch(() => route.fullPath, () => { if (logado.value) abrirAba(route) }, { immediate: true })
+watch(() => route.fullPath, () => { if (logado.value && !route.meta.impressao) abrirAba(route) }, { immediate: true })
 const notificar = useNotificar()
 const menuAberto = ref(false)
 const online = ref(navigator.onLine)
 const pushAtivo = ref(false)
-const mostrarTopo = computed(() => !route.meta.publica)
+/** Páginas públicas e de impressão (vale-palete) abrem sem topo nem abas. */
+const mostrarTopo = computed(() => !route.meta.publica && !route.meta.impressao)
 
 const itens = computed(() => menuItens())
 const itensPlanos = computed(() => itens.value.flatMap((g) => g.itens))

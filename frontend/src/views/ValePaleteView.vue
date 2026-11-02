@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { pode } from '../sessao'
@@ -60,6 +60,7 @@ async function carregar() {
   try {
     vale.value = await api(`/vales-palete/${route.params.id}`)
     dev.value = zerar(tiposVale.value)
+    focarDevolucao()
   } catch (e) {
     notificar.erro(e)
     router.replace('/vales-palete')
@@ -136,8 +137,18 @@ function devolver() {
   })
 }
 
+/** Impressão igual à do Gestão CD numa página própria (sem topo, sem nome do sistema e sem URL), já abrindo a impressão. */
 function imprimir() {
-  window.print()
+  window.open(`/vales-palete/${vale.value.id}/imprimir?auto=1`, '_blank')
+}
+
+/** Vale aberto pela leitura do código de barras: leva direto aos campos de devolução. */
+const blocoDevolucao = ref(null)
+async function focarDevolucao() {
+  if (route.query.devolver !== '1' || !vale.value) return
+  await nextTick()
+  blocoDevolucao.value?.scrollIntoView({ block: 'center' })
+  blocoDevolucao.value?.querySelector('input')?.focus()
 }
 
 function cancelar() {
@@ -226,7 +237,7 @@ onMounted(carregar)
       </div>
     </article>
 
-    <section v-if="pode(1303) && ['PENDENTE', 'ASSINADO'].includes(vale.status)" class="painel nao-imprimir">
+    <section v-if="pode(1303) && ['PENDENTE', 'ASSINADO'].includes(vale.status)" ref="blocoDevolucao" class="painel nao-imprimir" :class="{ 'devolucao-lida': route.query.devolver === '1' }">
       <h2>Registrar devolução</h2>
       <form class="form-grade" @submit.prevent="devolver">
         <div v-for="k in tiposVale" :key="k" class="campo c2"><label :for="`d-${k}`">{{ tiposPalete.rotulo(k) }}</label><InputNumber v-model="dev[k]" :input-id="`d-${k}`" :min="0" :max="vale.saldo[k] || 0" /></div>
@@ -247,6 +258,7 @@ onMounted(carregar)
 </template>
 
 <style scoped>
+.devolucao-lida { box-shadow: inset 3px 0 0 var(--gc-navy); }
 .rodape-form { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .alinhar-fim { justify-content: flex-end; }
 .vale-topo { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--cor-texto); padding-bottom: 8px; margin-bottom: 10px; }

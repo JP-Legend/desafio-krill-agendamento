@@ -24,7 +24,10 @@ import java.util.Objects;
  */
 public class CapacidadeRecebimentoUseCase {
 
-    public record Dados(Long cdId, String loja, Integer diaSemana, Integer paletes, Integer caminhoes) {
+    public record Dados(Long cdId, String loja, Integer diaSemana, Integer paletes, Integer caminhoes, Integer paletesFaixa) {
+        public Dados(Long cdId, String loja, Integer diaSemana, Integer paletes, Integer caminhoes) {
+            this(cdId, loja, diaSemana, paletes, caminhoes, null);
+        }
     }
 
     private final CapacidadeRecebimentoRepositorio repo;
@@ -55,7 +58,7 @@ public class CapacidadeRecebimentoUseCase {
             String loja = d.loja() == null || d.loja().isBlank() ? null : d.loja().trim();
             Long cd = loja == null ? d.cdId() : null;
             if (cd != null) cds.buscarPorId(cd).orElseThrow(() -> new RecursoNaoEncontradoException("CD", cd));
-            CapacidadeRecebimento c = new CapacidadeRecebimento(id, cd, loja, d.diaSemana(), d.paletes(), d.caminhoes());
+            CapacidadeRecebimento c = new CapacidadeRecebimento(id, cd, loja, d.diaSemana(), d.paletes(), d.caminhoes(), d.paletesFaixa());
             boolean duplicada = repo.listar().stream().anyMatch(o -> !Objects.equals(o.id(), id)
                     && Objects.equals(o.cdId(), c.cdId()) && Objects.equals(o.diaSemana(), c.diaSemana())
                     && (o.loja() == null ? c.loja() == null : o.loja().equalsIgnoreCase(c.loja() == null ? "" : c.loja())));
@@ -66,6 +69,7 @@ public class CapacidadeRecebimentoUseCase {
             det.put("diaSemana", c.diaSemana() == null ? "todos" : c.diaSemana());
             det.put("paletes", c.paletes() == null ? "-" : c.paletes());
             det.put("caminhoes", c.caminhoes() == null ? "-" : c.caminhoes());
+            det.put("paletesFaixa", c.paletesFaixa() == null ? "-" : c.paletesFaixa());
             auditoria.registrar(s, id == null ? "CRIAR" : "ALTERAR", "CAPACIDADE_RECEBIMENTO", salvo.id(), det);
             return salvo;
         });

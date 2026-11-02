@@ -83,6 +83,13 @@ public class AgendarPublicoController {
                 f.paletizacoes().stream().map(p -> new Opcao(p.id(), p.nome())).toList());
     }
 
+    @GetMapping("/calendario")
+    @Operation(summary = "Dias em que o destino do link recebe mercadoria (dia fechado vem com o motivo)")
+    public java.util.List<br.com.redekrill.agendamento.domain.model.DiaRecebimento> calendario(@PathVariable String token, HttpServletRequest req) {
+        limitador.consulta(Requisicao.ip(req));
+        return useCase.calendario(token);
+    }
+
     @GetMapping("/disponibilidade")
     @Operation(summary = "Ocupação agregada dos próximos 14 dias (paletes livres por faixa)")
     public List<OcupacaoDiaResp> disponibilidade(@PathVariable String token, HttpServletRequest req) {

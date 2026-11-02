@@ -63,7 +63,7 @@ public class AgendamentoController {
     public CriacaoResp criar(@Valid @RequestBody Requisicoes.CriarAgendamento b, HttpServletRequest req) {
         ResultadoAgendamento r = useCase.criar(new NovoAgendamento(b.data(), b.faixaHorariaId(), b.idPedido(),
                 b.fornecedor(), b.emailFornecedor(), b.tipoCaminhaoId(), b.tipoPaletizacaoId(),
-                b.quantidadePaletes(), b.observacao(), b.cdId(), b.fornecedorId()), Requisicao.solicitante(req));
+                b.quantidadePaletes(), b.observacao(), b.cdId(), b.fornecedorId()), b.loja(), Requisicao.solicitante(req));
         Long id = r.agendamento().agendamento().getId();
         List<String> destino = patio.registrarLogistica(id, b.loja(), b.transportadora(), b.modalDescarga(), Requisicao.solicitante(req));
         return new CriacaoResp(AgendamentoResp.de(r.agendamento()), r.alertas(), r.linkFornecedor(), destino);

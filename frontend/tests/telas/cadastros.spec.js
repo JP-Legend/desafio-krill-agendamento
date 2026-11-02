@@ -52,18 +52,20 @@ describe('cadastros', () => {
     expect(document.body.textContent).toContain('CNPJ já cadastrado')
   })
 
-  it('CDs: lista capacidades próprias e inclui', async () => {
-    const api = simularApi({ 'GET /cds': [{ id: 1, codigo: '806', nome: 'CD Rede Krill', capacidadeDiariaPaletes: null, ativo: true }, { id: 2, codigo: '807', nome: 'CD 2', capacidadeDiariaPaletes: 300, ativo: false }], 'POST /cds': { id: 3 } })
+  it('CDs: inclui sem campos de capacidade (limites ficam só em Capacidade e calendário)', async () => {
+    const api = simularApi({ 'GET /cds': [{ id: 1, codigo: '806', nome: 'CD Rede Krill', ativo: true }, { id: 2, codigo: '807', nome: 'CD 2', ativo: false }], 'POST /cds': { id: 3 } })
     const { w } = await montar(CentrosDistribuicaoView)
-    expect(w.text()).toContain('300 pal.')
     expect(w.text()).toContain('Inativo')
     await botao(w, 'Novo CD').trigger('click')
+    expect(w.findAllComponents(InputNumber).map((c) => c.props('inputId'))).not.toContain('capacidadeDiariaPaletes')
+    expect(document.body.textContent).toContain('Capacidade e calendário')
     await w.find('#codigo').setValue('808')
     await w.find('#nome').setValue('CD Norte')
-    w.findAllComponents(InputNumber).find((c) => c.props('inputId') === 'capacidadeDiariaPaletes').vm.$emit('update:modelValue', 200)
     await botao(w, 'Salvar').trigger('click')
     await flushPromises()
-    expect(api.ultima('POST /cds').corpo).toMatchObject({ codigo: '808', nome: 'CD Norte', capacidadeDiariaPaletes: 200 })
+    const corpo = api.ultima('POST /cds').corpo
+    expect(corpo).toMatchObject({ codigo: '808', nome: 'CD Norte' })
+    expect(corpo).not.toHaveProperty('capacidadeDiariaPaletes')
   })
 
   it('produtos: filtro "somente sem peso"', async () => {

@@ -176,19 +176,24 @@ describe('vale-palete e centros de distribuição', () => {
     expect(api.chamadas.map((c) => c.caminho)).not.toContain('/vales-palete/undefined')
   })
 
-  it('CD sem limite próprio mostra o padrão geral efetivo', async () => {
+  it('cadastro de CD não duplica os limites: aponta para a tela única', async () => {
     logar('ADMIN')
-    simularApi({
-      'GET /cds': [{ id: 1, codigo: '801', nome: 'CD Mongaguá', cidade: 'Mongaguá', capacidadeDiariaPaletes: null, capacidadeFaixaPaletes: null, ativo: true },
-        { id: 2, codigo: '806', nome: 'CD Peruíbe', cidade: 'Peruíbe', capacidadeDiariaPaletes: 300, capacidadeFaixaPaletes: null, ativo: true }],
-      'GET /parametros/capacidade': { capacidadeDiariaPaletes: 480, quantidadeFaixas: 4, duracaoFaixaMinutos: 120 },
-      'GET /faixas-horarias': [{ id: 1, capacidadePaletes: 120, ativo: true }, { id: 2, capacidadePaletes: 120, ativo: true }]
-    })
+    simularApi({ 'GET /cds': [{ id: 1, codigo: '801', nome: 'CD Mongaguá', cidade: 'Mongaguá', ativo: true }] })
     const { w } = await montar(CentrosDistribuicaoView)
     await flushPromises()
-    expect(w.text()).toContain('480 pal. · padrão geral')
-    expect(w.text()).toContain('120 pal. · conforme cada faixa')
-    expect(w.text()).toContain('300 pal.')
-    expect(w.text()).not.toContain('—')
+    expect(w.text()).toContain('CD Mongaguá')
+    expect(w.text()).not.toContain('pal. · padrão geral')
+  })
+
+  it('leitura do código de barras na busca do topo abre o vale na devolução', async () => {
+    logar('USUARIO')
+    const api = simularApi({ 'GET /busca': [], 'GET /vales-palete/leitura': { id: 12, codigo: 'VP-20261102-0003' } })
+    const { w, router } = await montar(BuscaTopo)
+    const campo = w.find('#busca-topo-campo')
+    await campo.setValue('KRILL-VP-20261102-0003')
+    await campo.trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+    expect(api.ultima('GET /vales-palete/leitura').params.codigo).toBe('KRILL-VP-20261102-0003')
+    expect(router.currentRoute.value.fullPath).toBe('/vales-palete/12?devolver=1')
   })
 })

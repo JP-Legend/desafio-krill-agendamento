@@ -122,8 +122,7 @@ public class CadastroRecebimentoController {
     }
 
     private static CentroDistribuicao cd(Long id, Requisicoes.CentroDistribuicao b) {
-        return new CentroDistribuicao(id, b.codigo(), b.nome(), b.cidade(), b.capacidadeDiariaPaletes(),
-                b.capacidadeFaixaPaletes(), b.ativo() == null || b.ativo());
+        return new CentroDistribuicao(id, b.codigo(), b.nome(), b.cidade(), null, null, b.ativo() == null || b.ativo());
     }
 
     private static Fornecedor fornecedor(Long id, Requisicoes.Fornecedor b) {

@@ -47,7 +47,7 @@ const GRUPOS = [
       { to: '/cadastros/fornecedores', label: 'Fornecedores', icon: 'pi pi-users', p: 1402 },
       { to: '/cadastros/produtos', label: 'Produtos e pesos', icon: 'pi pi-barcode', p: 1403 },
       { to: '/cadastros/capacidade', label: 'Capacidade diária', icon: 'pi pi-sliders-h', p: 1404 },
-      { to: '/cadastros/capacidade-recebimento', label: 'Capacidade por CD e loja', icon: 'pi pi-chart-pie', p: 1405 },
+      { to: '/cadastros/capacidade-recebimento', label: 'Capacidade e calendário', icon: 'pi pi-calendar', p: 1405 },
       { to: '/cadastros/docas', label: 'Docas', icon: 'pi pi-sign-in', p: 1406 },
       { to: '/cadastros/faixas', label: 'Faixas horárias', icon: 'pi pi-clock', p: 1404 },
       { to: '/cadastros/caminhoes', label: 'Caminhões', icon: 'pi pi-truck', p: 1407 },

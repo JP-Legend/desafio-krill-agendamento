@@ -13,7 +13,7 @@ import java.util.Optional;
 public class CapacidadeRecebimentoRepositorioJdbc implements CapacidadeRecebimentoRepositorio {
     private static final RowMapper<CapacidadeRecebimento> MAP = (r, i) -> new CapacidadeRecebimento(r.getLong("id"),
             r.getObject("cd_id", Long.class), r.getString("loja"), r.getObject("dia_semana", Integer.class),
-            r.getObject("paletes", Integer.class), r.getObject("caminhoes", Integer.class));
+            r.getObject("paletes", Integer.class), r.getObject("caminhoes", Integer.class), r.getObject("paletes_faixa", Integer.class));
     private final JdbcClient db;
 
     public CapacidadeRecebimentoRepositorioJdbc(JdbcClient db) {
@@ -34,10 +34,10 @@ public class CapacidadeRecebimentoRepositorioJdbc implements CapacidadeRecebimen
     @Override
     public CapacidadeRecebimento salvar(CapacidadeRecebimento c) {
         Long id = c.id() == null
-                ? db.sql("insert into capacidade_recebimento (cd_id, loja, dia_semana, paletes, caminhoes) values (?, ?, ?, ?, ?) returning id")
-                .params(c.cdId(), c.loja(), c.diaSemana(), c.paletes(), c.caminhoes()).query(Long.class).single()
-                : db.sql("update capacidade_recebimento set cd_id = ?, loja = ?, dia_semana = ?, paletes = ?, caminhoes = ? where id = ? returning id")
-                .params(c.cdId(), c.loja(), c.diaSemana(), c.paletes(), c.caminhoes(), c.id()).query(Long.class).single();
+                ? db.sql("insert into capacidade_recebimento (cd_id, loja, dia_semana, paletes, caminhoes, paletes_faixa) values (?, ?, ?, ?, ?, ?) returning id")
+                .params(c.cdId(), c.loja(), c.diaSemana(), c.paletes(), c.caminhoes(), c.paletesFaixa()).query(Long.class).single()
+                : db.sql("update capacidade_recebimento set cd_id = ?, loja = ?, dia_semana = ?, paletes = ?, caminhoes = ?, paletes_faixa = ? where id = ? returning id")
+                .params(c.cdId(), c.loja(), c.diaSemana(), c.paletes(), c.caminhoes(), c.paletesFaixa(), c.id()).query(Long.class).single();
         return buscarPorId(id).orElseThrow();
     }
 

@@ -38,7 +38,9 @@ public class BuscaGlobalUseCase {
         LocalDate data = data(termo);
         List<Resultado> r = new ArrayList<>();
         if (permissoes.contains(Permissao.AGENDAMENTOS_VER.codigo())) r.addAll(repositorio.agendamentos(termo, digitos, data, POR_GRUPO));
-        if (permissoes.contains(Permissao.VALE_VER.codigo())) r.addAll(repositorio.vales(termo, data, POR_GRUPO));
+        if (permissoes.contains(Permissao.VALE_VER.codigo())) r.addAll(repositorio.vales(
+                // leitura do código de barras do vale (EMPRESA-VP-...): procura pelo código do vale
+                termo.replaceFirst("(?i)^[A-Z0-9]{2,12}-(?=VP-)", ""), data, POR_GRUPO));
         if (permissoes.contains(Permissao.FORNECEDORES.codigo())) r.addAll(repositorio.fornecedores(termo, digitos, POR_GRUPO));
         if (permissoes.contains(Permissao.CDS.codigo())) {
             r.addAll(repositorio.cds(termo, POR_GRUPO));

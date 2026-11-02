@@ -50,8 +50,6 @@ public final class Requisicoes {
     public record CentroDistribuicao(@NotBlank @Size(max = 10) @Schema(example = "807") String codigo,
                                      @NotBlank @Size(max = 80) @Schema(example = "CD Rede Krill 2") String nome,
                                      @Size(max = 80) String cidade,
-                                     @Min(1) @Max(100000) @Schema(description = "Vazio = usa o parâmetro geral") Integer capacidadeDiariaPaletes,
-                                     @Min(1) @Max(100000) @Schema(description = "Vazio = usa a capacidade de cada faixa") Integer capacidadeFaixaPaletes,
                                      Boolean ativo) {
     }
 
@@ -189,7 +187,17 @@ public final class Requisicoes {
     }
 
     public record CapacidadeRecebimento(Long cdId, @Size(max = 80) String loja, @Min(1) @Max(7) Integer diaSemana,
-                                        @Min(1) @Max(100000) Integer paletes, @Min(1) @Max(10000) Integer caminhoes) {
+                                        @Min(1) @Max(100000) Integer paletes, @Min(1) @Max(10000) Integer caminhoes,
+                                        @Min(1) @Max(100000) @Schema(description = "Limite de paletes por faixa horária (só CD)") Integer paletesFaixa) {
+    }
+
+    public record CalendarioRecebimento(Long cdId, @Size(max = 80) String loja,
+                                        @NotBlank @jakarta.validation.constraints.Pattern(regexp = "[01]{7}", message = "Dias da semana inválidos") String diasSemana,
+                                        Boolean recebeFeriado) {
+    }
+
+    public record ExcecaoRecebimento(Long cdId, @Size(max = 80) String loja, @NotNull(message = "Data é obrigatória") java.time.LocalDate data,
+                                     @NotNull Boolean aberto, @Size(max = 120) String motivo) {
     }
 
     public record TaxaDescarga(@Size(max = 20) String modal, @NotBlank(message = "Nome é obrigatório") @Size(max = 40) String nome,

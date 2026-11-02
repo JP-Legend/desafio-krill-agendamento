@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -342,6 +343,16 @@ class ApiIntegracaoTest {
                 .contentType(MediaType.APPLICATION_JSON).content(ass)).andExpect(jsonPath("$.status").value("PENDENTE"));
         mvc.perform(put("/api/v1/vales-palete/" + valeId + "/assinaturas/CONFERENTE").header("Authorization", admin)
                 .contentType(MediaType.APPLICATION_JSON).content(ass)).andExpect(jsonPath("$.status").value("ASSINADO"));
+        // leitura do código de barras: EMPRESA-VP-... abre o vale; outra empresa é recusada
+        String cod = json.readTree(mvc.perform(get("/api/v1/vales-palete/" + valeId).header("Authorization", admin))
+                .andReturn().getResponse().getContentAsString()).get("codigoLeitura").asText();
+        assertThat(cod).startsWith("KRILL-VP-");
+        mvc.perform(get("/api/v1/vales-palete/leitura").param("codigo", cod.toLowerCase()).header("Authorization", admin))
+                .andExpect(jsonPath("$.id").value(valeId));
+        mvc.perform(get("/api/v1/vales-palete/leitura").param("codigo", cod.replace("KRILL-", "OUTRA-")).header("Authorization", admin))
+                .andExpect(status().isUnprocessableEntity());
+        mvc.perform(get("/api/v1/busca").param("q", cod).header("Authorization", admin))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(cod.substring(6))));
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/vales-palete/" + valeId + "/assinaturas/CONFERENTE")
                 .header("Authorization", admin)).andExpect(jsonPath("$.status").value("PENDENTE"));
         mvc.perform(post("/api/v1/vales-palete/" + valeId + "/devolucoes").header("Authorization", admin).contentType(MediaType.APPLICATION_JSON)
@@ -364,8 +375,14 @@ class ApiIntegracaoTest {
         mvc.perform(post("/api/v1/cds").header("Authorization", usuario).contentType(json_)
                 .content("{\"codigo\":\"807\",\"nome\":\"CD 2\",\"ativo\":true}")).andExpect(status().isForbidden());
         long cd2 = json.readTree(mvc.perform(post("/api/v1/cds").header("Authorization", admin).contentType(json_)
-                        .content("{\"codigo\":\"807\",\"nome\":\"CD 2\",\"capacidadeDiariaPaletes\":100,\"capacidadeFaixaPaletes\":30,\"ativo\":true}"))
+                        .content("{\"codigo\":\"807\",\"nome\":\"CD 2\",\"ativo\":true}"))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).get("id").asLong();
+        // limites do CD ficam num só lugar: a capacidade de recebimento (regra geral do CD)
+        mvc.perform(post("/api/v1/capacidades-recebimento").header("Authorization", admin).contentType(json_)
+                .content("{\"cdId\":" + cd2 + ",\"paletes\":100,\"paletesFaixa\":30}")).andExpect(status().isCreated());
+        mvc.perform(get("/api/v1/cds").header("Authorization", admin))
+                .andExpect(jsonPath("$[?(@.id == " + cd2 + ")].capacidadeDiariaPaletes").value(100))
+                .andExpect(jsonPath("$[?(@.id == " + cd2 + ")].capacidadeFaixaPaletes").value(30));
         mvc.perform(get("/api/v1/cds").header("Authorization", usuario)).andExpect(jsonPath("$.length()").value(4));
         mvc.perform(post("/api/v1/fornecedores").header("Authorization", admin).contentType(json_)
                 .content("{\"cnpj\":\"11.222.333/0001-80\",\"razaoSocial\":\"X\",\"email\":\"x@x.com\",\"ativo\":true}"))
@@ -656,5 +673,67 @@ class ApiIntegracaoTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Centros de distribuição")));
         mvc.perform(get("/api/v1/busca").param("q", "77001").header("Authorization", admin))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Pedido 77001")));
+    }
+
+    @Test
+    void calendarioDeRecebimentoPorLojaRecusaDiaFechado() throws Exception {
+        String admin = token("admin", "admin123");
+        String usuario = token("usuario", "usuario123");
+        MediaType j = MediaType.APPLICATION_JSON;
+        String loja = "Loja 19 - KRILL CAICARA";
+        mvc.perform(put("/api/v1/calendario-recebimento").header("Authorization", usuario).contentType(j)
+                .content("{\"loja\":\"" + loja + "\",\"diasSemana\":\"1111100\",\"recebeFeriado\":false}")).andExpect(status().isForbidden());
+        mvc.perform(put("/api/v1/calendario-recebimento").header("Authorization", admin).contentType(j)
+                        .content("{\"loja\":\"" + loja + "\",\"diasSemana\":\"1111100\",\"recebeFeriado\":false}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.diasSemana").value("1111100"));
+        mvc.perform(get("/api/v1/calendario-recebimento").param("loja", loja).header("Authorization", usuario))
+                .andExpect(jsonPath("$.configurado").value(true)).andExpect(jsonPath("$.calendario.recebeFeriado").value(false));
+
+        // feriado nacional semeado (Finados) fecha a loja; o CD sem calendário continua recebendo
+        mvc.perform(get("/api/v1/calendario-recebimento/dias").param("inicio", "2026-11-02").param("fim", "2026-11-02")
+                        .param("loja", loja).header("Authorization", usuario))
+                .andExpect(jsonPath("$[0].aberto").value(false)).andExpect(jsonPath("$[0].motivo").value("Feriado: Finados"));
+        mvc.perform(get("/api/v1/calendario-recebimento/dias").param("inicio", "2026-11-02").param("fim", "2026-11-02")
+                        .header("Authorization", usuario)).andExpect(jsonPath("$[0].aberto").value(true));
+
+        LocalDate sabado = dia.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SATURDAY));
+        JsonNode semana = json.readTree(mvc.perform(get("/api/v1/calendario-recebimento/dias").param("inicio", sabado.toString())
+                .param("fim", sabado.plusDays(7).toString()).param("loja", loja).header("Authorization", usuario))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(semana.get(0).get("aberto").asBoolean()).isFalse();
+        assertThat(semana.get(0).get("motivo").asText()).isEqualTo("Não recebe aos sábados");
+        LocalDate aberto = null;
+        for (JsonNode n : semana) if (n.get("aberto").asBoolean()) { aberto = LocalDate.parse(n.get("data").asText()); break; }
+        assertThat(aberto).isNotNull();
+
+        String noSabado = agendamento(1, 1, 4).replace(dia.toString(), sabado.toString())
+                .replace("\"observacao\"", "\"loja\":\"" + loja + "\",\"observacao\"");
+        mvc.perform(post("/api/v1/agendamentos").header("Authorization", admin).contentType(j).content(noSabado))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("não recebe mercadoria")));
+        // o mesmo sábado no CD (sem calendário) é aceito: a regra é do destino
+        mvc.perform(post("/api/v1/agendamentos").header("Authorization", admin).contentType(j)
+                .content(agendamento(1, 1, 4).replace(dia.toString(), sabado.plusDays(7).toString()))).andExpect(status().isCreated());
+        mvc.perform(post("/api/v1/agendamentos").header("Authorization", admin).contentType(j)
+                .content(noSabado.replace(sabado.toString(), aberto.toString()))).andExpect(status().isCreated());
+
+        // exceção: abre o sábado; depois de excluída, volta a fechar
+        long exc = json.readTree(mvc.perform(post("/api/v1/calendario-recebimento/excecoes").header("Authorization", admin).contentType(j)
+                        .content("{\"loja\":\"" + loja + "\",\"data\":\"" + sabado + "\",\"aberto\":true,\"motivo\":\"Mutirão de abastecimento\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).get("id").asLong();
+        mvc.perform(post("/api/v1/agendamentos").header("Authorization", admin).contentType(j).content(noSabado))
+                .andExpect(status().isCreated());
+        mvc.perform(delete("/api/v1/calendario-recebimento/excecoes/" + exc).header("Authorization", admin)).andExpect(status().isNoContent());
+        mvc.perform(post("/api/v1/agendamentos").header("Authorization", admin).contentType(j).content(noSabado))
+                .andExpect(status().isUnprocessableEntity());
+
+        // link público da loja informa os dias fechados
+        String link = mvc.perform(post("/api/v1/links-agendamento").header("Authorization", admin).contentType(j)
+                .content("{\"loja\":\"" + loja + "\"}")).andReturn().getResponse().getContentAsString();
+        String url = json.readTree(link).get("url").asText();
+        mvc.perform(get("/api/v1/publico/agendar/" + url.substring(url.lastIndexOf('/') + 1) + "/calendario"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(14));
+        mvc.perform(get("/api/v1/auditoria").param("entidade", "CALENDARIO_RECEBIMENTO").header("Authorization", admin))
+                .andExpect(status().isOk());
     }
 }

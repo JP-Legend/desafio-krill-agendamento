@@ -53,20 +53,37 @@ describe('pátio e docas', () => {
 
 describe('capacidade por CD e loja', () => {
   it('lista regras e responde se está cheio', async () => {
+    logar('ADMIN')
+    const calendario = (r) => ({ configurado: !!r.params.loja, calendario: { diasSemana: r.params.loja ? '1111100' : '1111110', recebeFeriado: false }, excecoes: [] })
     const api = simularApi({
       'GET /cds': [{ id: 1, codigo: 'CD1', nome: 'CD Principal', ativo: true }],
+      'GET /lojas': ['Loja 7'],
+      'GET /parametros/capacidade': { capacidadeDiariaPaletes: 480 },
+      'GET /faixas-horarias': [{ id: 1, capacidadePaletes: 120, ativo: true }],
       'GET /capacidades-recebimento': [{ id: 1, cdId: null, loja: 'Loja 7', diaSemana: 1, paletes: 20, caminhoes: 2 }],
+      'GET /calendario-recebimento': calendario,
+      'PUT /calendario-recebimento': (r) => r.corpo,
+      'POST /calendario-recebimento/excecoes': (r) => ({ id: 9, ...r.corpo }),
+      'GET /calendario-recebimento/feriados': [{ data: '2026-12-25', nome: 'Natal' }],
+      'GET /calendario-recebimento/dias': [],
       'GET /capacidades-recebimento/ocupacao': (r) => (r.params.loja
         ? { destino: 'a loja Loja 7', limitado: true, cheio: true, capacidadePaletes: 20, paletes: 25, percentualPaletes: 125, capacidadeCaminhoes: 2, caminhoes: 2, percentualCaminhoes: 100 }
         : { destino: 'o CD CD1', limitado: true, cheio: false, capacidadePaletes: 480, paletes: 100, percentualPaletes: 20.8, caminhoes: 3 })
     })
     const { w } = await montar(CapacidadeRecebimentoView)
-    expect(w.text()).toContain('Segunda')
-    expect(w.text()).toContain('Não, o CD CD1 ainda tem vaga')
-    await w.find('#cq-loja').setValue('Loja 7')
     await flushPromises()
+    expect(w.text()).toContain('Não, o CD CD1 ainda tem vaga')
+    expect(w.text()).toContain('Natal')
+    await w.findAll('[role=radio]')[1].trigger('click')
+    w.findAllComponents({ name: 'Select' }).find((c) => c.props('inputId') === 'dest-loja').vm.$emit('update:modelValue', 'Loja 7')
+    await flushPromises()
+    expect(w.text()).toContain('Segunda')
     expect(w.text()).toContain('Sim, a loja Loja 7 está cheio')
     expect(api.ultima('GET /capacidades-recebimento/ocupacao').params.loja).toBe('Loja 7')
+    expect(api.ultima('GET /calendario-recebimento').params.loja).toBe('Loja 7')
+    await botao(w, 'Salvar calendário').trigger('click')
+    await flushPromises()
+    expect(api.ultima('PUT /calendario-recebimento').corpo).toMatchObject({ loja: 'Loja 7', diasSemana: '1111100', recebeFeriado: false })
   })
 })
 

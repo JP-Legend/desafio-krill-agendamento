@@ -94,12 +94,18 @@ public final class Respostas {
                                  int totalEntregues, int totalDevolvidos, int totalSaldo, String status,
                                  String observacao, br.com.redekrill.agendamento.domain.model.ValePalete.Assinatura assinaturaMotorista,
                                  br.com.redekrill.agendamento.domain.model.ValePalete.Assinatura assinaturaConferente,
-                                 String criadoPor, OffsetDateTime criadoEm) {
+                                 String criadoPor, OffsetDateTime criadoEm, String codigoLeitura) {
+        public ValePaleteResp comLeitura(String leitura) {
+            return new ValePaleteResp(id, codigo, agendamentoId, data, fornecedor, placa, motorista, entregues, devolvidos, saldo,
+                    totalEntregues, totalDevolvidos, totalSaldo, status, observacao, assinaturaMotorista, assinaturaConferente,
+                    criadoPor, criadoEm, leitura);
+        }
+
         public static ValePaleteResp de(br.com.redekrill.agendamento.domain.model.ValePalete v) {
             return new ValePaleteResp(v.getId(), v.getCodigo(), v.getAgendamentoId(), v.getData(), v.getFornecedor(), v.getPlaca(),
                     v.getMotorista(), v.getEntregues().itens(), v.getDevolvidos().itens(), v.saldo().itens(),
                     v.getEntregues().total(), v.getDevolvidos().total(), v.saldo().total(), v.getStatus().name(), v.getObservacao(),
-                    v.getAssinaturaMotorista(), v.getAssinaturaConferente(), v.getCriadoPor(), v.getCriadoEm());
+                    v.getAssinaturaMotorista(), v.getAssinaturaConferente(), v.getCriadoPor(), v.getCriadoEm(), null);
         }
     }
 

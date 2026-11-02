@@ -32,6 +32,9 @@ public class ValePaleteController {
 
     private final ValePaleteUseCase useCase;
 
+    @org.springframework.beans.factory.annotation.Value("${app.empresa-codigo:KRILL}")
+    private String empresa = "KRILL";
+
     public ValePaleteController(ValePaleteUseCase useCase) {
         this.useCase = useCase;
     }
@@ -41,24 +44,32 @@ public class ValePaleteController {
                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
                                        @RequestParam(required = false) ValePalete.Status status,
                                        @RequestParam(required = false) String fornecedor) {
-        return useCase.listar(inicio, fim, status, fornecedor).stream().map(ValePaleteResp::de).toList();
+        return useCase.listar(inicio, fim, status, fornecedor).stream().map(this::com).toList();
     }
 
     @GetMapping("/{id}")
     public ValePaleteResp buscar(@PathVariable Long id) {
-        return ValePaleteResp.de(useCase.buscar(id));
+        return com(useCase.buscar(id));
+    }
+
+    @GetMapping("/leitura")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Abre o vale pela leitura do código de barras (EMPRESA-VP-...) ou pelo código digitado")
+    public ValePaleteResp leitura(@RequestParam String codigo) {
+        String c = br.com.redekrill.agendamento.domain.model.CodigoLeituraVale.interpretar(codigo, empresa);
+        if (c == null) throw new br.com.redekrill.agendamento.domain.exception.RegraNegocioException("Código de vale-palete inválido");
+        return com(useCase.buscarPorCodigo(c));
     }
 
     @GetMapping("/codigo/{codigo}")
     @Operation(summary = "Busca pelo código VP-... (leitura do código de barras/QR)")
     public ValePaleteResp porCodigo(@PathVariable String codigo) {
-        return ValePaleteResp.de(useCase.buscarPorCodigo(codigo));
+        return com(useCase.buscarPorCodigo(codigo));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ValePaleteResp emitir(@Valid @RequestBody Requisicoes.NovoVale b, HttpServletRequest req) {
-        return ValePaleteResp.de(useCase.emitir(new ValePaleteUseCase.NovoVale(b.agendamentoId(), b.data(), b.fornecedor(),
+        return com(useCase.emitir(new ValePaleteUseCase.NovoVale(b.agendamentoId(), b.data(), b.fornecedor(),
                 b.placa(), b.motorista(), new ValePalete.Quantidades(b.quantidades()),
                 b.observacao()), Requisicao.solicitante(req)));
     }
@@ -67,24 +78,28 @@ public class ValePaleteController {
     @Operation(summary = "Grava assinatura do MOTORISTA ou CONFERENTE")
     public ValePaleteResp assinar(@PathVariable Long id, @PathVariable ValePalete.Assinante quem,
                                   @Valid @RequestBody Requisicoes.Assinatura b, HttpServletRequest req) {
-        return ValePaleteResp.de(useCase.assinar(id, quem, b.nome(), b.imagem(), Requisicao.solicitante(req)));
+        return com(useCase.assinar(id, quem, b.nome(), b.imagem(), Requisicao.solicitante(req)));
     }
 
     @DeleteMapping("/{id}/assinaturas/{quem}")
     @Operation(summary = "Refazer assinatura")
     public ValePaleteResp refazer(@PathVariable Long id, @PathVariable ValePalete.Assinante quem, HttpServletRequest req) {
-        return ValePaleteResp.de(useCase.refazerAssinatura(id, quem, Requisicao.solicitante(req)));
+        return com(useCase.refazerAssinatura(id, quem, Requisicao.solicitante(req)));
     }
 
     @PostMapping("/{id}/devolucoes")
     @Operation(summary = "Registra devolução de paletes (total quita o vale)")
     public ValePaleteResp devolver(@PathVariable Long id, @Valid @RequestBody Requisicoes.Devolucao b, HttpServletRequest req) {
-        return ValePaleteResp.de(useCase.registrarDevolucao(id,
+        return com(useCase.registrarDevolucao(id,
                 new ValePalete.Quantidades(b.quantidades()), Requisicao.solicitante(req)));
     }
 
     @PatchMapping("/{id}/cancelamento")
     public ValePaleteResp cancelar(@PathVariable Long id, HttpServletRequest req) {
-        return ValePaleteResp.de(useCase.cancelar(id, Requisicao.solicitante(req)));
+        return com(useCase.cancelar(id, Requisicao.solicitante(req)));
+    }
+
+    private ValePaleteResp com(ValePalete v) {
+        return ValePaleteResp.de(v).comLeitura(br.com.redekrill.agendamento.domain.model.CodigoLeituraVale.gerar(empresa, v.getCodigo()));
     }
 }

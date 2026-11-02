@@ -150,6 +150,22 @@ public class LinkAgendamentoUseCase {
                 paletizacoes.listar().stream().filter(TipoPaletizacao::ativo).toList());
     }
 
+    /** Dias em que o destino do link recebe (próximos 14 dias), com o motivo dos dias fechados. */
+    public List<br.com.redekrill.agendamento.domain.model.DiaRecebimento> calendario(String token) {
+        LinkAgendamento l = ativo(token);
+        LocalDate hoje = LocalDate.now(clock);
+        if (calendario == null) return hoje.datesUntil(hoje.plusDays(DIAS_DISPONIVEIS))
+                .map(d -> new br.com.redekrill.agendamento.domain.model.DiaRecebimento(d, true, null)).toList();
+        return calendario.dias(hoje, hoje.plusDays(DIAS_DISPONIVEIS - 1), l.cdId(), l.loja());
+    }
+
+    private CalendarioRecebimentoUseCase calendario;
+
+    public LinkAgendamentoUseCase usarCalendario(CalendarioRecebimentoUseCase calendario) {
+        this.calendario = calendario;
+        return this;
+    }
+
     /** Ocupação agregada dos próximos 14 dias do CD do link (nenhum dado de outros agendamentos). */
     public List<OcupacaoDia> disponibilidade(String token) {
         LinkAgendamento l = ativo(token);
@@ -175,7 +191,7 @@ public class LinkAgendamentoUseCase {
         Solicitante s = new Solicitante("fornecedor:" + p.emailFornecedor(), ip);
         ResultadoAgendamento r = agendamentos.criar(new NovoAgendamento(p.data(), p.faixaHorariaId(), p.idPedido(),
                 p.fornecedor(), p.emailFornecedor(), p.tipoCaminhaoId(), p.tipoPaletizacaoId(), p.quantidadePaletes(),
-                p.observacao(), cdId, fornecedorId), s);
+                p.observacao(), cdId, fornecedorId), l.loja(), s);
         Long id = r.agendamento().agendamento().getId();
         List<String> alertas = new ArrayList<>(r.alertas().stream().map(AlertaCapacidade::mensagem).toList());
         if (l.loja() != null || (p.transportadora() != null && !p.transportadora().isBlank())) {

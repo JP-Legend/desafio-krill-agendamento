@@ -64,6 +64,6 @@ public class CapacidadeRecebimentoController {
     }
 
     private static CapacidadeRecebimentoUseCase.Dados dados(Requisicoes.CapacidadeRecebimento b) {
-        return new CapacidadeRecebimentoUseCase.Dados(b.cdId(), b.loja(), b.diaSemana(), b.paletes(), b.caminhoes());
+        return new CapacidadeRecebimentoUseCase.Dados(b.cdId(), b.loja(), b.diaSemana(), b.paletes(), b.caminhoes(), b.paletesFaixa());
     }
 }

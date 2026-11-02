@@ -92,8 +92,18 @@ public class UseCaseConfig {
                                           ParametroRepositorio p, NotificadorEmail email, NotificadorPush push,
                                           AuditoriaUseCase a, Transacao tx, Clock clock, GeradorToken tokens,
                                           @Value("${app.url-publica}") String urlPublica,
-                                          CentroDistribuicaoRepositorio cds, FornecedorRepositorio fornecedores) {
-        return new AgendamentoUseCase(ag, f, c, t, p, email, push, a, tx, clock, tokens, urlPublica, cds, fornecedores);
+                                          CentroDistribuicaoRepositorio cds, FornecedorRepositorio fornecedores,
+                                          br.com.redekrill.agendamento.application.usecase.CalendarioRecebimentoUseCase calendario,
+                                          CapacidadeRecebimentoRepositorio regras, LogisticaRepositorio logistica) {
+        return new AgendamentoUseCase(ag, f, c, t, p, email, push, a, tx, clock, tokens, urlPublica, cds, fornecedores)
+                .configurarRecebimento(calendario, regras, logistica);
+    }
+
+    @Bean
+    br.com.redekrill.agendamento.application.usecase.CalendarioRecebimentoUseCase calendarioRecebimentoUseCase(
+            br.com.redekrill.agendamento.application.port.CalendarioRecebimentoRepositorio r, CentroDistribuicaoRepositorio cds,
+            AuditoriaUseCase a, Transacao tx) {
+        return new br.com.redekrill.agendamento.application.usecase.CalendarioRecebimentoUseCase(r, cds, a, tx);
     }
 
     @Bean
@@ -121,9 +131,10 @@ public class UseCaseConfig {
             br.com.redekrill.agendamento.application.port.CapacidadeRecebimentoRepositorio cap,
             br.com.redekrill.agendamento.application.port.LojaRepositorio lojas, FornecedorRepositorio fornecedores, TipoCaminhaoRepositorio c, TipoPaletizacaoRepositorio t,
             GeradorToken tokens, AuditoriaUseCase a, Transacao tx, Clock clock,
-            @Value("${app.url-publica}") String urlPublica) {
+            @Value("${app.url-publica}") String urlPublica,
+            br.com.redekrill.agendamento.application.usecase.CalendarioRecebimentoUseCase calendario) {
         return new br.com.redekrill.agendamento.application.usecase.LinkAgendamentoUseCase(l, uc, patio, cds, cap,
-                lojas, fornecedores, c, t, tokens, a, tx, clock, urlPublica);
+                lojas, fornecedores, c, t, tokens, a, tx, clock, urlPublica).usarCalendario(calendario);
     }
 
     @Bean
@@ -219,8 +230,9 @@ public class UseCaseConfig {
     @Bean
     PatioUseCase patioUseCase(DocaRepositorio d, LogisticaRepositorio l, AgendamentoRepositorio ag, AgendamentoUseCase uc,
                               CentroDistribuicaoRepositorio cds, CapacidadeRecebimentoUseCase cap, TaxaDescargaUseCase t,
-                              AuditoriaUseCase a, Transacao tx, Clock clock) {
-        return new PatioUseCase(d, l, ag, uc, cds, cap, t, a, tx, clock);
+                              AuditoriaUseCase a, Transacao tx, Clock clock,
+                              br.com.redekrill.agendamento.application.usecase.CalendarioRecebimentoUseCase calendario) {
+        return new PatioUseCase(d, l, ag, uc, cds, cap, t, a, tx, clock).usarCalendario(calendario);
     }
 
     @Bean

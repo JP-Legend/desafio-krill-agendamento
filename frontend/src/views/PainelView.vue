@@ -14,6 +14,8 @@ const notificar = useNotificar()
 const dataSel = ref(route.query.data || hoje())
 const inicioSemana = ref(dataSel.value)
 const semana = ref([])
+/** Dias em que o CD não recebe (calendário de recebimento), com o motivo. */
+const fechados = ref({})
 const agendamentos = ref([])
 const carregando = ref(false)
 
@@ -24,7 +26,10 @@ const datePicker = computed({
 })
 
 async function carregarSemana() {
-  semana.value = await api('/ocupacao/periodo', { params: { inicio: inicioSemana.value, fim: somarDias(inicioSemana.value, 6) } })
+  const p = { inicio: inicioSemana.value, fim: somarDias(inicioSemana.value, 6) }
+  const [s, cal] = await Promise.all([api('/ocupacao/periodo', { params: p }), api('/calendario-recebimento/dias', { params: p }).catch(() => [])])
+  fechados.value = Object.fromEntries(cal.filter((x) => !x.aberto).map((x) => [x.data, x.motivo]))
+  semana.value = s
 }
 async function carregarDia() {
   agendamentos.value = await api('/agendamentos', { params: { inicio: dataSel.value, fim: dataSel.value, status: 'AGENDADO' } })
@@ -68,11 +73,17 @@ onMounted(carregar)
 
   <section class="painel">
     <div class="dias">
-      <button v-for="d in semana" :key="d.data" class="dia" :class="{ selecionado: d.data === dataSel }" @click="selecionar(d.data)">
+      <button v-for="d in semana" :key="d.data" class="dia" :class="{ selecionado: d.data === dataSel, fechado: fechados[d.data] }" @click="selecionar(d.data)">
         <div class="cab"><span>{{ diaSemana(d.data) }}</span><span>{{ fmtData(d.data).slice(0, 5) }}</span></div>
+        <template v-if="fechados[d.data]">
+          <span class="nao-recebe"><i class="pi pi-ban" /> Não recebe</span>
+          <span class="val">{{ fechados[d.data] }}</span>
+        </template>
+        <template v-else>
         <span class="pct" :class="nivelOcupacao(d.percentual)">{{ fmtPct(d.percentual) }}</span>
         <BarraOcupacao :percentual="d.percentual" :mostrar-texto="false" />
         <span class="val">{{ d.paletesOcupados }}/{{ d.capacidade }} · {{ d.quantidadeAgendamentos }} ag.</span>
+        </template>
       </button>
     </div>
   </section>
@@ -113,3 +124,8 @@ onMounted(carregar)
     </DataTable>
   </section>
 </template>
+
+<style scoped>
+.dia.fechado { background: var(--gc-input-disabled); border-style: dashed; }
+.nao-recebe { display: inline-flex; align-items: center; gap: 4px; color: var(--cor-texto-suave); font-weight: 700; font-size: 13px; }
+</style>

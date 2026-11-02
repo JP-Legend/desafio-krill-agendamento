@@ -367,13 +367,14 @@ pre.json { background: var(--cor-campo); border-radius: var(--raio); padding: 8p
 /* ---------- abas MDI (como no Atlas), abaixo do cabeçalho ---------- */
 .mdi-barra { display: flex; align-items: stretch; height: 38px; padding: 0 16px; background: var(--gc-panel); border-bottom: 1px solid var(--gc-border); font-size: 13px; }
 .mdi-abas { display: flex; align-items: stretch; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding-top: 4px; }
-.mdi-aba { display: flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 110px; max-width: 220px; padding: 0 6px 0 12px; border-radius: 8px 8px 0 0; color: var(--gc-card-sub); text-decoration: none; font-weight: 500; white-space: nowrap; user-select: none; transition: background-color .12s, color .12s; }
+/* Largura da aba = rótulo + X (como no Atlas/Gestão CD); título longo para em 200px com reticências. */
+.mdi-aba { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; min-width: 0; max-width: 200px; padding: 0 6px 0 12px; border-radius: 8px 8px 0 0; color: var(--gc-card-sub); text-decoration: none; font-weight: 500; white-space: nowrap; user-select: none; transition: background-color .12s, color .12s; }
 .mdi-aba:hover { background: var(--gc-zebra); color: var(--gc-card-titulo); }
 .mdi-aba.ativa { background: var(--gc-navy-50); color: var(--gc-navy); font-weight: 600; box-shadow: inset 0 -2px 0 var(--gc-navy); }
 .mdi-aba-fixa { min-width: 0; flex: 0 0 auto; padding: 0 12px; }
 .mdi-aba.arrastando { opacity: .5; }
 .mdi-aba.sobre { box-shadow: inset 2px 0 0 var(--gc-navy); }
-.mdi-rotulo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mdi-rotulo { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .mdi-fechar { display: inline-grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: currentColor; cursor: pointer; opacity: 0; transition: opacity .12s; }
 .mdi-fechar .pi { font-size: 10px; }
 .mdi-aba:hover .mdi-fechar, .mdi-aba.ativa .mdi-fechar, .mdi-fechar:focus-visible { opacity: .6; }

@@ -70,6 +70,13 @@ public class PatioUseCase {
     private final AuditoriaUseCase auditoria;
     private final Transacao transacao;
     private final Clock clock;
+    private CalendarioRecebimentoUseCase calendario;
+
+    /** Com o calendário ligado, mudar a entrega para uma loja fechada no dia é recusado. */
+    public PatioUseCase usarCalendario(CalendarioRecebimentoUseCase calendario) {
+        this.calendario = calendario;
+        return this;
+    }
 
     public PatioUseCase(DocaRepositorio docas, LogisticaRepositorio logistica, AgendamentoRepositorio agendamentos,
                         AgendamentoUseCase agendamentoUseCase, CentroDistribuicaoRepositorio cds,
@@ -119,7 +126,11 @@ public class PatioUseCase {
         return transacao.executar(() -> {
             Agendamento a = agendamentos.buscarPorId(agendamentoId)
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", agendamentoId));
-            LogisticaAgendamento nova = logistica(agendamentoId).comDados(loja, transportadora, modal);
+            LogisticaAgendamento atual = logistica(agendamentoId);
+            LogisticaAgendamento nova = atual.comDados(loja, transportadora, modal);
+            if (calendario != null && nova.loja() != null && !nova.loja().equalsIgnoreCase(String.valueOf(atual.loja()))) {
+                calendario.exigirAberto(a.getData(), null, nova.loja());
+            }
             logistica.salvar(nova);
             Map<String, Object> det = new HashMap<>();
             det.put("loja", nova.loja() == null ? "CD" : nova.loja());

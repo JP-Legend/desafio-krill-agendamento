@@ -73,6 +73,7 @@ final class RegrasAcesso {
             new Regra(PUT, API + "/parametros/capacidade", CAPACIDADE_FAIXAS),
             new Regra(null, API + "/faixas-horarias/**", CAPACIDADE_FAIXAS),
             new Regra(null, API + "/capacidades-recebimento/**", CAPACIDADE_CD_LOJA),
+            new Regra(null, API + "/calendario-recebimento/**", CAPACIDADE_CD_LOJA),
             new Regra(null, API + "/docas/**", DOCAS),
             new Regra(null, API + "/tipos-caminhao/**", CAMINHOES_PALETIZACAO),
             new Regra(null, API + "/tipos-paletizacao/**", CAMINHOES_PALETIZACAO),

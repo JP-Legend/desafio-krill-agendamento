@@ -7,7 +7,8 @@ import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
 import BarraOcupacao from '../components/BarraOcupacao.vue'
 import SeletorCd from '../components/SeletorCd.vue'
-import { fmtCnpj } from '../utils'
+import { fmtCnpj, somarDias } from '../utils'
+import { useCalendarioRecebimento } from '../composables/useCalendarioRecebimento'
 
 const route = useRoute()
 const router = useRouter()
@@ -93,9 +94,29 @@ const destinoApos = computed(() => {
 })
 watch(form, () => { if (tentouEnviar.value) erros.value = validarAgendamento(payload()) })
 
+/** Calendário do destino: dias fechados não podem ser escolhidos (o backend também recusa). */
+const calendario = useCalendarioRecebimento()
+function carregarCalendario() {
+  const ini = hoje()
+  calendario.carregar(() => api('/calendario-recebimento/dias', { params: { inicio: ini, fim: somarDias(ini, 180), cdId: form.cdId, loja: (form.loja || '').trim() } }))
+}
+watch(() => [form.cdId, form.loja], carregarCalendario)
+const diaFechado = computed(() => (form.data ? calendario.fechado(isoData(form.data)) : null))
+const motivoFechado = (d) => calendario.fechado(`${d.year}-${String(d.month + 1).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`)?.motivo || undefined
+/** Próximos dias fechados com o motivo, para quem não passa o mouse no calendário. */
+const proximosFechados = computed(() => {
+  const fechados = calendario.dias.value.filter((d) => !d.aberto)
+  const semanais = [...new Set(fechados.map((d) => /^Não recebe aos (.+)$/.exec(d.motivo || '')?.[1]).filter(Boolean))]
+  const datas = fechados.filter((d) => !/^Não recebe aos /.test(d.motivo || '')).slice(0, 3)
+    .map((d) => `${fmtData(d.data).slice(0, 5)} (${(d.motivo || '').replace(/^Feriado: |^Fechado: /, '')})`)
+  return [...semanais, ...datas].join(' · ')
+})
+const avisoDia = computed(() => (form.data ? calendario.porData.value[isoData(form.data)]?.motivo : null))
+
 const lojas = ref([])
 onMounted(async () => {
   consultarDestino()
+  carregarCalendario()
   try {
     const [c, p] = await Promise.all([api('/tipos-caminhao'), api('/tipos-paletizacao')])
     caminhoes.value = c.filter((x) => x.ativo)
@@ -144,6 +165,10 @@ function payload() {
 
 function salvar() {
   tentouEnviar.value = true
+  if (diaFechado.value) {
+    notificar.aviso(`Escolha outro dia: ${diaFechado.value.motivo}`, 'Dia sem recebimento')
+    return
+  }
   const body = payload()
   erros.value = validarAgendamento(body)
   if (Object.keys(erros.value).length) {
@@ -181,7 +206,12 @@ function limpar() {
       <SeletorCd v-model="form.cdId" input-id="cd" :todos="false" />
       <div class="campo">
         <label for="data">Data <span class="obrig">*</span></label>
-        <DatePicker v-model="form.data" input-id="data" date-format="dd/mm/yy" :min-date="minData" show-icon icon-display="input" :invalid="!!erros.data" />
+        <DatePicker v-model="form.data" input-id="data" date-format="dd/mm/yy" :min-date="minData" :disabled-dates="calendario.datasFechadas.value" show-icon icon-display="input" :invalid="!!erros.data || !!diaFechado">
+          <template #date="{ date: d }"><span :title="motivoFechado(d)">{{ d.day }}</span></template>
+        </DatePicker>
+        <small v-if="proximosFechados" class="texto-suave dias-fechados">Não recebe: {{ proximosFechados }}</small>
+        <span v-if="diaFechado" class="erro dia-fechado" role="alert"><i class="pi pi-ban" /> {{ destino?.destino ? `${destino.destino[0].toUpperCase()}${destino.destino.slice(1)} não recebe` : 'Não recebe' }} nesta data · {{ diaFechado.motivo }}</span>
+        <span v-else-if="avisoDia" class="dica">{{ avisoDia }}</span>
         <BarraOcupacao v-if="ocupacao" :percentual="ocupacao.percentual" :ocupado="ocupacao.paletesOcupados" :capacidade="ocupacao.capacidade" />
         <span v-if="erros.data" class="erro">{{ erros.data }}</span>
       </div>
@@ -287,5 +317,6 @@ function limpar() {
 </template>
 
 <style scoped>
+.dias-fechados { display: block; margin-top: 4px; font-size: 0.78rem; }
 .opcao-faixa { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; width: 100%; font-size: 13px; }
 </style>

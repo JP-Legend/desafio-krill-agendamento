@@ -15,6 +15,8 @@ const base = `/publico/agendar/${route.params.token}`
 const info = ref(null)
 const erro = ref('')
 const dias = ref([])
+/** Dias em que o destino do link não recebe, com o motivo (o backend também recusa). */
+const fechados = ref({})
 const escolha = ref(null)
 const enviado = ref(null)
 const form = reactive({ fornecedor: '', cnpj: '', emailFornecedor: '', idPedido: null, tipoCaminhaoId: null, tipoPaletizacaoId: null, quantidadePaletes: null, transportadora: '', observacao: '', siteWeb: '' })
@@ -36,7 +38,9 @@ async function carregar() {
 async function carregarDias() {
   escolha.value = null
   try {
-    dias.value = await api(`${base}/disponibilidade`)
+    const [d, cal] = await Promise.all([api(`${base}/disponibilidade`), api(`${base}/calendario`).catch(() => [])])
+    dias.value = d
+    fechados.value = Object.fromEntries(cal.filter((x) => !x.aberto).map((x) => [x.data, x.motivo]))
   } catch (e) {
     notificar.erro(e)
   }
@@ -132,7 +136,7 @@ defineExpose({ escolha, form, agendarEntrega })
       <div class="campo-oculto" aria-hidden="true"><label for="ag-site">Site</label><input id="ag-site" v-model="form.siteWeb" tabindex="-1" autocomplete="off" /></div>
 
       <h3>Dia e faixa <span class="obrig">*</span></h3>
-      <EscolhaHorario v-model="escolha" :dias="dias" :paletes="paletes" />
+      <EscolhaHorario v-model="escolha" :dias="dias" :paletes="paletes" :fechados="fechados" />
       <p v-if="escolha" class="destaque-escolha">Entrega: <strong>{{ diaSemana(escolha.data) }}, {{ fmtData(escolha.data) }} · {{ escolha.descricao }}</strong></p>
       <div v-if="escolha && !escolha.cabe" class="alerta aviso">
         <i class="pi pi-exclamation-triangle" />
