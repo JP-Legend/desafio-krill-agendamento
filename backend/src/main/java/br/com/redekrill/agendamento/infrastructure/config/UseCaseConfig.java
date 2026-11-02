@@ -152,8 +152,8 @@ public class UseCaseConfig {
     @Bean
     ValePaleteUseCase valePaleteUseCase(ValePaleteRepositorio v, AgendamentoRepositorio ag, AuditoriaUseCase a,
                                         Transacao tx, Clock clock, TipoPaleteUseCase tipos,
-                                        ConfiguracaoValePaleteUseCase config) {
-        return new ValePaleteUseCase(v, ag, a, tx, clock, tipos).comConfiguracao(config);
+                                        ConfiguracaoValePaleteUseCase config, LogisticaRepositorio logistica) {
+        return new ValePaleteUseCase(v, ag, a, tx, clock, tipos).comConfiguracao(config).usarLogistica(logistica);
     }
 
     @Bean

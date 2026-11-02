@@ -6,7 +6,7 @@ import { deIso, fmtData, fmtPct, hoje, isoData, nivelOcupacao, validarAgendament
 import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
 import BarraOcupacao from '../components/BarraOcupacao.vue'
-import SeletorCd from '../components/SeletorCd.vue'
+import SeletorDestino from '../components/SeletorDestino.vue'
 import { fmtCnpj, somarDias } from '../utils'
 import { useCalendarioRecebimento } from '../composables/useCalendarioRecebimento'
 
@@ -101,7 +101,26 @@ function carregarCalendario() {
   calendario.carregar(() => api('/calendario-recebimento/dias', { params: { inicio: ini, fim: somarDias(ini, 180), cdId: form.cdId, loja: (form.loja || '').trim() } }))
 }
 watch(() => [form.cdId, form.loja], carregarCalendario)
-const diaFechado = computed(() => (form.data ? calendario.fechado(isoData(form.data)) : null))
+/** Data digitada que o calendário recusa (dia fechado): o DatePicker limparia em silêncio, então guardamos o motivo. */
+const digitadoFechado = ref(null)
+function verDigitado(e) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/.exec(String(e?.target?.value || '').trim())
+  if (!m) { if (!e?.target?.value) digitadoFechado.value = null; return }
+  const ano = m[3].length === 2 ? `20${m[3]}` : m[3]
+  const iso = `${ano}-${m[2]}-${m[1]}`
+  const f = calendario.fechado(iso)
+  digitadoFechado.value = f ? { ...f, data: iso } : null
+}
+watch(() => form.data, (v) => { if (v) digitadoFechado.value = null })
+/** Data sugerida (hoje) caiu num dia fechado: passa para o próximo dia em que o destino recebe. */
+let dataEscolhida = !!route.query.data
+watch(calendario.dias, (dias) => {
+  if (dataEscolhida || !form.data || !calendario.fechado(isoData(form.data))) return
+  const prox = dias.find((d) => d.aberto && d.data > isoData(form.data))
+  if (prox) form.data = deIso(prox.data)
+})
+function marcarEscolha() { dataEscolhida = true }
+const diaFechado = computed(() => (form.data ? calendario.fechado(isoData(form.data)) : digitadoFechado.value))
 const motivoFechado = (d) => calendario.fechado(`${d.year}-${String(d.month + 1).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`)?.motivo || undefined
 /** Próximos dias fechados com o motivo, para quem não passa o mouse no calendário. */
 const proximosFechados = computed(() => {
@@ -203,14 +222,14 @@ function limpar() {
 
   <form class="painel" novalidate @submit.prevent="salvar">
     <div class="grade">
-      <SeletorCd v-model="form.cdId" input-id="cd" :todos="false" />
+      <SeletorDestino :model-value="{ cdId: form.cdId, loja: null }" input-id="cd" :todos="false" somente-cd @update:model-value="(d) => (form.cdId = d.cdId)" />
       <div class="campo">
         <label for="data">Data <span class="obrig">*</span></label>
-        <DatePicker v-model="form.data" input-id="data" date-format="dd/mm/yy" :min-date="minData" :disabled-dates="calendario.datasFechadas.value" show-icon icon-display="input" :invalid="!!erros.data || !!diaFechado">
+        <DatePicker v-model="form.data" input-id="data" date-format="dd/mm/yy" :min-date="minData" :disabled-dates="calendario.datasFechadas.value" show-icon icon-display="input" :invalid="!!erros.data || !!diaFechado" @input="verDigitado" @date-select="marcarEscolha">
           <template #date="{ date: d }"><span :title="motivoFechado(d)">{{ d.day }}</span></template>
         </DatePicker>
         <small v-if="proximosFechados" class="texto-suave dias-fechados">Não recebe: {{ proximosFechados }}</small>
-        <span v-if="diaFechado" class="erro dia-fechado" role="alert"><i class="pi pi-ban" /> {{ destino?.destino ? `${destino.destino[0].toUpperCase()}${destino.destino.slice(1)} não recebe` : 'Não recebe' }} nesta data · {{ diaFechado.motivo }}</span>
+        <span v-if="diaFechado" class="erro dia-fechado" role="alert"><i class="pi pi-ban" /> {{ destino?.destino ? `${destino.destino[0].toUpperCase()}${destino.destino.slice(1)} não recebe` : 'Não recebe' }} {{ digitadoFechado && !form.data ? `em ${fmtData(digitadoFechado.data)}` : 'nesta data' }} · {{ diaFechado.motivo }}</span>
         <span v-else-if="avisoDia" class="dica">{{ avisoDia }}</span>
         <BarraOcupacao v-if="ocupacao" :percentual="ocupacao.percentual" :ocupado="ocupacao.paletesOcupados" :capacidade="ocupacao.capacidade" />
         <span v-if="erros.data" class="erro">{{ erros.data }}</span>

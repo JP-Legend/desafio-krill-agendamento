@@ -6,10 +6,15 @@ import { fmtData, isoData } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
 import { somar, useTiposPalete, zerar } from '../composables/useTiposPalete'
+import SeletorDestino from '../components/SeletorDestino.vue'
+import { destinos } from '../sessao'
 
 const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
 const busca = ref('')
+const destino = ref({ cdId: null, loja: null })
+/** Usuário de uma loja só não precisa buscar loja. */
+const lojaUnica = computed(() => { const d = destinos(); return !d.todos && d.cds.length === 0 && d.lojas.length === 1 })
 const lojas = ref([])
 const movimentos = ref([])
 const visivel = ref(false)
@@ -23,9 +28,10 @@ const colunas = computed(() => tiposPalete.colunas(...lojas.value.map((l) => l.p
 
 async function carregar() {
   try {
-    const l = busca.value.trim() || null
+    const l = destino.value.loja || busca.value.trim() || null
+    const p = { loja: l, cdId: destino.value.cdId }
     await tiposPalete.carregar()
-    ;[lojas.value, movimentos.value] = await Promise.all([api('/paletes/lojas', { params: { loja: l } }), api('/paletes/movimentos', { params: { loja: l } })])
+    ;[lojas.value, movimentos.value] = await Promise.all([api('/paletes/lojas', { params: p }), api('/paletes/movimentos', { params: p })])
   } catch (e) {
     notificar.erro(e)
   }
@@ -60,7 +66,7 @@ defineExpose({ novo, salvar, form, erros })
   <div class="cabecalho">
     <h1>Paletes nas lojas</h1>
     <div class="acoes">
-      <form @submit.prevent="carregar" class="acoes"><InputText v-model="busca" placeholder="Loja" aria-label="Loja" /><Button type="submit" icon="pi pi-search" class="btn-secundario" aria-label="Buscar" /></form>
+      <form @submit.prevent="carregar" class="acoes"><SeletorDestino v-model="destino" input-id="destino-mov" @update:model-value="carregar" /><InputText v-if="!lojaUnica && !destino.loja" v-model="busca" placeholder="Loja" aria-label="Loja" /><Button type="submit" icon="pi pi-search" class="btn-secundario" aria-label="Buscar" /></form>
       <Button v-if="pode(1308)" label="Novo romaneio" icon="pi pi-plus" class="btn-confirmar" @click="novo()" />
     </div>
   </div>

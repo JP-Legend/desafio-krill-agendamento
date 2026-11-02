@@ -47,8 +47,8 @@ public class EscopoDestinos {
     /** Vale sem agendamento só aparece para quem vê todos os destinos. */
     public boolean valeVisivel(Escopo e, Long valeId) {
         if (e.todos()) return true;
-        Optional<Long> ag = db.sql("select agendamento_id from vale_palete where id = ?").param(valeId).query(Long.class).optional();
-        return ag.isPresent() && agendamentoVisivel(e, ag.get());
+        return db.sql("select cd_id, loja from vale_palete where id = ?").param(valeId)
+                .query((r, i) -> e.permiteDestino((Long) r.getObject("cd_id"), r.getString("loja"))).optional().orElse(false);
     }
 
     /** Recurso por id na URL: false = fora do escopo (responde 404). */

@@ -1,4 +1,5 @@
 <script setup>
+import CampoHora from '../components/CampoHora.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { api } from '../api'
 import { pode } from '../sessao'
@@ -62,7 +63,8 @@ const linhas = computed(() => [
 ].map((d) => {
   const regra = regras.value.find((r) => r.diaSemana == null && chaveDe(r.loja ? null : r.cdId, r.loja) === d.chave) || null
   const cal = calendarios.value.find((c) => chaveDe(c.loja ? null : c.cdId, c.loja) === d.chave) || null
-  return { ...d, regra, cal, excecoes: excecoes.value.filter((e) => chaveDe(e.loja ? null : e.cdId, e.loja) === d.chave) }
+  const porDia = regras.value.filter((r) => r.diaSemana != null && chaveDe(r.loja ? null : r.cdId, r.loja) === d.chave)
+  return { ...d, regra, porDia, cal, excecoes: excecoes.value.filter((e) => chaveDe(e.loja ? null : e.cdId, e.loja) === d.chave) }
 }))
 function diasTexto(cal) {
   const d = cal ? cal.diasSemana : '1111111'
@@ -84,12 +86,12 @@ async function carregarDestinos() {
 // ---- edição de um destino
 const dialogo = ref(false)
 const atual = ref(null)
-const form = reactive({ dia: null, faixa: null, dias: [], recebeFeriado: true })
+const form = reactive({ dia: null, faixa: null, dias: [], recebeFeriado: true, porDia: [] })
 const nova = reactive({ data: null, aberto: false, motivo: '' })
 function abrir(l) {
   atual.value = l
   const dias = l.cal ? l.cal.diasSemana : '1111111'
-  Object.assign(form, { dia: l.regra?.paletes ?? null, faixa: l.regra?.paletesFaixa ?? null, dias: [...dias].map((c) => c === '1'), recebeFeriado: l.cal ? l.cal.recebeFeriado : true })
+  Object.assign(form, { dia: l.regra?.paletes ?? null, faixa: l.regra?.paletesFaixa ?? null, dias: [...dias].map((c) => c === '1'), recebeFeriado: l.cal ? l.cal.recebeFeriado : true, porDia: DIAS_CURTOS.map((_, i) => l.porDia.find((r) => r.diaSemana === i + 1)?.paletes ?? null) })
   Object.assign(nova, { data: null, aberto: false, motivo: '' })
   dialogo.value = true
 }
@@ -107,6 +109,17 @@ function salvarDestino() {
         await api(l.regra ? `/capacidades-recebimento/${l.regra.id}` : '/capacidades-recebimento', { method: l.regra ? 'PUT' : 'POST', body })
       } else if (l.regra) {
         await api(`/capacidades-recebimento/${l.regra.id}`, { method: 'DELETE' })
+      }
+      // limite de um dia da semana específico (opcional): sobrepõe o limite por dia naquele dia
+      for (let i = 0; i < 7; i++) {
+        const r = l.porDia.find((x) => x.diaSemana === i + 1)
+        const v = form.porDia[i]
+        if (v) {
+          const body = { ...destinoParams.value, diaSemana: i + 1, paletes: v, paletesFaixa: r?.paletesFaixa ?? null, caminhoes: r?.caminhoes ?? null }
+          if (!r || r.paletes !== v) await api(r ? `/capacidades-recebimento/${r.id}` : '/capacidades-recebimento', { method: r ? 'PUT' : 'POST', body })
+        } else if (r) {
+          await api(`/capacidades-recebimento/${r.id}`, { method: 'DELETE' })
+        }
       }
       await api('/calendario-recebimento', { method: 'PUT', body: { ...destinoParams.value, diasSemana: form.dias.map((d) => (d ? '1' : '0')).join(''), recebeFeriado: form.recebeFeriado } })
       notificar.sucesso(`${l.nome} salvo`)
@@ -157,9 +170,9 @@ defineExpose({ abrir, linhas })
       <div class="faixas">
         <label>Faixas horárias</label>
         <div v-for="(f, i) in faixas" :key="f.id || `n${i}`" class="faixa-linha">
-          <InputText v-model="f.horaInicio" type="time" :aria-label="`Início da faixa ${i + 1}`" :disabled="!editarPadrao" />
+          <CampoHora v-model="f.horaInicio" :aria-label="`Início da faixa ${i + 1}`" :disabled="!editarPadrao" />
           <span>às</span>
-          <InputText v-model="f.horaFim" type="time" :aria-label="`Fim da faixa ${i + 1}`" :disabled="!editarPadrao" />
+          <CampoHora v-model="f.horaFim" :aria-label="`Fim da faixa ${i + 1}`" :disabled="!editarPadrao" />
           <label class="ativa"><Checkbox v-model="f.ativo" binary :input-id="`fx-at-${i}`" :disabled="!editarPadrao" /> Ativa</label>
         </div>
         <Button v-if="editarPadrao" type="button" label="Nova faixa" icon="pi pi-plus" size="small" text @click="novaFaixa" />
@@ -172,7 +185,7 @@ defineExpose({ abrir, linhas })
     <div class="titulo-secao"><h2>Por CD e loja</h2></div>
     <DataTable :value="linhas" data-key="chave" size="small" class="tabela-destinos" :loading="!pronto">
       <Column header="Destino"><template #body="{ data }"><span class="pilula" :class="data.tipo === 'CD' ? 'tipo-cd' : 'tipo-loja'">{{ data.tipo }}</span> {{ data.nome }}</template></Column>
-      <Column header="Limite/dia"><template #body="{ data }"><span :class="{ herdado: !data.regra?.paletes }">{{ data.regra?.paletes ?? (data.tipo === 'CD' ? `padrão (${geral.dia ?? 480})` : 'sem limite') }}</span></template></Column>
+      <Column header="Limite/dia"><template #body="{ data }"><span :class="{ herdado: !data.regra?.paletes }">{{ data.regra?.paletes ?? (data.tipo === 'CD' ? `padrão (${geral.dia ?? 480})` : 'sem limite') }}</span><small v-if="data.porDia.length" class="texto-suave"> · {{ data.porDia.map((r) => `${DIAS_CURTOS[r.diaSemana - 1]} ${r.paletes}`).join(', ') }}</small></template></Column>
       <Column header="Limite/faixa"><template #body="{ data }"><span :class="{ herdado: !data.regra?.paletesFaixa }">{{ data.tipo === 'Loja' ? '-' : data.regra?.paletesFaixa ?? `padrão (${padraoFaixa ?? 'por faixa'})` }}</span></template></Column>
       <Column header="Dias que recebe"><template #body="{ data }">{{ diasTexto(data.cal) }}</template></Column>
       <Column header="Feriados"><template #body="{ data }">{{ feriadoTexto(data.cal) }}</template></Column>
@@ -191,6 +204,12 @@ defineExpose({ abrir, linhas })
         <label>Dias que recebe</label>
         <div class="dias">
           <label v-for="(d, i) in DIAS_CURTOS" :key="d" class="dia" :class="{ marcado: form.dias[i] }"><Checkbox v-model="form.dias[i]" binary :input-id="`d-dia-${i}`" /> {{ d }}</label>
+        </div>
+      </div>
+      <div class="campo">
+        <label>Limite em um dia da semana (opcional)</label>
+        <div class="por-dia">
+          <div v-for="(d, i) in DIAS_CURTOS" :key="d" class="por-dia-item"><label :for="`d-lim-${i}`">{{ d }}</label><InputNumber v-model="form.porDia[i]" :input-id="`d-lim-${i}`" :min="1" :max="100000" :use-grouping="false" :disabled="!form.dias[i]" /></div>
         </div>
       </div>
       <div class="linha-toggle"><ToggleSwitch v-model="form.recebeFeriado" input-id="d-feriado" /><label for="d-feriado">Recebe em feriado</label></div>
@@ -229,6 +248,10 @@ defineExpose({ abrir, linhas })
 .form-destino { display: flex; flex-direction: column; gap: 12px; }
 .linha2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .dias { display: flex; flex-wrap: wrap; gap: 6px; }
+.por-dia { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.por-dia-item { display: flex; flex-direction: column; gap: 2px; font-size: 0.8rem; }
+.por-dia-item :deep(.p-inputnumber), .por-dia-item :deep(input) { width: 100%; min-width: 0; }
+@media (max-width: 520px) { .por-dia { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .dia { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid var(--gc-border, #cbd5e1); border-radius: 6px; font-size: 0.85rem; }
 .dia.marcado { border-color: var(--gc-navy, #1e3a8a); }
 .linha-toggle { display: flex; align-items: center; gap: 8px; }

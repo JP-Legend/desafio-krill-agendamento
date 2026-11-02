@@ -7,6 +7,8 @@ import { deIso, fmtData, fmtDataHora, hoje, isoData } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
 import AssinaturaPad from '../components/AssinaturaPad.vue'
+import SeletorDestino from '../components/SeletorDestino.vue'
+import { fecharAba } from '../abas'
 import { somar, useTiposPalete, zerar } from '../composables/useTiposPalete'
 
 const route = useRoute()
@@ -18,6 +20,7 @@ const STATUS = { PENDENTE: ['Pendente de assinatura', 'warn'], ASSINADO: ['Assin
 
 const novo = computed(() => route.name === 'vale-novo')
 const vale = ref(null)
+const destinoNovo = ref({ cdId: null, loja: null })
 const form = reactive({ agendamentoId: null, data: deIso(hoje()), fornecedor: '', placa: '', motorista: '', quantidades: {}, observacao: '' })
 const dev = ref({})
 const assinando = ref(null)
@@ -82,12 +85,15 @@ function criar() {
   if (exigirAssinaturas.value && pode(1303) && assinaturas.length < 2) return notificar.aviso('Colete as duas assinaturas (motorista e conferente)')
   enviar(async () => {
     try {
-      let v = await api('/vales-palete', { method: 'POST', body: { ...form, data: isoData(form.data), fornecedor: form.fornecedor.trim(), placa: form.placa.trim() || null, motorista: form.motorista.trim() || null, observacao: form.observacao.trim() || null } })
+      let v = await api('/vales-palete', { method: 'POST', body: { ...form, data: isoData(form.data), fornecedor: form.fornecedor.trim(), placa: form.placa.trim() || null, motorista: form.motorista.trim() || null, observacao: form.observacao.trim() || null, ...(form.agendamentoId ? {} : destinoNovo.value) } })
       for (const a of assinaturas) {
         v = await api(`/vales-palete/${v.id}/assinaturas/${a.quem}`, { method: 'PUT', body: { nome: a.nome, imagem: a.imagem } })
       }
       notificar.sucesso(assinaturas.length === 2 ? `Vale ${v.codigo} emitido e assinado` : `Vale ${v.codigo} emitido. Colete as assinaturas.`)
-      router.replace(`/vales-palete/${v.id}`)
+      // a aba "Novo vale-palete" fecha e o vale emitido abre no lugar
+      const abaNovo = route.path
+      await router.replace(`/vales-palete/${v.id}`)
+      fecharAba(abaNovo)
     } catch (e) {
       notificar.erro(e)
     }
@@ -173,6 +179,7 @@ onMounted(carregar)
     <div class="cabecalho"><h1>Novo vale-palete</h1></div>
     <form class="painel" @submit.prevent="criar">
       <div class="form-grade">
+        <div v-if="!form.agendamentoId" class="campo c12 destino-vale"><SeletorDestino v-model="destinoNovo" :todos="false" input-id="vdest" /></div>
         <div class="campo c3"><label for="vd">Data</label><DatePicker v-model="form.data" input-id="vd" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
         <div class="campo c9"><label for="vfo">Fornecedor / transportadora <span class="obrig">*</span></label><InputText id="vfo" v-model="form.fornecedor" maxlength="80" /></div>
         <div class="campo c3"><label for="vpl">Placa</label><InputText id="vpl" v-model="form.placa" maxlength="8" /></div>

@@ -78,13 +78,14 @@ public final class Respostas {
     public record AgendamentoPublicoResp(Long id, LocalDate data, String faixaHoraria, Long idPedido, String fornecedor,
                                          String tipoCaminhao, String tipoPaletizacao, int quantidadePaletes,
                                          StatusAgendamento status, String statusDescricao, String placa, String motorista,
-                                         boolean editavel, Long faixaHorariaId, int paletesEquivalentes) {
+                                         boolean editavel, Long faixaHorariaId, int paletesEquivalentes,
+                                         String destino, String entregaEm) {
         public static AgendamentoPublicoResp de(AgendamentoDetalhe d) {
             Agendamento a = d.agendamento();
             return new AgendamentoPublicoResp(a.getId(), a.getData(), d.faixaDescricao(), a.getIdPedido(), a.getFornecedor(),
                     d.tipoCaminhao(), d.tipoPaletizacao(), a.getQuantidadePaletes(), a.getStatus(), a.getStatus().rotulo(),
                     a.getPlaca(), a.getMotorista(), a.getStatus().antesDaChegada(), a.getFaixaHorariaId(),
-                    a.getPaletesEquivalentes());
+                    a.getPaletesEquivalentes(), d.destino(), d.entregaEm());
         }
     }
 
@@ -94,18 +95,20 @@ public final class Respostas {
                                  int totalEntregues, int totalDevolvidos, int totalSaldo, String status,
                                  String observacao, br.com.redekrill.agendamento.domain.model.ValePalete.Assinatura assinaturaMotorista,
                                  br.com.redekrill.agendamento.domain.model.ValePalete.Assinatura assinaturaConferente,
-                                 String criadoPor, OffsetDateTime criadoEm, String codigoLeitura) {
+                                 String criadoPor, OffsetDateTime criadoEm, String codigoLeitura,
+                                 Long cdId, String loja) {
         public ValePaleteResp comLeitura(String leitura) {
             return new ValePaleteResp(id, codigo, agendamentoId, data, fornecedor, placa, motorista, entregues, devolvidos, saldo,
                     totalEntregues, totalDevolvidos, totalSaldo, status, observacao, assinaturaMotorista, assinaturaConferente,
-                    criadoPor, criadoEm, leitura);
+                    criadoPor, criadoEm, leitura, cdId, loja);
         }
 
         public static ValePaleteResp de(br.com.redekrill.agendamento.domain.model.ValePalete v) {
             return new ValePaleteResp(v.getId(), v.getCodigo(), v.getAgendamentoId(), v.getData(), v.getFornecedor(), v.getPlaca(),
                     v.getMotorista(), v.getEntregues().itens(), v.getDevolvidos().itens(), v.saldo().itens(),
                     v.getEntregues().total(), v.getDevolvidos().total(), v.saldo().total(), v.getStatus().name(), v.getObservacao(),
-                    v.getAssinaturaMotorista(), v.getAssinaturaConferente(), v.getCriadoPor(), v.getCriadoEm(), null);
+                    v.getAssinaturaMotorista(), v.getAssinaturaConferente(), v.getCriadoPor(), v.getCriadoEm(), null,
+                    v.getDestinoCdId(), v.getDestinoLoja());
         }
     }
 

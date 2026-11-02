@@ -71,8 +71,8 @@ onUnmounted(() => clearInterval(timer))
     <div class="patio-indicadores">
       <section class="painel indicador" :class="ind.lotadoAgora ? 'cheio' : 'livre'">
         <span class="rotulo">Agora</span>
-        <strong>{{ ind.lotadoAgora ? 'CD lotado' : 'Há docas livres' }}</strong>
-        <span>{{ ind.docasOcupadas }} de {{ ind.docasAtivas }} docas ocupadas · {{ ind.caminhoesNoPatio }} caminhão(ões) no pátio</span>
+        <strong>{{ destino.loja ? 'Entrega direta na loja' : ind.lotadoAgora ? 'CD lotado' : 'Há docas livres' }}</strong>
+        <span>{{ destino.loja ? 'Sem docas: o caminhão descarrega na loja' : `${ind.docasOcupadas} de ${ind.docasAtivas} docas ocupadas · ${ind.caminhoesNoPatio} caminhão(ões) no pátio` }}</span>
       </section>
       <section class="painel indicador" :class="ind.diaCheio ? 'cheio' : 'livre'">
         <span class="rotulo">No dia</span>
@@ -83,7 +83,7 @@ onUnmounted(() => clearInterval(timer))
       </section>
     </div>
 
-    <section class="painel">
+    <section v-if="!destino.loja" class="painel">
       <div class="painel-titulo"><h2>Docas</h2><span class="texto-suave">{{ ind.docasOcupadas }}/{{ ind.docasAtivas }} ocupada(s)</span></div>
       <div v-if="quadro.docas.length" class="docas">
         <div v-for="d in quadro.docas" :key="d.doca.id" class="doca" :class="{ ocupada: d.agendamentoId }">

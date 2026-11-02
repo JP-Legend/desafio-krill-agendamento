@@ -81,7 +81,7 @@ public class PaleteController {
     @Operation(summary = "Gera cobrança de paletes não devolvidos (limitada ao saldo em aberto)")
     public CobrancaResp cobrar(@Valid @RequestBody Requisicoes.Cobranca b, HttpServletRequest req) {
         return CobrancaResp.de(useCase.cobrar(new PaleteFinanceiroUseCase.NovaCobranca(b.fornecedor(), b.quantidade(),
-                b.valorUnitario(), b.vencimento(), b.observacao()), Requisicao.solicitante(req)));
+                b.valorUnitario(), b.vencimento(), b.observacao(), b.cdId(), b.loja()), Requisicao.solicitante(req)));
     }
 
     @PostMapping("/cobrancas/{id}/pagamento")

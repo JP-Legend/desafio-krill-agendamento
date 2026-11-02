@@ -30,6 +30,8 @@ public class ValePaleteRepositorioJpa implements ValePaleteRepositorio {
         e.id = v.getId();
         e.codigo = v.getCodigo();
         e.agendamentoId = v.getAgendamentoId();
+        e.cdId = v.getDestinoCdId();
+        e.loja = v.getDestinoLoja();
         e.data = v.getData();
         e.fornecedor = v.getFornecedor();
         e.placa = v.getPlaca();
@@ -55,12 +57,12 @@ public class ValePaleteRepositorioJpa implements ValePaleteRepositorio {
 
     @Override
     public Optional<ValePalete> buscarPorId(Long id) {
-        return jpa.findById(id).map(ValePaleteRepositorioJpa::dominio);
+        return jpa.findById(id).map(ValePaleteRepositorioJpa::dominio).filter(ValePaleteRepositorioJpa::doEscopo);
     }
 
     @Override
     public Optional<ValePalete> buscarPorCodigo(String codigo) {
-        return jpa.findByCodigo(codigo).map(ValePaleteRepositorioJpa::dominio);
+        return jpa.findByCodigo(codigo).map(ValePaleteRepositorioJpa::dominio).filter(ValePaleteRepositorioJpa::doEscopo);
     }
 
     @Override
@@ -75,7 +77,8 @@ public class ValePaleteRepositorioJpa implements ValePaleteRepositorio {
             }
             return cb.and(p.toArray(Predicate[]::new));
         };
-        return jpa.findAll(spec, Sort.by(Sort.Direction.DESC, "data", "id")).stream().map(ValePaleteRepositorioJpa::dominio).toList();
+        return jpa.findAll(spec, Sort.by(Sort.Direction.DESC, "data", "id")).stream().map(ValePaleteRepositorioJpa::dominio)
+                .filter(ValePaleteRepositorioJpa::doEscopo).toList();
     }
 
     @Override
@@ -83,7 +86,18 @@ public class ValePaleteRepositorioJpa implements ValePaleteRepositorio {
         return jpa.proximaSequencia();
     }
 
+    /** Vale do CD/loja do usuário (pelo destino gravado no vale). */
+    static boolean doEscopo(ValePalete v) {
+        return br.com.redekrill.agendamento.application.port.EscopoAtual.get().permiteDestino(v.getDestinoCdId(), v.getDestinoLoja());
+    }
+
     static ValePalete dominio(ValePaleteEntity e) {
+        ValePalete v = dominioSemDestino(e);
+        v.definirDestino(e.cdId, e.loja);
+        return v;
+    }
+
+    static ValePalete dominioSemDestino(ValePaleteEntity e) {
         return new ValePalete(e.id, e.codigo, e.agendamentoId, e.data, e.fornecedor, e.placa, e.motorista,
                 new Quantidades(e.entregues), new Quantidades(e.devolvidos),
                 ValePalete.Status.valueOf(e.status), e.observacao,

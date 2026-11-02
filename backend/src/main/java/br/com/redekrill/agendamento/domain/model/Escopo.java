@@ -21,6 +21,27 @@ public record Escopo(boolean todos, Set<Long> cds, Set<String> lojas) {
         return cds.contains(cdId == null ? Agendamento.CD_PADRAO : cdId);
     }
 
+    /** Registro com destino gravado (vale, cobrança): sem destino, só quem vê todos. */
+    public boolean permiteDestino(Long cdId, String loja) {
+        if (todos) return true;
+        if (cdId == null && (loja == null || loja.isBlank())) return false;
+        return permite(cdId, loja);
+    }
+
+    /** Movimento CD ↔ loja: vale para quem tem o CD ou a loja. */
+    public boolean permiteCdOuLoja(Long cdId, String loja) {
+        return todos || cds.contains(cdId) || permiteLoja(loja);
+    }
+
+    /** Destino único do usuário (null quando vê vários ou todos). */
+    public Long unicoCd() {
+        return !todos && cds.size() == 1 && lojas.isEmpty() ? cds.iterator().next() : null;
+    }
+
+    public String unicaLoja() {
+        return !todos && lojas.size() == 1 && cds.isEmpty() ? lojas.iterator().next() : null;
+    }
+
     public boolean permiteCd(Long cdId) {
         return todos || cds.contains(cdId);
     }

@@ -23,6 +23,12 @@ public class ValePaleteEntity {
     public String codigo;
     @Column(name = "agendamento_id")
     public Long agendamentoId;
+
+    @Column(name = "cd_id")
+    public Long cdId;
+
+    @Column(name = "loja")
+    public String loja;
     public LocalDate data;
     public String fornecedor;
     public String placa;

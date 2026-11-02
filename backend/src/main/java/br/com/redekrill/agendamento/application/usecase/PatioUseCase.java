@@ -186,12 +186,24 @@ public class PatioUseCase {
 
     // ---- Quadro do pátio
     public Quadro quadro(LocalDate data, Long cdId) {
+        return quadro(data, cdId, null);
+    }
+
+    /** Quadro do CD (sem as entregas diretas em loja) ou, com {@code loja}, só as entregas daquela loja (sem docas). */
+    public Quadro quadro(LocalDate data, Long cdId, String lojaFiltro) {
         LocalDate dia = data == null ? LocalDate.now(clock) : data;
-        Long cd = cdId == null ? 1L : cdId;
-        List<AgendamentoDetalhe> lista = agendamentoUseCase.listar(new FiltroAgendamento(dia, dia, null, null, null, null, cd, false));
-        Map<Long, LogisticaAgendamento> log = logistica.porAgendamentos(lista.stream().map(d -> d.agendamento().getId()).toList());
-        List<Doca> docasCd = docas.listar(cd).stream().filter(Doca::ativa).toList();
-        Map<Long, Doca> docaPorId = docas.listar(cd).stream().collect(Collectors.toMap(Doca::id, Function.identity()));
+        String lojaSel = lojaFiltro == null || lojaFiltro.isBlank() ? null : lojaFiltro.trim();
+        Long cd = lojaSel != null ? null : cdId == null ? 1L : cdId;
+        List<AgendamentoDetalhe> todos = agendamentoUseCase.listar(new FiltroAgendamento(dia, dia, null, null, null, null, cd, false));
+        Map<Long, LogisticaAgendamento> log = logistica.porAgendamentos(todos.stream().map(d -> d.agendamento().getId()).toList());
+        List<AgendamentoDetalhe> lista = todos.stream().filter(d -> {
+            LogisticaAgendamento l = log.get(d.agendamento().getId());
+            String lj = l == null || l.loja() == null || l.loja().isBlank() ? null : l.loja();
+            // no CD: entregas diretas em loja só aparecem se foram parar numa doca do CD
+            return lojaSel == null ? lj == null || l.docaId() != null : lojaSel.equalsIgnoreCase(lj);
+        }).toList();
+        List<Doca> docasCd = cd == null ? List.of() : docas.listar(cd).stream().filter(Doca::ativa).toList();
+        Map<Long, Doca> docaPorId = (cd == null ? List.<Doca>of() : docas.listar(cd)).stream().collect(Collectors.toMap(Doca::id, Function.identity()));
 
         Map<Coluna, List<Cartao>> colunas = new java.util.EnumMap<>(Coluna.class);
         for (Coluna c : Coluna.values()) colunas.put(c, new ArrayList<>());
@@ -211,7 +223,7 @@ public class PatioUseCase {
         }).toList();
         int ocupadas = (int) situacoes.stream().filter(SituacaoDoca::ocupada).count();
         int noPatio = colunas.get(Coluna.AGUARDANDO).size() + colunas.get(Coluna.NA_DOCA).size() + colunas.get(Coluna.DESCARREGANDO).size();
-        OcupacaoRecebimento ocupacaoDia = capacidade.ocupacao(dia, cd, null);
+        OcupacaoRecebimento ocupacaoDia = capacidade.ocupacao(dia, cd, lojaSel);
         Indicador ind = new Indicador(docasCd.size(), ocupadas, !docasCd.isEmpty() && ocupadas >= docasCd.size(), noPatio,
                 ocupacaoDia, ocupacaoDia.cheio());
         return new Quadro(dia, cd, situacoes, colunas, ind);

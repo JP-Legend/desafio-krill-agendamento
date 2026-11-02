@@ -13,12 +13,17 @@ import java.util.Optional;
 
 @Component
 public class CobrancaPaleteRepositorioJdbc implements CobrancaPaleteRepositorio {
-    private static final RowMapper<CobrancaPalete> MAP = (r, i) -> new CobrancaPalete(r.getLong("id"), r.getString("fornecedor"),
+    private static final RowMapper<CobrancaPalete> BASE = (r, i) -> new CobrancaPalete(r.getLong("id"), r.getString("fornecedor"),
             r.getInt("quantidade"), r.getBigDecimal("valor_unitario"), r.getObject("vencimento", LocalDate.class),
             r.getString("observacao"), r.getString("criado_por"), r.getObject("criado_em", OffsetDateTime.class),
             CobrancaPalete.Status.valueOf(r.getString("status")), r.getString("recibo_numero"),
             r.getString("forma_pagamento") == null ? null : CobrancaPalete.FormaPagamento.valueOf(r.getString("forma_pagamento")),
             r.getObject("pago_em", OffsetDateTime.class), r.getString("recebido_por"), r.getString("motivo_cancelamento"));
+    private static final RowMapper<CobrancaPalete> MAP = (r, i) -> {
+        CobrancaPalete c = BASE.mapRow(r, i);
+        c.definirDestino((Long) r.getObject("cd_id"), r.getString("loja"));
+        return c;
+    };
     private final JdbcClient db;
 
     public CobrancaPaleteRepositorioJdbc(JdbcClient db) {
@@ -29,9 +34,9 @@ public class CobrancaPaleteRepositorioJdbc implements CobrancaPaleteRepositorio 
     public CobrancaPalete salvar(CobrancaPalete c) {
         Long id = c.getId() == null
                 ? db.sql("insert into cobranca_palete (fornecedor, quantidade, valor_unitario, vencimento, status, observacao, "
-                        + "criado_por, criado_em) values (?, ?, ?, ?, ?, ?, ?, ?) returning id")
+                        + "criado_por, criado_em, cd_id, loja) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) returning id")
                 .params(c.getFornecedor(), c.getQuantidade(), c.getValorUnitario(), c.getVencimento(), c.getStatus().name(),
-                        c.getObservacao(), c.getCriadoPor(), c.getCriadoEm()).query(Long.class).single()
+                        c.getObservacao(), c.getCriadoPor(), c.getCriadoEm(), c.getDestinoCdId(), c.getDestinoLoja()).query(Long.class).single()
                 : db.sql("update cobranca_palete set status = ?, recibo_numero = ?, forma_pagamento = ?, pago_em = ?, "
                         + "recebido_por = ?, motivo_cancelamento = ? where id = ? returning id")
                 .params(c.getStatus().name(), c.getReciboNumero(),

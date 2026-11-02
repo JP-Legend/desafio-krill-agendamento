@@ -1,4 +1,5 @@
 <script setup>
+import CampoHora from '../components/CampoHora.vue'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { api } from '../api'
 import { deIso, fmtData, diaSemana, hoje, isoData } from '../utils'
@@ -146,7 +147,7 @@ onUnmounted(() => clearInterval(timer))
     <form v-if="chegada.cartao" class="grade" novalidate @submit.prevent="registrarChegada">
       <p class="campo c12"><strong>{{ chegada.cartao.fornecedor }}</strong><span class="texto-suave">Pedido {{ chegada.cartao.idPedido }} · faixa {{ chegada.cartao.faixa }}</span></p>
       <div class="campo c6"><label for="chp">Placa <span class="obrig">*</span></label><InputText id="chp" v-model="chegada.placa" maxlength="8" autocapitalize="characters" autocomplete="off" /></div>
-      <div class="campo c6"><label for="chh">Hora de chegada</label><InputText id="chh" v-model="chegada.hora" type="time" /></div>
+      <div class="campo c6"><label for="chh">Hora de chegada</label><CampoHora id="chh" v-model="chegada.hora" /></div>
       <div class="campo c12"><label for="chm">Motorista</label><InputText id="chm" v-model="chegada.motorista" maxlength="80" autocomplete="off" /></div>
       <button type="submit" hidden />
     </form>

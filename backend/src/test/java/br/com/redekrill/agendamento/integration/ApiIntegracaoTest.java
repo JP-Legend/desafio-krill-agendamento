@@ -813,5 +813,30 @@ class ApiIntegracaoTest {
         String aud = mvc.perform(get("/api/v1/auditoria").param("acao", "REAGENDAR").header("Authorization", admin)).andReturn().getResponse().getContentAsString();
         assertThat(aud).contains("antes").contains("depois");
         mvc.perform(get("/api/v1/avisos").header("Authorization", admin)).andExpect(content().string(org.hamcrest.Matchers.containsString("Agendamento reagendado")));
+
+        // vale-palete e conta-corrente pelo destino: vale do agendamento herda a loja; vale avulso do CD do usuário
+        String vq = "\"quantidades\":{\"PBR\":4}";
+        JsonNode valeLoja = json.readTree(mvc.perform(post("/api/v1/vales-palete").header("Authorization", admin).contentType(j)
+                .content("{\"agendamentoId\":" + naLoja + "," + vq + "}")).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+        assertThat(valeLoja.get("loja").asText()).isEqualTo(loja);
+        JsonNode valeCd = json.readTree(mvc.perform(post("/api/v1/vales-palete").header("Authorization", doCd).contentType(j)
+                .content("{\"fornecedor\":\"Fornecedor Avulso CD805\"," + vq + "}")).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+        assertThat(valeCd.get("cdId").asLong()).isEqualTo(cd805);
+        mvc.perform(get("/api/v1/vales-palete/" + valeLoja.get("id").asLong()).header("Authorization", doCd)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/vales-palete/" + valeCd.get("id").asLong()).header("Authorization", daLoja)).andExpect(status().isNotFound());
+        String saldosCd = mvc.perform(get("/api/v1/paletes/saldos").header("Authorization", doCd)).andReturn().getResponse().getContentAsString();
+        assertThat(saldosCd).contains("Fornecedor Avulso CD805").doesNotContain("\"vales\":0");
+        String saldosLoja = mvc.perform(get("/api/v1/paletes/saldos").header("Authorization", daLoja)).andReturn().getResponse().getContentAsString();
+        assertThat(saldosLoja).doesNotContain("Fornecedor Avulso CD805");
+        mvc.perform(post("/api/v1/vales-palete").header("Authorization", doCd).contentType(j)
+                .content("{\"fornecedor\":\"X\",\"loja\":\"" + loja + "\"," + vq + "}")).andExpect(status().isNotFound());
+
+        // pátio escolhendo a loja: só as entregas daquela loja
+        String patioLoja = mvc.perform(get("/api/v1/patio").param("data", d.plusDays(1).toString()).param("loja", loja)
+                .header("Authorization", admin)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(patioLoja).contains("\"agendamentoId\":" + naLoja);
+        String patioCd = mvc.perform(get("/api/v1/patio").param("data", d.plusDays(1).toString()).param("cdId", "1")
+                .header("Authorization", admin)).andReturn().getResponse().getContentAsString();
+        assertThat(patioCd).doesNotContain("\"agendamentoId\":" + naLoja + ",");
     }
 }

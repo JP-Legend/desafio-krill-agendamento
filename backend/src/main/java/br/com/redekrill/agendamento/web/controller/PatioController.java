@@ -55,8 +55,9 @@ public class PatioController {
     @GetMapping("/patio")
     @Operation(summary = "Quadro do pátio do dia: previstos, aguardando doca, na doca, descarregando e liberados, com a lotação do CD")
     public PatioUseCase.Quadro quadro(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
-                                      @RequestParam(required = false) Long cdId) {
-        return useCase.quadro(data, cdId);
+                                      @RequestParam(required = false) Long cdId,
+                                      @RequestParam(required = false) String loja) {
+        return useCase.quadro(data, cdId, loja);
     }
 
     @PutMapping("/agendamentos/{id}/doca")

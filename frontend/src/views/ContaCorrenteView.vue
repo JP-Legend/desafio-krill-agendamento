@@ -9,6 +9,7 @@ import { useNotificar } from '../composables/useNotificar'
 import { useTiposPalete } from '../composables/useTiposPalete'
 import EmailCobranca from '../components/EmailCobranca.vue'
 import WhatsAppAviso from '../components/WhatsAppAviso.vue'
+import SeletorDestino from '../components/SeletorDestino.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,6 +17,7 @@ const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
 const aba = ref(route.path.endsWith('cobrancas') ? 'cobrancas' : 'saldos')
 const busca = ref('')
+const destino = ref({ cdId: null, loja: null })
 const saldos = ref([])
 const porTransportadora = ref([])
 const cobrancas = ref([])
@@ -37,8 +39,8 @@ async function carregar() {
     const f = busca.value.trim() || null
     tiposPalete.carregar().catch(() => {})
     ;[saldos.value, cobrancas.value, porTransportadora.value] = await Promise.all([
-      api('/paletes/saldos', { params: { fornecedor: f } }),
-      api('/paletes/cobrancas', { params: { fornecedor: f, status: statusCob.value } }),
+      api('/paletes/saldos', { params: { fornecedor: f, ...destino.value } }),
+      api('/paletes/cobrancas', { params: { fornecedor: f, status: statusCob.value, ...destino.value } }),
       api('/paletes/saldos-transportadora').catch(() => [])
     ])
   } catch (e) {
@@ -70,7 +72,7 @@ function confirmar() {
   enviar(async () => {
     try {
       if (dlg.tipo === 'cobrar') {
-        await api('/paletes/cobrancas', { method: 'POST', body: { fornecedor: dlg.alvo.fornecedor, quantidade: dlg.quantidade, valorUnitario: dlg.valorUnitario, vencimento: isoData(dlg.vencimento), observacao: dlg.observacao.trim() || null } })
+        await api('/paletes/cobrancas', { method: 'POST', body: { fornecedor: dlg.alvo.fornecedor, quantidade: dlg.quantidade, valorUnitario: dlg.valorUnitario, vencimento: isoData(dlg.vencimento), observacao: dlg.observacao.trim() || null, ...destino.value } })
         notificar.sucesso('Cobrança registrada')
       } else if (dlg.tipo === 'pagar') {
         const r = await api(`/paletes/cobrancas/${dlg.alvo.id}/pagamento`, { method: 'POST', body: { forma: dlg.forma } })
@@ -94,7 +96,7 @@ defineExpose({ abrir, confirmar, dlg, erro })
 <template>
   <div class="cabecalho">
     <h1>Conta-corrente de paletes</h1>
-    <form class="acoes" @submit.prevent="carregar"><InputText v-model="busca" placeholder="Fornecedor" aria-label="Fornecedor" /><Button type="submit" icon="pi pi-search" class="btn-secundario" aria-label="Buscar" /></form>
+    <form class="acoes" @submit.prevent="carregar"><SeletorDestino v-model="destino" input-id="destino-conta" @update:model-value="carregar" /><InputText v-model="busca" placeholder="Fornecedor" aria-label="Fornecedor" /><Button type="submit" icon="pi pi-search" class="btn-secundario" aria-label="Buscar" /></form>
   </div>
   <div class="abas">
     <button :class="{ ativa: aba === 'saldos' }" @click="aba = 'saldos'">Saldo por fornecedor</button>

@@ -1,4 +1,5 @@
 <script setup>
+import CampoHora from './CampoHora.vue'
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api'
@@ -125,7 +126,7 @@ defineExpose({ carregar })
         <InputText v-if="c.tipo === 'cnpj'" :id="c.campo" :model-value="form[c.campo]" maxlength="18" inputmode="numeric" :invalid="!!erros[c.campo]" @update:model-value="(v) => { form[c.campo] = mascaraCnpj(v); if (erros[c.campo] || soDigitos(v).length === 14) erros[c.campo] = erroCnpj(form[c.campo]) }" />
         <InputText v-else-if="c.tipo === 'texto'" :id="c.campo" v-model="form[c.campo]" :type="c.email ? 'email' : 'text'" :maxlength="c.max" :invalid="!!erros[c.campo]" />
         <InputNumber v-else-if="c.tipo === 'numero'" v-model="form[c.campo]" :input-id="c.campo" :min="c.min ?? 0" :max="c.maxNum" :max-fraction-digits="c.decimais ?? 0" :invalid="!!erros[c.campo]" />
-        <InputText v-else-if="c.tipo === 'hora'" :id="c.campo" v-model="form[c.campo]" type="time" step="900" :invalid="!!erros[c.campo]" />
+        <CampoHora v-else-if="c.tipo === 'hora'" :id="c.campo" v-model="form[c.campo]" :invalid="!!erros[c.campo]" />
         <Select v-else-if="c.tipo === 'select'" v-model="form[c.campo]" :input-id="c.campo" :options="c.opcoes" option-label="label" option-value="value" :invalid="!!erros[c.campo]" show-clear />
         <ToggleSwitch v-else-if="c.tipo === 'ativo'" v-model="form[c.campo]" :input-id="c.campo" />
         <span v-if="c.dica" class="dica">{{ c.dica }}</span>

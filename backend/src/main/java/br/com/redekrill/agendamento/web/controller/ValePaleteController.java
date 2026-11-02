@@ -42,12 +42,8 @@ public class ValePaleteController {
         this.useCase = useCase;
     }
 
-    /** Vale de outro CD/loja: 404 (o usuário só vê os vales dos agendamentos do escopo dele). */
+    /** O repositório já filtra pelo destino gravado no vale (outro CD/loja: 404). */
     private ValePaleteResp visivel(ValePaleteResp v) {
-        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
-        if (e.todos() || destinos == null) return v;
-        if (v.agendamentoId() == null || !destinos.agendamentoVisivel(e, v.agendamentoId()))
-            throw new br.com.redekrill.agendamento.domain.exception.RecursoNaoEncontradoException("Vale-palete", v.codigo());
         return v;
     }
 
@@ -56,11 +52,7 @@ public class ValePaleteController {
                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
                                        @RequestParam(required = false) ValePalete.Status status,
                                        @RequestParam(required = false) String fornecedor) {
-        var lista = useCase.listar(inicio, fim, status, fornecedor).stream().map(this::com).toList();
-        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
-        if (e.todos() || destinos == null) return lista;
-        var ok = destinos.visiveis(e, lista.stream().map(ValePaleteResp::agendamentoId).filter(java.util.Objects::nonNull).toList());
-        return lista.stream().filter(v -> v.agendamentoId() != null && ok.contains(v.agendamentoId())).toList();
+        return useCase.listar(inicio, fim, status, fornecedor).stream().map(this::com).toList();
     }
 
     @GetMapping("/{id}")
@@ -87,7 +79,7 @@ public class ValePaleteController {
     public ValePaleteResp emitir(@Valid @RequestBody Requisicoes.NovoVale b, HttpServletRequest req) {
         return com(useCase.emitir(new ValePaleteUseCase.NovoVale(b.agendamentoId(), b.data(), b.fornecedor(),
                 b.placa(), b.motorista(), new ValePalete.Quantidades(b.quantidades()),
-                b.observacao()), Requisicao.solicitante(req)));
+                b.observacao(), b.cdId(), b.loja()), Requisicao.solicitante(req)));
     }
 
     @PutMapping("/{id}/assinaturas/{quem}")

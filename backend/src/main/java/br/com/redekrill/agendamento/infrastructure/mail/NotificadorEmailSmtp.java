@@ -77,9 +77,10 @@ public class NotificadorEmailSmtp implements NotificadorEmail {
                 .append("<div style=\"background:#1e3a8a;height:6px;border-bottom:3px solid #1d4ed8\"></div>")
                 .append("<img src=\"cid:logo\" alt=\"Rede Krill\" width=\"90\" height=\"83\" style=\"display:block;border:0\">")
                 .append("<h2 style=\"color:").append(cor).append(";font-size:18px\">").append(titulo).append("</h2>")
-                .append("<p>Agendamento Rede Krill</p>")
+                .append("<p>Sua entrega ").append(HtmlUtils.htmlEscape(d.entregaEm())).append(" · Agendamento Rede Krill</p>")
                 .append("<table cellpadding=\"6\" style=\"border-collapse:collapse;border:1px solid #e2e8f0\">");
         linha(sb, "Agendamento", "#" + a.getId());
+        if (d.destino() != null) linha(sb, "Destino", d.destino());
         linha(sb, "Data", a.getData().format(BR));
         linha(sb, "Faixa horária", d.faixaDescricao());
         linha(sb, "Nº do pedido de compra", String.valueOf(a.getIdPedido()));

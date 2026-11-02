@@ -135,7 +135,7 @@ h1, h2, h3 { color: var(--cor-titulo); }
 }
 
 /* ---------- formulários compactos ---------- */
-.grade { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px 12px; }
+.grade, .form-grade { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 10px 12px; }
 .campo { display: flex; flex-direction: column; gap: 4px; grid-column: span 3; min-width: 0; }
 .campo.c2 { grid-column: span 2; }
 .campo.c3 { grid-column: span 3; }
@@ -257,7 +257,7 @@ pre.json { background: var(--cor-campo); border-radius: var(--raio); padding: 8p
 }
 @media (max-width: 640px) {
   .conteudo { padding: 10px; }
-  .campo, .campo.c2, .campo.c3, .campo.c4, .campo.c8, .campo.c9 { grid-column: span 12; }
+  .campo, .campo.c2, .campo.c3, .campo.c4, .campo.c6, .campo.c8, .campo.c9 { grid-column: span 12; }
   .dias { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .faixas, .kpis { grid-template-columns: 1fr 1fr; }
   .filtros .campo { min-width: calc(50% - 5px); flex: 1; }

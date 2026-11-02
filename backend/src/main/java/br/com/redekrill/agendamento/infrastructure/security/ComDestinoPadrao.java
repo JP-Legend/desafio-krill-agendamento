@@ -29,7 +29,8 @@ final class ComDestinoPadrao extends HttpServletRequestWrapper {
     /** Listas de agendamentos (e relatórios feitos delas) que o seletor de CD/loja da tela filtra. */
     private static final Set<String> LISTAS = Set.of("/api/v1/agendamentos", "/api/v1/divergencias",
             "/api/v1/divergencias.csv", "/api/v1/relatorios/descarga", "/api/v1/relatorios/descarga.csv", "/api/v1/rotina",
-            "/api/v1/relatorios/agendamentos.csv", "/api/v1/dashboard", "/api/v1/vales-palete", "/api/v1/busca");
+            "/api/v1/relatorios/agendamentos.csv", "/api/v1/dashboard", "/api/v1/vales-palete", "/api/v1/busca", "/api/v1/paletes/saldos",
+            "/api/v1/paletes/cobrancas", "/api/v1/paletes/movimentos", "/api/v1/paletes/lojas");
 
     static boolean filtraLista(String uri) {
         return LISTAS.contains(uri);
@@ -45,7 +46,7 @@ final class ComDestinoPadrao extends HttpServletRequestWrapper {
         String loja = e.primeiraLoja();
         if (loja == null) return req;
         // pátio, docas e conferentes são do CD: para a loja, a lista já vem filtrada pelos agendamentos dela
-        if (req.getRequestURI().startsWith("/api/v1/patio") || req.getRequestURI().startsWith("/api/v1/docas")
+        if (req.getRequestURI().startsWith("/api/v1/docas")
                 || req.getRequestURI().startsWith("/api/v1/conferentes") || req.getRequestURI().startsWith("/api/v1/rotina")
                 || req.getRequestURI().startsWith("/api/v1/dashboard")) return req;
         return new ComDestinoPadrao(req, "loja", loja);

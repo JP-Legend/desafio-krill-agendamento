@@ -90,13 +90,16 @@ async function copiar() {
 
 onMounted(carregar)
 defineExpose({ escolha, form, agendarEntrega })
+/** "Sua entrega no CD 806 …" ou "Sua entrega na Loja 14 - KRILL BERTIOGA", conforme o destino do link. */
+const ehLoja = computed(() => /^loja/i.test(info.value?.destino || ''))
+const entregaEm = computed(() => (info.value?.destino ? `Sua entrega ${ehLoja.value ? 'na' : 'no'} ${info.value.destino}` : 'Agendamento de entrega'))
 </script>
 
 <template>
   <div class="publico">
     <header class="publico-topo">
       <img src="/img/rede-krill-logo.png" alt="Rede Krill" width="570" height="528" />
-      <div><strong>Agendamento Rede Krill</strong><small>Agendamento de entrega</small></div>
+      <div><strong>Agendamento Rede Krill</strong><small>{{ entregaEm }}</small></div>
     </header>
 
     <div v-if="erro" class="painel vazio">{{ erro }}</div>
@@ -104,7 +107,7 @@ defineExpose({ escolha, form, agendarEntrega })
     <template v-else-if="enviado">
       <section class="painel">
         <h2>Agendamento nº {{ enviado.id }} enviado</h2>
-        <p>{{ form.fornecedor }} · {{ enviado.destino }} · {{ diaSemana(enviado.data) }}, {{ fmtData(enviado.data) }} · {{ enviado.faixaHoraria }}. O CD foi avisado.</p>
+        <p>{{ form.fornecedor }} · {{ enviado.destino }} · {{ diaSemana(enviado.data) }}, {{ fmtData(enviado.data) }} · {{ enviado.faixaHoraria }}. {{ ehLoja ? 'A loja foi avisada.' : 'O CD foi avisado.' }}</p>
         <div v-if="enviado.alertas.length" class="alerta aviso">
           <i class="pi pi-exclamation-triangle" />
           <div><div v-for="a in enviado.alertas" :key="a">{{ a }}</div><div>O agendamento foi registrado mesmo assim; o CD pode remarcar.</div></div>

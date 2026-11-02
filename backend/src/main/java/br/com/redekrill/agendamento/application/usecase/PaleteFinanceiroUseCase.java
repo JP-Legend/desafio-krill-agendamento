@@ -38,7 +38,10 @@ public class PaleteFinanceiroUseCase {
     }
 
     public record NovaCobranca(String fornecedor, Integer quantidade, BigDecimal valorUnitario, LocalDate vencimento,
-                               String observacao) {
+                               String observacao, Long cdId, String loja) {
+        public NovaCobranca(String fornecedor, Integer quantidade, BigDecimal valorUnitario, LocalDate vencimento, String observacao) {
+            this(fornecedor, quantidade, valorUnitario, vencimento, observacao, null, null);
+        }
     }
 
     public record NovoMovimento(LocalDate data, MovimentoPalete.Tipo tipo, Long cdId, String loja,
@@ -89,7 +92,7 @@ public class PaleteFinanceiroUseCase {
             s[1] += v.getEntregues().total();
             s[2] += v.getDevolvidos().total();
         }
-        for (CobrancaPalete c : cobrancas.listar(busca, null)) {
+        for (CobrancaPalete c : listarCobrancas(busca, null)) {
             if (!c.ativa()) continue;
             String k = chave(c.getFornecedor());
             nomes.putIfAbsent(k, c.getFornecedor());
@@ -113,11 +116,14 @@ public class PaleteFinanceiroUseCase {
 
     // ---- Cobranças e recibos
     public List<CobrancaPalete> listarCobrancas(String fornecedor, CobrancaPalete.Status status) {
-        return cobrancas.listar(fornecedor, status);
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        return cobrancas.listar(fornecedor, status).stream().filter(c -> e.permiteDestino(c.getDestinoCdId(), c.getDestinoLoja())).toList();
     }
 
     public CobrancaPalete cobranca(Long id) {
-        return cobrancas.buscarPorId(id).orElseThrow(() -> new RecursoNaoEncontradoException("Cobrança", id));
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        return cobrancas.buscarPorId(id).filter(c -> e.permiteDestino(c.getDestinoCdId(), c.getDestinoLoja()))
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Cobrança", id));
     }
 
     public CobrancaPalete cobrar(NovaCobranca cmd, Solicitante s) {
@@ -125,6 +131,14 @@ public class PaleteFinanceiroUseCase {
             int qtd = cmd.quantidade() == null ? 0 : cmd.quantidade();
             CobrancaPalete c = CobrancaPalete.nova(cmd.fornecedor(), qtd, cmd.valorUnitario(), cmd.vencimento(),
                     cmd.observacao(), saldoEmAberto(cmd.fornecedor()), s.usuario(), OffsetDateTime.now(clock));
+            var escopo = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+            Long cd = cmd.cdId();
+            String loja = cmd.loja() == null || cmd.loja().isBlank() ? null : cmd.loja().trim();
+            if (cd == null && loja == null) { cd = escopo.unicoCd(); loja = escopo.unicaLoja(); }
+            if (cd == null && loja == null && !escopo.todos()) throw new br.com.redekrill.agendamento.domain.exception.RegraNegocioException("Escolha o CD ou a loja da cobrança");
+            if ((cd != null || loja != null) && !escopo.permiteDestino(cd, loja))
+                throw new RecursoNaoEncontradoException("CD ou loja", loja != null ? loja : cd);
+            c.definirDestino(cd, loja);
             CobrancaPalete salva = cobrancas.salvar(c);
             auditoria.registrar(s, "CRIAR", "COBRANCA_PALETE", salva.getId(), Map.of("fornecedor", salva.getFornecedor(),
                     "quantidade", salva.getQuantidade(), "valor", salva.valorTotal().toPlainString()));
@@ -159,6 +173,8 @@ public class PaleteFinanceiroUseCase {
         return transacao.executar(() -> {
             if (tipos != null && cmd.quantidades() != null) tipos.validarNovo(cmd.quantidades());
             Long cd = cmd.cdId() == null ? 1L : cmd.cdId();
+            if (!br.com.redekrill.agendamento.application.port.EscopoAtual.get().permiteCdOuLoja(cd, cmd.loja()))
+                throw new RecursoNaoEncontradoException("CD ou loja", cmd.loja());
             cds.buscarPorId(cd).orElseThrow(() -> new RecursoNaoEncontradoException("CD", cd));
             LocalDate data = cmd.data() == null ? LocalDate.now(clock) : cmd.data();
             String romaneio = "RM-" + data.format(AAAAMMDD) + "-" + String.format("%04d", movimentos.proximoRomaneio());
@@ -171,13 +187,14 @@ public class PaleteFinanceiroUseCase {
     }
 
     public List<MovimentoPalete> listarMovimentos(String loja, LocalDate inicio, LocalDate fim) {
-        return movimentos.listar(loja, inicio, fim);
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        return movimentos.listar(loja, inicio, fim).stream().filter(m -> e.permiteCdOuLoja(m.cdId(), m.loja())).toList();
     }
 
     /** Saldo de paletes que cada loja deve ao CD (visão da loja). */
     public List<SaldoLoja> saldoPorLoja(String loja) {
         Map<String, SaldoLoja> mapa = new TreeMap<>();
-        for (MovimentoPalete m : movimentos.listar(loja, null, null)) {
+        for (MovimentoPalete m : listarMovimentos(loja, null, null)) {
             String k = chave(m.loja());
             SaldoLoja a = mapa.getOrDefault(k, new SaldoLoja(m.loja(), new TreeMap<>(), 0, null));
             LocalDate ultimo = a.ultimoMovimento() == null || m.data().isAfter(a.ultimoMovimento()) ? m.data() : a.ultimoMovimento();

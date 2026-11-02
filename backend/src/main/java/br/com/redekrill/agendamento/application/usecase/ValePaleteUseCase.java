@@ -19,7 +19,18 @@ import java.util.Map;
 public class ValePaleteUseCase {
 
     public record NovoVale(Long agendamentoId, LocalDate data, String fornecedor, String placa, String motorista,
-                           ValePalete.Quantidades quantidades, String observacao) {
+                           ValePalete.Quantidades quantidades, String observacao, Long cdId, String loja) {
+        public NovoVale(Long agendamentoId, LocalDate data, String fornecedor, String placa, String motorista,
+                        ValePalete.Quantidades quantidades, String observacao) {
+            this(agendamentoId, data, fornecedor, placa, motorista, quantidades, observacao, null, null);
+        }
+    }
+
+    private br.com.redekrill.agendamento.application.port.LogisticaRepositorio logistica;
+
+    public ValePaleteUseCase usarLogistica(br.com.redekrill.agendamento.application.port.LogisticaRepositorio l) {
+        this.logistica = l;
+        return this;
     }
 
     private final ValePaleteRepositorio vales;
@@ -59,16 +70,33 @@ public class ValePaleteUseCase {
             String fornecedor = cmd.fornecedor();
             String placa = cmd.placa();
             String motorista = cmd.motorista();
+            var escopo = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+            Long cdDestino = cmd.cdId();
+            String lojaDestino = cmd.loja() == null || cmd.loja().isBlank() ? null : cmd.loja().trim();
+            if (cdDestino == null && lojaDestino == null) {
+                cdDestino = escopo.unicoCd();
+                lojaDestino = escopo.unicaLoja();
+            }
             if (cmd.agendamentoId() != null) {
                 Agendamento a = agendamentos.buscarPorId(cmd.agendamentoId())
                         .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", cmd.agendamentoId()));
                 if (fornecedor == null || fornecedor.isBlank()) fornecedor = a.getFornecedor();
                 if (placa == null || placa.isBlank()) placa = a.getPlaca();
                 if (motorista == null || motorista.isBlank()) motorista = a.getMotorista();
+                // o destino do vale é o do agendamento (loja da entrega direta ou CD)
+                String lojaAg = logistica == null ? null : logistica.buscar(a.getId())
+                        .map(br.com.redekrill.agendamento.domain.model.LogisticaAgendamento::loja).filter(x -> x != null && !x.isBlank()).orElse(null);
+                lojaDestino = lojaAg;
+                cdDestino = lojaAg == null ? a.getCdId() : null;
             }
+            if (cdDestino == null && lojaDestino == null && !escopo.todos())
+                throw new RegraNegocioException("Escolha o CD ou a loja do vale");
+            if (!escopo.permiteDestino(cdDestino, lojaDestino) && (cdDestino != null || lojaDestino != null))
+                throw new RecursoNaoEncontradoException("CD ou loja", lojaDestino != null ? lojaDestino : cdDestino);
             ValePalete v = new ValePalete(null, ValePalete.gerarCodigo(data, vales.proximaSequencia()), cmd.agendamentoId(),
                     data, fornecedor, placa, motorista, cmd.quantidades(), ValePalete.Quantidades.ZERO,
                     ValePalete.Status.PENDENTE, cmd.observacao(), null, null, solicitante.usuario(), agora);
+            v.definirDestino(cdDestino, lojaDestino);
             ValePalete salvo = vales.salvar(v);
             auditoria.registrar(solicitante, "CRIAR", "VALE_PALETE", salvo.getId(),
                     Map.of("codigo", salvo.getCodigo(), "fornecedor", salvo.getFornecedor(), "paletes", salvo.getEntregues().total()));

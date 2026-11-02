@@ -153,7 +153,7 @@ public class AgendamentoUseCase {
             det.put("alertas", alertas.stream().map(AlertaCapacidade::mensagem).toList());
             auditoria.registrar(solicitante, "CRIAR", "AGENDAMENTO", salvo.getId(), det);
             return new ResultadoAgendamento(
-                    new AgendamentoDetalhe(salvo, faixa.descricao(), caminhao.nome(), paletizacao.nome()), alertas,
+                    comDestino(new AgendamentoDetalhe(salvo, faixa.descricao(), caminhao.nome(), paletizacao.nome()), lojaDestino), alertas,
                     linkFornecedor(token));
         });
         Agendamento a = resultado.agendamento().agendamento();
@@ -398,8 +398,28 @@ public class AgendamentoUseCase {
     }
 
     AgendamentoDetalhe detalhar(Agendamento a) {
-        return detalhar(a, porId(faixas.listar(), FaixaHoraria::id), porId(caminhoes.listar(), TipoCaminhao::id),
+        AgendamentoDetalhe d = detalhar(a, porId(faixas.listar(), FaixaHoraria::id), porId(caminhoes.listar(), TipoCaminhao::id),
                 porId(paletizacoes.listar(), TipoPaletizacao::id));
+        return comDestino(d);
+    }
+
+    /** Destino legível do agendamento: a loja da entrega direta ou o CD. */
+    AgendamentoDetalhe comDestino(AgendamentoDetalhe d) {
+        return comDestino(d, null);
+    }
+
+    AgendamentoDetalhe comDestino(AgendamentoDetalhe d, String lojaConhecida) {
+        Agendamento a = d.agendamento();
+        String loja = lojaConhecida != null ? lojaConhecida : logistica == null || a.getId() == null ? null : logistica.buscar(a.getId())
+                .map(br.com.redekrill.agendamento.domain.model.LogisticaAgendamento::loja).filter(x -> x != null && !x.isBlank()).orElse(null);
+        String destino;
+        if (loja != null) destino = loja.toLowerCase().startsWith("loja") ? loja : "Loja " + loja;
+        else {
+            var cd = cds == null || a.getCdId() == null ? java.util.Optional.<br.com.redekrill.agendamento.domain.model.CentroDistribuicao>empty() : cds.buscarPorId(a.getCdId());
+            destino = cd.map(c -> "CD " + c.codigo() + (c.nome() == null || c.nome().isBlank() || c.nome().equalsIgnoreCase("CD " + c.codigo()) ? "" : " · " + c.nome()))
+                    .orElse(a.getCdId() == null ? null : "CD " + a.getCdId());
+        }
+        return new AgendamentoDetalhe(a, d.faixaDescricao(), d.tipoCaminhao(), d.tipoPaletizacao(), destino);
     }
 
     private static AgendamentoDetalhe detalhar(Agendamento a, Map<Long, FaixaHoraria> f, Map<Long, TipoCaminhao> c,

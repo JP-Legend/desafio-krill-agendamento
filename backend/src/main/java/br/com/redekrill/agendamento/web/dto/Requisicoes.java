@@ -80,7 +80,7 @@ public final class Requisicoes {
                            @NotNull @Min(1) @Max(100000) @Schema(example = "20") Integer quantidade,
                            @NotNull @jakarta.validation.constraints.DecimalMin("0") @Schema(example = "45.00") java.math.BigDecimal valorUnitario,
                            @NotNull @Schema(example = "2026-11-10") LocalDate vencimento,
-                           @Size(max = 255) String observacao) {
+                           @Size(max = 255) String observacao, Long cdId, @Size(max = 80) String loja) {
     }
 
     public record Pagamento(@NotNull @Schema(example = "PIX") br.com.redekrill.agendamento.domain.model.CobrancaPalete.FormaPagamento forma) {
@@ -145,7 +145,7 @@ public final class Requisicoes {
                            @Size(max = 8) String placa, @Size(max = 80) String motorista,
                            @NotNull @Size(max = 30) @Schema(description = "Quantidade por código de tipo de palete", example = "{\"PBR\": 20, \"DESCARTAVEL\": 2}")
                            Map<@NotBlank @Size(max = 20) String, @NotNull @Min(0) @Max(1000) Integer> quantidades,
-                           @Size(max = 500) String observacao) {
+                           @Size(max = 500) String observacao, Long cdId, @Size(max = 80) String loja) {
     }
 
     public record Assinatura(@NotBlank @Size(max = 80) String nome,

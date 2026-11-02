@@ -109,4 +109,18 @@ public class CobrancaPalete {
     public OffsetDateTime getPagoEm() { return pagoEm; }
     public String getRecebidoPor() { return recebidoPor; }
     public String getMotivoCancelamento() { return motivoCancelamento; }
+
+    // Destino (CD ou loja) para o escopo do usuário; os dois nulos = sem destino (só quem vê todos).
+    private Long destinoCdId;
+    private String destinoLoja;
+
+    public Long getDestinoCdId() { return destinoCdId; }
+
+    public String getDestinoLoja() { return destinoLoja; }
+
+    public void definirDestino(Long cdId, String loja) {
+        String l = loja == null || loja.isBlank() ? null : loja.trim();
+        this.destinoLoja = l;
+        this.destinoCdId = l != null ? null : cdId;
+    }
 }

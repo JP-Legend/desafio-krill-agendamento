@@ -22,9 +22,9 @@ const opcoes = computed(() => [
   ...cds.value.map((c) => ({ chave: `cd:${c.id}`, rotulo: `CD ${c.codigo} · ${c.nome}`, cdId: c.id, loja: null })),
   ...(props.somenteCd ? [] : lojas.value.map((l) => ({ chave: `loja:${l}`, rotulo: l, cdId: null, loja: l })))
 ])
-const lista = computed(() => [...(props.todos && opcoes.value.length > 1 ? [{ chave: '', rotulo: destinos().todos ? 'Todos os destinos' : 'Meus destinos', cdId: null, loja: null }] : []), ...opcoes.value])
+const lista = computed(() => [...(props.todos && opcoes.value.length > 1 ? [{ chave: '*', rotulo: destinos().todos ? 'Todos os destinos' : 'Meus destinos', cdId: null, loja: null }] : []), ...opcoes.value])
 const chave = computed({
-  get: () => (modelo.value?.loja ? `loja:${modelo.value.loja}` : modelo.value?.cdId ? `cd:${modelo.value.cdId}` : ''),
+  get: () => (modelo.value?.loja ? `loja:${modelo.value.loja}` : modelo.value?.cdId ? `cd:${modelo.value.cdId}` : props.todos ? '*' : ''),
   set: (k) => {
     const o = lista.value.find((x) => x.chave === k) || { cdId: null, loja: null }
     modelo.value = { cdId: o.cdId, loja: o.loja }
@@ -33,7 +33,7 @@ const chave = computed({
 const visivel = computed(() => opcoes.value.length > 1)
 function padrao() {
   // um destino só, ou tela sem "todos": já seleciona o primeiro
-  if (opcoes.value.length && (opcoes.value.length === 1 || !props.todos) && !chave.value) {
+  if (opcoes.value.length && (opcoes.value.length === 1 || !props.todos) && !modelo.value?.cdId && !modelo.value?.loja) {
     const o = opcoes.value[0]
     modelo.value = { cdId: o.cdId, loja: o.loja }
   }

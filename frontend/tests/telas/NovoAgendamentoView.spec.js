@@ -70,7 +70,7 @@ describe('NovoAgendamentoView', () => {
     expect(w.find('#fornecedor').element.value).toBe('Fornecedor ERP')
     expect(w.text()).toContain('base local')
 
-    await escolher(w, 'cd', 2)
+    await escolher(w, 'cd', 'cd:2')
     await escolher(w, 'faixa', 1)
     await escolher(w, 'caminhao', 1)
     await escolher(w, 'paletizacao', 2)
