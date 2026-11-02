@@ -34,7 +34,10 @@ public class CalendarioRecebimentoUseCase {
     public record Destino(Long cdId, String loja) {
         public static Destino de(Long cdId, String loja) {
             String l = loja == null || loja.isBlank() ? null : loja.trim();
-            return new Destino(l != null ? null : (cdId == null ? 1L : cdId), l);
+            Destino d = new Destino(l != null ? null : (cdId == null ? 1L : cdId), l);
+            if (!br.com.redekrill.agendamento.application.port.EscopoAtual.get().permite(d.cdId(), d.loja()))
+                throw new br.com.redekrill.agendamento.domain.exception.RecursoNaoEncontradoException("CD ou loja", l != null ? l : d.cdId());
+            return d;
         }
     }
 
@@ -92,6 +95,7 @@ public class CalendarioRecebimentoUseCase {
     public void excluirExcecao(Long id, Solicitante s) {
         transacao.executar(() -> {
             ExcecaoRecebimento e = repo.buscarExcecao(id).orElseThrow(() -> new RecursoNaoEncontradoException("Exceção", id));
+            Destino.de(e.cdId(), e.loja());
             repo.excluirExcecao(id);
             auditoria.registrar(s, "EXCLUIR", "EXCECAO_RECEBIMENTO", id, Map.of("destino",
                     descricao(new Destino(e.cdId(), e.loja())), "data", e.data().toString(), "aberto", e.aberto()));
@@ -105,6 +109,16 @@ public class CalendarioRecebimentoUseCase {
     }
 
     /** Situação de cada dia do período para o destino (sem expor dados de agendamentos). */
+    public record Resumo(List<CalendarioRecebimento> calendarios, List<ExcecaoRecebimento> excecoes) {
+    }
+
+    /** Todos os calendários e exceções futuras (tabela da tela de capacidade), só dos destinos do escopo. */
+    public Resumo resumo(LocalDate hoje) {
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        return new Resumo(repo.listar().stream().filter(c -> e.permite(c.cdId(), c.loja())).toList(),
+                repo.excecoesDesde(hoje).stream().filter(x -> e.permite(x.cdId(), x.loja())).toList());
+    }
+
     public List<DiaRecebimento> dias(LocalDate inicio, LocalDate fim, Long cdId, String loja) {
         validarPeriodo(inicio, fim);
         Destino d = Destino.de(cdId, loja);

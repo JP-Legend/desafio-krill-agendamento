@@ -4,11 +4,12 @@ import { api } from '../api'
 import { baixarArquivo, deIso, diaSemana, fmtData, fmtPct, hoje, isoData, nivelOcupacao, somarDias } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
+import SeletorDestino from '../components/SeletorDestino.vue'
 import StatusAgendamento from '../components/StatusAgendamento.vue'
 
 const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
-const filtro = reactive({ inicio: deIso(somarDias(hoje(), -7)), fim: deIso(somarDias(hoje(), 7)), status: null })
+const filtro = reactive({ inicio: deIso(somarDias(hoje(), -7)), fim: deIso(somarDias(hoje(), 7)), status: null, destino: { cdId: null, loja: null } })
 const status = [{ label: 'Todos', value: null }, { label: 'Agendados', value: 'AGENDADO' }, { label: 'Cancelados', value: 'CANCELADO' }]
 const lista = ref([])
 const dias = ref([])
@@ -28,7 +29,7 @@ const totais = computed(() => {
 const diasComMovimento = computed(() => dias.value.filter((d) => d.quantidadeAgendamentos > 0))
 
 function params() {
-  return { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), status: filtro.status }
+  return { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), status: filtro.status, ...filtro.destino }
 }
 
 function validar() {
@@ -48,7 +49,7 @@ async function buscar() {
   carregando.value = true
   try {
     const p = params()
-    ;[lista.value, dias.value] = await Promise.all([api('/agendamentos', { params: p }), api('/ocupacao/periodo', { params: { inicio: p.inicio, fim: p.fim } })])
+    ;[lista.value, dias.value] = await Promise.all([api('/agendamentos', { params: p }), api('/ocupacao/periodo', { params: { inicio: p.inicio, fim: p.fim, cdId: p.cdId, loja: p.loja } })])
     buscou.value = true
   } catch (e) {
     notificar.erro(e)
@@ -76,6 +77,7 @@ function exportar() {
   <form class="painel filtros" @submit.prevent="buscar">
     <div class="campo"><label for="ri">De <span class="obrig">*</span></label><DatePicker v-model="filtro.inicio" input-id="ri" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     <div class="campo"><label for="rf">Até <span class="obrig">*</span></label><DatePicker v-model="filtro.fim" input-id="rf" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
+    <SeletorDestino v-model="filtro.destino" input-id="rd" />
     <div class="campo"><label for="rs">Status</label><Select v-model="filtro.status" input-id="rs" :options="status" option-label="label" option-value="value" /></div>
     <Button type="submit" label="Gerar" icon="pi pi-search" class="btn-confirmar" :loading="carregando" />
     <Button type="button" label="Exportar CSV" icon="pi pi-download" class="btn-secundario" :loading="enviando" :disabled="enviando" @click="exportar" />

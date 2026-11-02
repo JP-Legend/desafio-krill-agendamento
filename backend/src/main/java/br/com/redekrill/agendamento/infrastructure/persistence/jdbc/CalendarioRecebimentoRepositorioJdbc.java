@@ -54,6 +54,11 @@ public class CalendarioRecebimentoRepositorioJdbc implements CalendarioRecebimen
     }
 
     @Override
+    public List<ExcecaoRecebimento> excecoesDesde(LocalDate inicio) {
+        return db.sql("select * from excecao_recebimento where data >= ? order by data").param(inicio).query(EXC).list();
+    }
+
+    @Override
     public Optional<ExcecaoRecebimento> buscarExcecao(Long id) {
         return db.sql("select * from excecao_recebimento where id = ?").param(id).query(EXC).optional();
     }

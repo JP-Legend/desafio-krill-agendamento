@@ -56,7 +56,14 @@ public class FornecedorLinkUseCase {
     public java.util.List<br.com.redekrill.agendamento.domain.model.OcupacaoDia> disponibilidade(String token) {
         Agendamento a = porToken(token);
         java.time.LocalDate hoje = java.time.LocalDate.now(clock);
-        return agendamentoUseCase.ocupacaoPeriodo(hoje, hoje.plusDays(DIAS_DISPONIVEIS - 1), a.getCdId());
+        return agendamentoUseCase.ocupacaoDoDestino(a, hoje, hoje.plusDays(DIAS_DISPONIVEIS - 1));
+    }
+
+    /** Dias em que o destino (CD ou loja da entrega) recebe, com o motivo dos fechados, para a grade de remarcar. */
+    public java.util.List<br.com.redekrill.agendamento.domain.model.DiaRecebimento> calendario(String token) {
+        Agendamento a = porToken(token);
+        java.time.LocalDate hoje = java.time.LocalDate.now(clock);
+        return agendamentoUseCase.diasDoDestino(a, hoje, hoje.plusDays(DIAS_DISPONIVEIS - 1));
     }
 
     /** Fornecedor remarca pelo link: só faixas com vaga (excesso de capacidade é decisão do CD). */

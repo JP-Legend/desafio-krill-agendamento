@@ -33,7 +33,16 @@ public class AcessoUseCase {
         }
     }
 
-    public record DadosUsuario(String login, String nome, Long perfilId, Boolean ativo, String senhaProvisoria) {
+    /** escopo nulo = mantém os destinos atuais (novo usuário: todos). */
+    public record DadosUsuario(String login, String nome, Long perfilId, Boolean ativo, String senhaProvisoria,
+                               br.com.redekrill.agendamento.domain.model.Escopo escopo) {
+        public DadosUsuario(String login, String nome, Long perfilId, Boolean ativo, String senhaProvisoria) {
+            this(login, nome, perfilId, ativo, senhaProvisoria, null);
+        }
+    }
+
+    public br.com.redekrill.agendamento.domain.model.Escopo escopo(Long usuarioId) {
+        return usuarios.escopo(usuarioId);
     }
 
     public record DadosPerfil(String nome, String descricao, Boolean ativo, Set<Integer> permissoes) {
@@ -139,8 +148,21 @@ public class AcessoUseCase {
                 salvo = usuarios.salvar(new UsuarioSistema(id, atual.login(), d.nome(), d.perfilId(), null, ativo,
                         atual.trocarSenha(), atual.ultimoAcesso(), atual.criadoEm(), atual.senhaHash()));
             }
-            auditoria.registrar(s, id == null ? "CRIAR" : "ALTERAR", "USUARIO", salvo.id(),
-                    Map.of("login", salvo.login(), "perfil", salvo.perfilNome() == null ? "" : salvo.perfilNome(), "ativo", salvo.ativo()));
+            var escopoAntes = usuarios.escopo(salvo.id());
+            if (d.escopo() != null) {
+                var e = d.escopo();
+                if (!e.todos() && e.cds().isEmpty() && e.lojas().isEmpty())
+                    throw new RegraNegocioException("Escolha ao menos um CD ou loja, ou marque todos os destinos");
+                usuarios.salvarEscopo(salvo.id(), e);
+            }
+            var escopo = usuarios.escopo(salvo.id());
+            Map<String, Object> det = new java.util.LinkedHashMap<>();
+            det.put("login", salvo.login());
+            det.put("perfil", salvo.perfilNome() == null ? "" : salvo.perfilNome());
+            det.put("ativo", salvo.ativo());
+            det.put("destinos", escopo.todos() ? "todos" : Map.of("cds", escopo.cds(), "lojas", escopo.lojas()));
+            if (!escopo.equals(escopoAntes)) det.put("destinosAntes", escopoAntes.todos() ? "todos" : Map.of("cds", escopoAntes.cds(), "lojas", escopoAntes.lojas()));
+            auditoria.registrar(s, id == null ? "CRIAR" : "ALTERAR", "USUARIO", salvo.id(), det);
             return salvo;
         });
     }

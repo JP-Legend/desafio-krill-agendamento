@@ -18,6 +18,8 @@ function base(extra = {}) {
     'GET /agendamentos/3': ag(3, 'RECEBIDO', { paletesRecebidos: 9, divergencia: 'faltou 1', chegadaEm: '2026-11-02T08:00:00-03:00' }),
     'GET /agendamentos/3/notas': [],
     'GET /ocupacao/periodo': () => [0, 1, 2].map((i) => dia(somarDias(hoje(), i))),
+    'GET /agendamentos/:id/disponibilidade': () => [0, 1, 2].map((i) => dia(somarDias(hoje(), i))),
+    'GET /agendamentos/:id/calendario': [],
     ...extra
   }
 }

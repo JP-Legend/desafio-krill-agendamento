@@ -4,23 +4,23 @@ import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { deIso, diaSemana, fmtData, hoje, isoData } from '../utils'
 import { useNotificar } from '../composables/useNotificar'
-import SeletorCd from '../components/SeletorCd.vue'
+import SeletorDestino from '../components/SeletorDestino.vue'
 
 const router = useRouter()
 const notificar = useNotificar()
 const data = ref(deIso(hoje()))
-const cdId = ref(null)
+const destino = ref({ cdId: null, loja: null })
 const rotina = ref(null)
 const ICONES = { SEM_CONFIRMACAO: 'pi-phone', ATRASADOS: 'pi-clock', ESPERA: 'pi-hourglass', DESCARGA_LONGA: 'pi-truck', SEM_NFE: 'pi-file', DIVERGENCIAS: 'pi-exclamation-triangle', VALES: 'pi-ticket', COBRANCAS: 'pi-wallet' }
 
 async function carregar() {
   try {
-    rotina.value = await api('/rotina', { params: { data: isoData(data.value), cdId: cdId.value } })
+    rotina.value = await api('/rotina', { params: { data: isoData(data.value), ...destino.value } })
   } catch (e) {
     notificar.erro(e)
   }
 }
-watch([data, cdId], carregar)
+watch([data, destino], carregar, { deep: true })
 onMounted(carregar)
 </script>
 
@@ -28,7 +28,7 @@ onMounted(carregar)
   <div class="cabecalho">
     <h1>Rotina do dia</h1>
     <div class="acoes filtros-inline">
-      <SeletorCd v-model="cdId" input-id="rcd" />
+      <SeletorDestino v-model="destino" input-id="rcd" />
       <div class="campo"><label for="rd">Data</label><DatePicker v-model="data" input-id="rd" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     </div>
   </div>

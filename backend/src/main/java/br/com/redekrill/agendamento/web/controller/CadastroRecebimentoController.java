@@ -45,7 +45,8 @@ public class CadastroRecebimentoController {
     @GetMapping("/cds")
     @Operation(summary = "Centros de distribuição (multi-CD)")
     public List<CentroDistribuicao> cds() {
-        return useCase.listarCds();
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        return useCase.listarCds().stream().filter(c -> e.permiteCd(c.id())).toList();
     }
 
     @PostMapping("/cds")

@@ -20,6 +20,9 @@ import java.util.stream.Collectors;
 public class BuscaController {
     private final BuscaGlobalUseCase useCase;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private br.com.redekrill.agendamento.infrastructure.persistence.jdbc.EscopoDestinos destinos;
+
     public BuscaController(BuscaGlobalUseCase useCase) {
         this.useCase = useCase;
     }
@@ -30,6 +33,17 @@ public class BuscaController {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         Set<Integer> permissoes = auth == null ? Set.of() : auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
                 .filter(a -> a.startsWith("PERM_")).map(a -> Integer.parseInt(a.substring(5))).collect(Collectors.toSet());
-        return useCase.buscar(q, permissoes);
+        var r = useCase.buscar(q, permissoes);
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        if (e.todos() || destinos == null) return r;
+        // Usuário restrito: só agendamentos/vales do CD ou loja dele; cadastros de CD/loja de outros destinos somem.
+        return r.stream().filter(x -> {
+            String u = x.url() == null ? "" : x.url();
+            var m = java.util.regex.Pattern.compile("^/agendamentos/(\\d+)").matcher(u);
+            if (m.find()) return destinos.agendamentoVisivel(e, Long.valueOf(m.group(1)));
+            m = java.util.regex.Pattern.compile("^/vales-palete/(\\d+)").matcher(u);
+            if (m.find()) return destinos.valeVisivel(e, Long.valueOf(m.group(1)));
+            return !(x.grupo().contains("CD") || x.grupo().toLowerCase().contains("loja"));
+        }).toList();
     }
 }

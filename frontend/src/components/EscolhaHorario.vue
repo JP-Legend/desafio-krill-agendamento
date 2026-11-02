@@ -21,8 +21,9 @@ const linhas = computed(() =>
     data: d.data,
     fechado: props.fechados[d.data] || null,
     faixas: d.faixas.map((f) => {
-      const livreFaixa = f.capacidade - f.paletesOcupados
-      const livreDia = d.capacidade - d.paletesOcupados
+      const livreFaixa = d.capacidade ? f.capacidade - f.paletesOcupados : Infinity
+      // capacidade 0 = destino sem limite cadastrado (loja): sempre cabe
+      const livreDia = d.capacidade ? d.capacidade - d.paletesOcupados : Infinity
       const cabe = props.paletes <= livreFaixa && props.paletes <= livreDia
       const atual = props.atual && props.atual.data === d.data && props.atual.faixaHorariaId === f.faixaHorariaId
       return { ...f, livre: Math.max(0, Math.min(livreFaixa, livreDia)), cabe, atual, bloqueada: atual || (props.somenteComVaga && !cabe) }
@@ -44,7 +45,7 @@ const selecionada = (d, f) => modelo.value?.data === d.data && modelo.value?.fai
               :class="{ cheia: !f.cabe, atual: f.atual, sel: selecionada(d, f) }" :disabled="f.bloqueada"
               :aria-label="`${fmtData(d.data)} ${f.descricao}`" @click="escolher(d, f)">
         <span>{{ f.descricao }}</span>
-        <small>{{ f.atual ? 'atual' : f.cabe ? `${f.livre} livres` : 'sem vaga' }}</small>
+        <small>{{ f.atual ? 'atual' : !Number.isFinite(f.livre) ? 'livre' : f.cabe ? `${f.livre} livres` : 'sem vaga' }}</small>
       </button>
     </div>
   </div>

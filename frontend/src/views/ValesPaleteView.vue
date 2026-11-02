@@ -4,11 +4,12 @@ import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { pode } from '../sessao'
 import { deIso, fmtData, hoje, isoData, somarDias } from '../utils'
+import SeletorDestino from '../components/SeletorDestino.vue'
 import { useNotificar } from '../composables/useNotificar'
 
 const router = useRouter()
 const notificar = useNotificar()
-const filtro = reactive({ inicio: deIso(somarDias(hoje(), -30)), fim: deIso(hoje()), status: null, fornecedor: '' })
+const filtro = reactive({ inicio: deIso(somarDias(hoje(), -30)), fim: deIso(hoje()), status: null, fornecedor: '', destino: { cdId: null, loja: null } })
 const codigo = ref('')
 const lista = ref([])
 const carregando = ref(false)
@@ -23,7 +24,7 @@ const SEV = { PENDENTE: 'warn', ASSINADO: 'info', QUITADO: 'success', CANCELADO:
 async function buscar() {
   carregando.value = true
   try {
-    lista.value = await api('/vales-palete', { params: { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), status: filtro.status, fornecedor: filtro.fornecedor.trim() } })
+    lista.value = await api('/vales-palete', { params: { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), status: filtro.status, fornecedor: filtro.fornecedor.trim(), ...filtro.destino } })
   } catch (e) {
     notificar.erro(e)
   } finally {
@@ -59,6 +60,7 @@ onActivated(() => { if (primeira) { primeira = false; return } buscar() })
   <form class="painel filtros" @submit.prevent="buscar">
     <div class="campo"><label for="vi">De</label><DatePicker v-model="filtro.inicio" input-id="vi" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     <div class="campo"><label for="vf">Até</label><DatePicker v-model="filtro.fim" input-id="vf" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
+    <SeletorDestino v-model="filtro.destino" input-id="vd" />
     <div class="campo"><label for="vs">Status</label><Select v-model="filtro.status" input-id="vs" :options="STATUS" option-label="label" option-value="value" /></div>
     <div class="campo"><label for="vfo">Fornecedor</label><InputText id="vfo" v-model="filtro.fornecedor" /></div>
     <Button type="submit" label="Buscar" icon="pi pi-search" class="btn-confirmar" :loading="carregando" />

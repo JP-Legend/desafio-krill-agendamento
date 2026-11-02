@@ -52,11 +52,15 @@ function salvarVeiculo() {
 const remarcando = ref(false)
 const dias = ref([])
 const escolha = ref(null)
+/** Dias em que o destino não recebe (calendário): aparecem em cinza com o motivo. */
+const fechados = ref({})
 
 async function abrirRemarcar() {
   escolha.value = null
   try {
-    dias.value = await api(`${base}/disponibilidade`)
+    const [d, cal] = await Promise.all([api(`${base}/disponibilidade`), api(`${base}/calendario`).catch(() => [])])
+    fechados.value = Object.fromEntries(cal.filter((x) => !x.aberto).map((x) => [x.data, x.motivo]))
+    dias.value = d
     remarcando.value = true
   } catch (e) {
     notificar.erro(e)
@@ -107,7 +111,7 @@ defineExpose({ abrirRemarcar, remarcar, escolha })
       <section v-if="ag.editavel" class="painel">
         <div class="painel-titulo"><h2>Remarcar entrega</h2><Button v-if="!remarcando" label="Escolher outra data" icon="pi pi-calendar" class="btn-secundario" size="small" @click="abrirRemarcar" /></div>
         <template v-if="remarcando">
-          <EscolhaHorario v-model="escolha" :dias="dias" :paletes="ag.paletesEquivalentes" :atual="{ data: ag.data, faixaHorariaId: ag.faixaHorariaId }" somente-com-vaga />
+          <EscolhaHorario v-model="escolha" :dias="dias" :paletes="ag.paletesEquivalentes" :atual="{ data: ag.data, faixaHorariaId: ag.faixaHorariaId }" :fechados="fechados" somente-com-vaga />
           <p v-if="escolha" class="destaque-escolha">Nova entrega: <strong>{{ diaSemana(escolha.data) }}, {{ fmtData(escolha.data) }} · {{ escolha.descricao }}</strong></p>
           <div class="linha-botoes">
             <Button label="Voltar" class="btn-secundario" :disabled="enviando" @click="remarcando = false" />

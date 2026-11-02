@@ -12,7 +12,8 @@ import java.util.List;
 @Component
 public class AvisoRepositorioJdbc implements AvisoRepositorio {
     private static final RowMapper<Aviso> MAP = (r, i) -> new Aviso(r.getLong("id"), r.getString("titulo"),
-            r.getString("mensagem"), r.getString("url"), r.getObject("criado_em", OffsetDateTime.class));
+            r.getString("mensagem"), r.getString("url"), r.getObject("criado_em", OffsetDateTime.class),
+            (Long) r.getObject("cd_id"), r.getString("loja"));
     private final JdbcClient db;
 
     public AvisoRepositorioJdbc(JdbcClient db) {
@@ -21,8 +22,8 @@ public class AvisoRepositorioJdbc implements AvisoRepositorio {
 
     @Override
     public Aviso registrar(Aviso a) {
-        return db.sql("insert into aviso (titulo, mensagem, url) values (?, ?, ?) returning *")
-                .params(a.titulo(), a.mensagem(), a.url()).query(MAP).single();
+        return db.sql("insert into aviso (titulo, mensagem, url, cd_id, loja) values (?, ?, ?, ?, ?) returning *")
+                .params(a.titulo(), a.mensagem(), a.url(), a.cdId(), a.loja()).query(MAP).single();
     }
 
     @Override

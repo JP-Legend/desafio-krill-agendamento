@@ -28,6 +28,7 @@ export function iniciarSessao(resp) {
     perfil: resp.perfil,
     permissoes: resp.permissoes || [],
     trocarSenha: !!resp.trocarSenha,
+    destinos: resp.destinos || { todos: true, cds: [], lojas: [] },
     expiraEm: Date.now() + resp.expiraEmSegundos * 1000
   }
   salvar()
@@ -36,8 +37,13 @@ export function iniciarSessao(resp) {
 /** Atualiza perfil/permissões com /auth/eu (perfil pode ter mudado desde o login). */
 export function atualizarSessao(eu) {
   if (!sessao.atual) return
-  Object.assign(sessao.atual, { nome: eu.nome, perfil: eu.perfil, permissoes: eu.permissoes, trocarSenha: eu.trocarSenha })
+  Object.assign(sessao.atual, { nome: eu.nome, perfil: eu.perfil, permissoes: eu.permissoes, trocarSenha: eu.trocarSenha, destinos: eu.destinos || { todos: true, cds: [], lojas: [] } })
   salvar()
+}
+
+/** CDs (ids) e lojas (nomes) do usuário; todos = sem restrição. */
+export function destinos() {
+  return sessao.atual?.destinos || { todos: true, cds: [], lojas: [] }
 }
 
 function salvar() {

@@ -5,7 +5,6 @@ import CentrosDistribuicaoView from '../../src/views/CentrosDistribuicaoView.vue
 import ProdutosView from '../../src/views/ProdutosView.vue'
 import TiposCaminhaoView from '../../src/views/TiposCaminhaoView.vue'
 import TiposPaletizacaoView from '../../src/views/TiposPaletizacaoView.vue'
-import FaixasView from '../../src/views/FaixasView.vue'
 import ParametrosDescargaView from '../../src/views/ParametrosDescargaView.vue'
 import { erroHttp, flushPromises, logar, montar, sair, simularApi } from '../montar'
 
@@ -83,7 +82,6 @@ describe('cadastros', () => {
     simularApi({ 'GET /tipos-caminhao': [{ id: 1, nome: 'Carreta', capacidadePaletes: 28, ativo: true }], 'GET /tipos-paletizacao': [{ id: 2, nome: 'Não paletizado', fatorMultiplicador: 2, ativo: true }], 'GET /faixas-horarias': [{ id: 1, horaInicio: '08:00:00', horaFim: '10:00:00', capacidadePaletes: 120, ativo: true }] })
     expect((await montar(TiposCaminhaoView)).w.text()).toContain('Carreta')
     expect((await montar(TiposPaletizacaoView)).w.text()).toContain('Não paletizado')
-    expect((await montar(FaixasView)).w.text()).toContain('08:00')
   })
 
   it('tempos de descarga: um parâmetro por tipo de caminhão', async () => {

@@ -5,6 +5,7 @@ import { api } from '../api'
 import { pode } from '../sessao'
 import { deIso, diaSemana, fmtData, fmtPct, hoje, isoData, nivelOcupacao, somarDias } from '../utils'
 import { useNotificar } from '../composables/useNotificar'
+import SeletorDestino from '../components/SeletorDestino.vue'
 import BarraOcupacao from '../components/BarraOcupacao.vue'
 import StatusAgendamento from '../components/StatusAgendamento.vue'
 
@@ -18,6 +19,7 @@ const semana = ref([])
 const fechados = ref({})
 const agendamentos = ref([])
 const carregando = ref(false)
+const destino = ref({ cdId: null, loja: null })
 
 const dia = computed(() => semana.value.find((d) => d.data === dataSel.value))
 const datePicker = computed({
@@ -26,13 +28,13 @@ const datePicker = computed({
 })
 
 async function carregarSemana() {
-  const p = { inicio: inicioSemana.value, fim: somarDias(inicioSemana.value, 6) }
+  const p = { inicio: inicioSemana.value, fim: somarDias(inicioSemana.value, 6), ...destino.value }
   const [s, cal] = await Promise.all([api('/ocupacao/periodo', { params: p }), api('/calendario-recebimento/dias', { params: p }).catch(() => [])])
   fechados.value = Object.fromEntries(cal.filter((x) => !x.aberto).map((x) => [x.data, x.motivo]))
   semana.value = s
 }
 async function carregarDia() {
-  agendamentos.value = await api('/agendamentos', { params: { inicio: dataSel.value, fim: dataSel.value, status: 'AGENDADO' } })
+  agendamentos.value = await api('/agendamentos', { params: { inicio: dataSel.value, fim: dataSel.value, status: 'AGENDADO', ...destino.value } })
 }
 async function carregar() {
   carregando.value = true
@@ -56,6 +58,7 @@ function navegar(n) {
 }
 
 watch(dataSel, carregar)
+watch(destino, carregar, { deep: true })
 onMounted(carregar)
 </script>
 
@@ -63,6 +66,7 @@ onMounted(carregar)
   <div class="cabecalho">
     <h1>Ocupação do recebimento</h1>
     <div class="acoes">
+      <SeletorDestino v-model="destino" input-id="ocd" :todos="false" />
       <Button icon="pi pi-angle-left" class="btn-secundario" aria-label="Semana anterior" @click="navegar(-7)" />
       <DatePicker v-model="datePicker" date-format="dd/mm/yy" show-icon icon-display="input" :manual-input="false" />
       <Button icon="pi pi-angle-right" class="btn-secundario" aria-label="Próxima semana" @click="navegar(7)" />
@@ -82,7 +86,7 @@ onMounted(carregar)
         <template v-else>
         <span class="pct" :class="nivelOcupacao(d.percentual)">{{ fmtPct(d.percentual) }}</span>
         <BarraOcupacao :percentual="d.percentual" :mostrar-texto="false" />
-        <span class="val">{{ d.paletesOcupados }}/{{ d.capacidade }} · {{ d.quantidadeAgendamentos }} ag.</span>
+        <span class="val">{{ d.capacidade ? `${d.paletesOcupados}/${d.capacidade}` : `${d.paletesOcupados} pal. · sem limite` }} · {{ d.quantidadeAgendamentos }} ag.</span>
         </template>
       </button>
     </div>
@@ -92,9 +96,9 @@ onMounted(carregar)
     <div class="kpis">
       <div class="kpi"><span>Ocupação do dia {{ fmtData(dia.data) }}</span><strong class="pct" :class="nivelOcupacao(dia.percentual)">{{ fmtPct(dia.percentual) }}</strong></div>
       <div class="kpi"><span>Paletes ocupados</span><strong>{{ dia.paletesOcupados }}</strong></div>
-      <div class="kpi"><span>Capacidade diária</span><strong>{{ dia.capacidade }}</strong></div>
+      <div class="kpi"><span>Capacidade diária</span><strong>{{ dia.capacidade || 'Sem limite' }}</strong></div>
       <div class="kpi"><span>{{ dia.excedente > 0 ? 'Excedente' : 'Saldo disponível' }}</span>
-        <strong :class="{ 'pct excedido': dia.excedente > 0 }">{{ dia.excedente > 0 ? dia.excedente : dia.capacidade - dia.paletesOcupados }}</strong></div>
+        <strong :class="{ 'pct excedido': dia.excedente > 0 }">{{ !dia.capacidade ? 'Sem limite' : dia.excedente > 0 ? dia.excedente : dia.capacidade - dia.paletesOcupados }}</strong></div>
     </div>
 
     <section class="painel">

@@ -24,5 +24,7 @@ public interface CalendarioRecebimentoRepositorio {
 
     void excluirExcecao(Long id);
 
+    List<ExcecaoRecebimento> excecoesDesde(LocalDate inicio);
+
     List<Feriado> feriados(LocalDate inicio, LocalDate fim);
 }

@@ -10,7 +10,7 @@ import StatusAgendamento from '../components/StatusAgendamento.vue'
 import EscolhaHorario from '../components/EscolhaHorario.vue'
 import NotasFiscais from '../components/NotasFiscais.vue'
 import ItensAvulsos from '../components/ItensAvulsos.vue'
-import SeletorCd from '../components/SeletorCd.vue'
+import SeletorDestino from '../components/SeletorDestino.vue'
 import WhatsAppAviso from '../components/WhatsAppAviso.vue'
 
 const route = useRoute()
@@ -18,7 +18,7 @@ const router = useRouter()
 const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
 
-const filtro = reactive({ inicio: deIso(hoje()), fim: deIso(somarDias(hoje(), 30)), status: route.query.status || null, fornecedor: '', idPedido: null, cdId: null })
+const filtro = reactive({ inicio: deIso(hoje()), fim: deIso(somarDias(hoje(), 30)), status: route.query.status || null, fornecedor: '', idPedido: null, destino: { cdId: null, loja: null } })
 const status = [
   { label: 'Todos', value: null }, { label: 'Agendado', value: 'AGENDADO' }, { label: 'Confirmado', value: 'CONFIRMADO' },
   { label: 'Chegou', value: 'CHEGOU' }, { label: 'Em recebimento', value: 'EM_RECEBIMENTO' }, { label: 'Recebido', value: 'RECEBIDO' },
@@ -28,12 +28,15 @@ const acao = ref(null)
 const remarcando = ref(false)
 const diasRemarcar = ref([])
 const novoHorario = ref(null)
+const fechadosRemarcar = ref({})
 const podeRemarcar = computed(() => ['AGENDADO', 'CONFIRMADO'].includes(detalhe.value?.status))
 
 async function abrirRemarcar() {
   novoHorario.value = null
   try {
-    diasRemarcar.value = await api('/ocupacao/periodo', { params: { inicio: hoje(), fim: somarDias(hoje(), 13), cdId: detalhe.value.cdId } })
+    const [d, cal] = await Promise.all([api(`/agendamentos/${detalhe.value.id}/disponibilidade`), api(`/agendamentos/${detalhe.value.id}/calendario`).catch(() => [])])
+    fechadosRemarcar.value = Object.fromEntries(cal.filter((x) => !x.aberto).map((x) => [x.data, x.motivo]))
+    diasRemarcar.value = d
     remarcando.value = true
   } catch (e) {
     notificar.erro(e)
@@ -135,7 +138,7 @@ async function buscar() {
   carregando.value = true
   try {
     lista.value = await api('/agendamentos', {
-      params: { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), status: filtro.status, fornecedor: filtro.fornecedor.trim(), idPedido: filtro.idPedido, cdId: filtro.cdId }
+      params: { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), status: filtro.status, fornecedor: filtro.fornecedor.trim(), idPedido: filtro.idPedido, ...filtro.destino }
     })
   } catch (e) {
     notificar.erro(e)
@@ -201,7 +204,7 @@ onMounted(() => {
     <div class="campo"><label for="ff">Até</label><DatePicker v-model="filtro.fim" input-id="ff" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     <div class="campo"><label for="fs">Status</label><Select v-model="filtro.status" input-id="fs" :options="status" option-label="label" option-value="value" /></div>
     <div class="campo"><label for="ffor">Fornecedor</label><InputText id="ffor" v-model="filtro.fornecedor" /></div>
-    <SeletorCd v-model="filtro.cdId" input-id="fcd" />
+    <SeletorDestino v-model="filtro.destino" input-id="fcd" />
     <div class="campo"><label for="fp">Nº do pedido de compra</label><InputNumber v-model="filtro.idPedido" input-id="fp" :use-grouping="false" /></div>
     <Button type="submit" label="Buscar" icon="pi pi-search" class="btn-confirmar" :loading="carregando" />
   </form>
@@ -251,7 +254,7 @@ onMounted(() => {
       </dl>
       <div v-if="remarcando" class="painel acao-op">
         <h2>Remarcar entrega</h2>
-        <EscolhaHorario v-model="novoHorario" :dias="diasRemarcar" :paletes="detalhe.paletesEquivalentes" :atual="{ data: detalhe.data, faixaHorariaId: detalhe.faixaHorariaId }" />
+        <EscolhaHorario v-model="novoHorario" :dias="diasRemarcar" :paletes="detalhe.paletesEquivalentes" :atual="{ data: detalhe.data, faixaHorariaId: detalhe.faixaHorariaId }" :fechados="fechadosRemarcar" />
         <div class="acoes">
           <Button label="Voltar" class="btn-secundario" :disabled="enviando" @click="remarcando = false" />
           <Button label="Remarcar" icon="pi pi-calendar" class="btn-confirmar" :loading="enviando" :disabled="enviando || !novoHorario" @click="confirmarRemarcacao" />

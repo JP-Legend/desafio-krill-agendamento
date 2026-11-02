@@ -5,13 +5,13 @@ import { deIso, diaSemana, fmtData, fmtMoeda, hoje, isoData } from '../utils'
 import { pode } from '../sessao'
 import { useNotificar } from '../composables/useNotificar'
 import { useEnvio } from '../composables/useEnvio'
-import SeletorCd from '../components/SeletorCd.vue'
+import SeletorDestino from '../components/SeletorDestino.vue'
 import BarraOcupacao from '../components/BarraOcupacao.vue'
 
 const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
 const data = ref(deIso(hoje()))
-const cdId = ref(null)
+const destino = ref({ cdId: null, loja: null })
 const quadro = ref(null)
 let timer = null
 
@@ -29,7 +29,7 @@ const hora = (s) => (s ? new Date(s).toLocaleTimeString('pt-BR', { hour: '2-digi
 
 async function carregar() {
   try {
-    quadro.value = await api('/patio', { params: { data: isoData(data.value), cdId: cdId.value } })
+    quadro.value = await api('/patio', { params: { data: isoData(data.value), ...destino.value } })
   } catch (e) {
     notificar.erro(e)
   }
@@ -47,7 +47,7 @@ function atribuir(cartao, docaId) {
   })
 }
 
-watch([data, cdId], carregar)
+watch([data, destino], carregar, { deep: true })
 onMounted(() => {
   carregar()
   timer = setInterval(carregar, 30000)
@@ -59,7 +59,7 @@ onUnmounted(() => clearInterval(timer))
   <div class="cabecalho">
     <h1>Pátio e docas</h1>
     <div class="acoes filtros-inline">
-      <SeletorCd v-model="cdId" input-id="pcd" :todos="false" />
+      <SeletorDestino v-model="destino" input-id="pcd" :todos="false" />
       <div class="campo"><label for="pd">Data</label><DatePicker v-model="data" input-id="pd" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
       <Button label="Atualizar" icon="pi pi-refresh" class="btn-secundario" @click="carregar" />
     </div>

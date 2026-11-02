@@ -35,8 +35,20 @@ public class ValePaleteController {
     @org.springframework.beans.factory.annotation.Value("${app.empresa-codigo:KRILL}")
     private String empresa = "KRILL";
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private br.com.redekrill.agendamento.infrastructure.persistence.jdbc.EscopoDestinos destinos;
+
     public ValePaleteController(ValePaleteUseCase useCase) {
         this.useCase = useCase;
+    }
+
+    /** Vale de outro CD/loja: 404 (o usuário só vê os vales dos agendamentos do escopo dele). */
+    private ValePaleteResp visivel(ValePaleteResp v) {
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        if (e.todos() || destinos == null) return v;
+        if (v.agendamentoId() == null || !destinos.agendamentoVisivel(e, v.agendamentoId()))
+            throw new br.com.redekrill.agendamento.domain.exception.RecursoNaoEncontradoException("Vale-palete", v.codigo());
+        return v;
     }
 
     @GetMapping
@@ -44,7 +56,11 @@ public class ValePaleteController {
                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
                                        @RequestParam(required = false) ValePalete.Status status,
                                        @RequestParam(required = false) String fornecedor) {
-        return useCase.listar(inicio, fim, status, fornecedor).stream().map(this::com).toList();
+        var lista = useCase.listar(inicio, fim, status, fornecedor).stream().map(this::com).toList();
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        if (e.todos() || destinos == null) return lista;
+        var ok = destinos.visiveis(e, lista.stream().map(ValePaleteResp::agendamentoId).filter(java.util.Objects::nonNull).toList());
+        return lista.stream().filter(v -> v.agendamentoId() != null && ok.contains(v.agendamentoId())).toList();
     }
 
     @GetMapping("/{id}")
@@ -57,13 +73,13 @@ public class ValePaleteController {
     public ValePaleteResp leitura(@RequestParam String codigo) {
         String c = br.com.redekrill.agendamento.domain.model.CodigoLeituraVale.interpretar(codigo, empresa);
         if (c == null) throw new br.com.redekrill.agendamento.domain.exception.RegraNegocioException("Código de vale-palete inválido");
-        return com(useCase.buscarPorCodigo(c));
+        return visivel(com(useCase.buscarPorCodigo(c)));
     }
 
     @GetMapping("/codigo/{codigo}")
     @Operation(summary = "Busca pelo código VP-... (leitura do código de barras/QR)")
     public ValePaleteResp porCodigo(@PathVariable String codigo) {
-        return com(useCase.buscarPorCodigo(codigo));
+        return visivel(com(useCase.buscarPorCodigo(codigo)));
     }
 
     @PostMapping

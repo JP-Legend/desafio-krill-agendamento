@@ -39,15 +39,19 @@ public class AcessoController {
     }
 
     public record Usuario(Long id, String login, String nome, Long perfilId, String perfil, boolean ativo,
-                          boolean trocarSenha, Instant ultimoAcesso, Instant criadoEm) {
-        static Usuario de(UsuarioSistema u) {
-            return new Usuario(u.id(), u.login(), u.nome(), u.perfilId(), u.perfilNome(), u.ativo(), u.trocarSenha(),
-                    u.ultimoAcesso(), u.criadoEm());
-        }
+                          boolean trocarSenha, Instant ultimoAcesso, Instant criadoEm, boolean todosDestinos,
+                          List<Long> cds, List<String> lojas) {
+    }
+
+    private Usuario de(UsuarioSistema u) {
+        var e = acessos.escopo(u.id());
+        return new Usuario(u.id(), u.login(), u.nome(), u.perfilId(), u.perfilNome(), u.ativo(), u.trocarSenha(),
+                u.ultimoAcesso(), u.criadoEm(), e.todos(), e.cds().stream().sorted().toList(), e.lojas().stream().sorted().toList());
     }
 
     public record DadosUsuario(@Size(max = 60) String login, @NotBlank @Size(max = 120) String nome, Long perfilId,
-                               Boolean ativo, @Size(max = 72) String senhaProvisoria) {
+                               Boolean ativo, @Size(max = 72) String senhaProvisoria, Boolean todosDestinos,
+                               List<Long> cds, List<@Size(max = 80) String> lojas) {
     }
 
     public record NovaSenha(@NotBlank @Size(max = 72) String senhaProvisoria) {
@@ -69,20 +73,20 @@ public class AcessoController {
     @Operation(summary = "Lista usuários (permissão 1001)")
     public List<Usuario> usuarios(@RequestParam(required = false) String texto, @RequestParam(required = false) Long perfilId,
                                   @RequestParam(required = false) Boolean ativo) {
-        return acessos.listarUsuarios(texto, perfilId, ativo).stream().map(Usuario::de).toList();
+        return acessos.listarUsuarios(texto, perfilId, ativo).stream().map(this::de).toList();
     }
 
     @PostMapping("/usuarios")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Inclui usuário com senha provisória (permissão 1002)")
     public Usuario criarUsuario(@Valid @RequestBody DadosUsuario d, HttpServletRequest req) {
-        return Usuario.de(acessos.salvarUsuario(null, dados(d), Requisicao.solicitante(req)));
+        return de(acessos.salvarUsuario(null, dados(d), Requisicao.solicitante(req)));
     }
 
     @PutMapping("/usuarios/{id}")
     @Operation(summary = "Altera nome, perfil e situação (permissão 1002)")
     public Usuario alterarUsuario(@PathVariable Long id, @Valid @RequestBody DadosUsuario d, HttpServletRequest req) {
-        return Usuario.de(acessos.salvarUsuario(id, dados(d), Requisicao.solicitante(req)));
+        return de(acessos.salvarUsuario(id, dados(d), Requisicao.solicitante(req)));
     }
 
     @PostMapping("/usuarios/{id}/senha")
@@ -93,7 +97,12 @@ public class AcessoController {
     }
 
     private static AcessoUseCase.DadosUsuario dados(DadosUsuario d) {
-        return new AcessoUseCase.DadosUsuario(d.login(), d.nome(), d.perfilId(), d.ativo(), d.senhaProvisoria());
+        var escopo = d.todosDestinos() == null ? null : Boolean.TRUE.equals(d.todosDestinos())
+                ? br.com.redekrill.agendamento.domain.model.Escopo.TODOS
+                : new br.com.redekrill.agendamento.domain.model.Escopo(false,
+                d.cds() == null ? java.util.Set.of() : new java.util.HashSet<>(d.cds()),
+                d.lojas() == null ? java.util.Set.of() : new java.util.HashSet<>(d.lojas().stream().filter(l -> l != null && !l.isBlank()).toList()));
+        return new AcessoUseCase.DadosUsuario(d.login(), d.nome(), d.perfilId(), d.ativo(), d.senhaProvisoria(), escopo);
     }
 
     @GetMapping("/perfis")

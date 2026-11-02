@@ -15,8 +15,9 @@ import Password from 'primevue/password'
 import Paginator from 'primevue/paginator'
 import Menu from 'primevue/menu'
 import Checkbox from 'primevue/checkbox'
+import MultiSelect from 'primevue/multiselect'
 
 export function registrarComponentes(app) {
   Object.entries({ Button, InputText, InputNumber, Textarea, Select, DatePicker, DataTable, Column, Dialog, Tag, Toast,
-    ToggleSwitch, Drawer, Password, Paginator, Menu, Checkbox }).forEach(([n, c]) => app.component(n, c))
+    ToggleSwitch, Drawer, Password, Paginator, Menu, Checkbox, MultiSelect }).forEach(([n, c]) => app.component(n, c))
 }

@@ -102,6 +102,18 @@ public class AgendamentoController {
         return new CriacaoResp(AgendamentoResp.de(r.agendamento()), r.alertas(), null);
     }
 
+    @GetMapping("/agendamentos/{id}/disponibilidade")
+    @Operation(summary = "Ocupação dos próximos 14 dias no destino do agendamento (CD ou loja), para remarcar")
+    public List<OcupacaoDiaResp> disponibilidade(@PathVariable Long id) {
+        return useCase.disponibilidade(id).stream().map(OcupacaoDiaResp::de).toList();
+    }
+
+    @GetMapping("/agendamentos/{id}/calendario")
+    @Operation(summary = "Dias em que o destino do agendamento recebe, nos próximos 14 dias")
+    public List<br.com.redekrill.agendamento.domain.model.DiaRecebimento> calendario(@PathVariable Long id) {
+        return useCase.calendarioDoAgendamento(id);
+    }
+
     @PostMapping("/agendamentos/simulacao")
     @Operation(summary = "Pré-visualiza ocupação e alertas antes de confirmar")
     public SimulacaoResp simular(@Valid @RequestBody Requisicoes.Simular b) {
@@ -113,7 +125,8 @@ public class AgendamentoController {
     @GetMapping("/ocupacao")
     @Operation(summary = "Ocupação de um dia (total e por faixa)")
     public OcupacaoDiaResp ocupacao(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
-                                    @RequestParam(required = false) Long cdId) {
+                                    @RequestParam(required = false) Long cdId, @RequestParam(required = false) String loja) {
+        if (loja != null && !loja.isBlank()) return OcupacaoDiaResp.de(useCase.ocupacaoPeriodoLoja(data, data, loja).get(0));
         return OcupacaoDiaResp.de(useCase.ocupacaoDoDia(data, cdId));
     }
 
@@ -122,7 +135,8 @@ public class AgendamentoController {
     public List<OcupacaoDiaResp> ocupacaoPeriodo(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
-            @RequestParam(required = false) Long cdId) {
+            @RequestParam(required = false) Long cdId, @RequestParam(required = false) String loja) {
+        if (loja != null && !loja.isBlank()) return useCase.ocupacaoPeriodoLoja(inicio, fim, loja).stream().map(OcupacaoDiaResp::de).toList();
         return useCase.ocupacaoPeriodo(inicio, fim, cdId).stream().map(OcupacaoDiaResp::de).toList();
     }
 

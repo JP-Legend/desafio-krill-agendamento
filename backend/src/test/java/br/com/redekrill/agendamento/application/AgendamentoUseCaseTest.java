@@ -163,8 +163,8 @@ class AgendamentoUseCaseTest {
         verify(email).enviarConfirmacao(eq(r.agendamento()), org.mockito.ArgumentMatchers.startsWith("http://app.local/fornecedor/token-de-teste"));
         assertThat(r.linkFornecedor()).startsWith("http://app.local/fornecedor/");
         assertThat(banco.get(0).getTokenFornecedorHash()).startsWith("h:");
-        verify(push).notificarTodos(eq("Novo agendamento"), contains("Fornecedor Alfa"), eq("/agendamentos/1"));
-        verify(push, never()).notificarTodos(eq("Capacidade excedida"), anyString(), anyString());
+        verify(push).notificarDestino(eq("Novo agendamento"), contains("Fornecedor Alfa"), eq("/agendamentos/1"), any(), any());
+        verify(push, never()).notificarDestino(eq("Capacidade excedida"), anyString(), anyString(), any(), any());
         ArgumentCaptor<br.com.redekrill.agendamento.application.dto.RegistroAuditoria> aud =
                 ArgumentCaptor.forClass(br.com.redekrill.agendamento.application.dto.RegistroAuditoria.class);
         verify(auditoriaRepo).registrar(aud.capture());
@@ -183,7 +183,7 @@ class AgendamentoUseCaseTest {
             assertThat(a.excedente()).isEqualTo(20);
         });
         assertThat(banco).hasSize(2);
-        verify(push).notificarTodos(eq("Capacidade excedida"), contains("excedida"), eq("/painel?data=" + DIA));
+        verify(push).notificarDestino(eq("Capacidade excedida"), contains("excedida"), eq("/painel?data=" + DIA), any(), any());
     }
 
     @Test
@@ -223,7 +223,7 @@ class AgendamentoUseCaseTest {
         assertThat(d.agendamento().getStatus()).isEqualTo(StatusAgendamento.CANCELADO);
         assertThat(useCase.ocupacaoDoDia(DIA).paletesOcupados()).isZero();
         verify(email).enviarCancelamento(d);
-        verify(push).notificarTodos(eq("Agendamento cancelado"), anyString(), eq("/agendamentos/" + id));
+        verify(push).notificarDestino(eq("Agendamento cancelado"), anyString(), eq("/agendamentos/" + id), any(), any());
         verify(auditoriaRepo, times(2)).registrar(any());
     }
 
@@ -321,13 +321,13 @@ class AgendamentoUseCaseTest {
         assertThat(r.executar(id, acao(RecebimentoUseCase.Acao.CONFIRMAR), ADMIN).agendamento().getStatus()).isEqualTo(StatusAgendamento.CONFIRMADO);
         AgendamentoDetalhe chegou = r.executar(id, acao(RecebimentoUseCase.Acao.CHEGADA), ADMIN);
         assertThat(chegou.agendamento().getPlaca()).isEqualTo("ABC1D23");
-        verify(push).notificarTodos(eq("Caminhão na portaria"), contains("ABC1D23"), anyString());
+        verify(push).notificarDestino(eq("Caminhão na portaria"), contains("ABC1D23"), anyString(), any(), any());
         assertThatThrownBy(() -> useCase.cancelar(id, "x", ADMIN)).hasMessageContaining("Chegou");
         r.executar(id, acao(RecebimentoUseCase.Acao.INICIAR), ADMIN);
         AgendamentoDetalhe fim = r.executar(id, acao(RecebimentoUseCase.Acao.CONCLUIR), ADMIN);
         assertThat(fim.agendamento().getStatus()).isEqualTo(StatusAgendamento.RECEBIDO);
         assertThat(fim.agendamento().getDivergencia()).contains("48");
-        verify(push).notificarTodos(eq("Recebimento com divergência"), anyString(), anyString());
+        verify(push).notificarDestino(eq("Recebimento com divergência"), anyString(), anyString(), any(), any());
         assertThatThrownBy(() -> r.executar(id, null, ADMIN)).isInstanceOf(RegraNegocioException.class);
         assertThatThrownBy(() -> r.executar(99L, acao(RecebimentoUseCase.Acao.CONFIRMAR), ADMIN)).isInstanceOf(RecursoNaoEncontradoException.class);
     }
@@ -341,13 +341,13 @@ class AgendamentoUseCaseTest {
         AgendamentoDetalhe d = r.executar(id, new RecebimentoUseCase.Comando(RecebimentoUseCase.Acao.CHEGADA, "ABC1D23", "João",
                 null, null, null, null, java.time.LocalTime.of(8, 15)), ADMIN);
         assertThat(d.agendamento().getChegadaEm().atZoneSameInstant(SP).toLocalTime()).isEqualTo(java.time.LocalTime.of(8, 15));
-        verify(push).notificarTodos(eq("Caminhão na portaria"), contains("chegou às 08:15"), eq("/portaria"));
+        verify(push).notificarDestino(eq("Caminhão na portaria"), contains("chegou às 08:15"), eq("/portaria"), any(), any());
     }
 
     @Test
     void agendamentoPeloLinkDoFornecedorTemAvisoProprio() {
         useCase.criar(cmd(1, 1, 10), new Solicitante("fornecedor:logistica@beta.com.br", "10.0.0.9"));
-        verify(push).notificarTodos(eq("Agendamento pelo link do fornecedor"), anyString(), anyString());
+        verify(push).notificarDestino(eq("Agendamento pelo link do fornecedor"), anyString(), anyString(), any(), any());
     }
 
     @Test

@@ -35,7 +35,7 @@ public class AuthController {
     public record TrocaSenha(@NotBlank String senhaAtual, @NotBlank String novaSenha) {
     }
 
-    public record Eu(String usuario, String nome, String perfil, List<Integer> permissoes, boolean trocarSenha) {
+    public record Eu(String usuario, String nome, String perfil, List<Integer> permissoes, boolean trocarSenha, AutenticacaoService.Destinos destinos) {
     }
 
     @PostMapping("/login")
@@ -56,7 +56,11 @@ public class AuthController {
     public Eu eu(HttpServletRequest req) {
         var ctx = acessos.contextoAtual(Requisicao.solicitante(req).usuario()).orElseThrow();
         return new Eu(ctx.usuario().login(), ctx.usuario().nome(), ctx.perfil().nome(),
-                ctx.permissoes().stream().sorted().toList(), ctx.usuario().trocarSenha());
+                ctx.permissoes().stream().sorted().toList(), ctx.usuario().trocarSenha(), destinos(ctx.usuario().id()));
+    }
+
+    private AutenticacaoService.Destinos destinos(Long usuarioId) {
+        return AutenticacaoService.destinos(acessos.escopo(usuarioId));
     }
 
     @PostMapping("/senha")

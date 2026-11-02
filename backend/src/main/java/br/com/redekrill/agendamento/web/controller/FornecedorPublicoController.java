@@ -54,6 +54,12 @@ public class FornecedorPublicoController {
         return useCase.disponibilidade(token).stream().map(br.com.redekrill.agendamento.web.dto.Respostas.OcupacaoDiaResp::de).toList();
     }
 
+    @GetMapping("/calendario")
+    @Operation(summary = "Dias em que o destino recebe (fechados com o motivo) nos próximos 14 dias")
+    public java.util.List<br.com.redekrill.agendamento.domain.model.DiaRecebimento> calendario(@PathVariable String token) {
+        return useCase.calendario(token);
+    }
+
     @PutMapping("/reagendamento")
     @Operation(summary = "Fornecedor escolhe outra data/faixa (apenas faixas com vaga)")
     public AgendamentoPublicoResp reagendar(@PathVariable String token, @Valid @RequestBody Requisicoes.Reagendar b,

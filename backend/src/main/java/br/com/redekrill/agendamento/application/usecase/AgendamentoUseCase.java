@@ -59,6 +59,9 @@ public class AgendamentoUseCase {
     private final GeradorToken tokens;
     private final String urlPublica;
     private final CalculadoraOcupacao calculadora = new CalculadoraOcupacao();
+    private static final java.time.format.DateTimeFormatter DM = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
+    private final ThreadLocal<String> textoReagendamento = new ThreadLocal<>();
+    private final ThreadLocal<String> destinoReagendamento = new ThreadLocal<>();
     private final CentroDistribuicaoRepositorio cds;
     private final FornecedorRepositorio fornecedores;
     private CalendarioRecebimentoUseCase calendario;
@@ -120,6 +123,8 @@ public class AgendamentoUseCase {
     public ResultadoAgendamento criar(NovoAgendamento cmd, String loja, Solicitante solicitante) {
         if (cmd.data() == null) throw new RegraNegocioException("Data é obrigatória");
         String lojaDestino = loja == null || loja.isBlank() ? null : loja.trim();
+        if (!br.com.redekrill.agendamento.application.port.EscopoAtual.get().permite(cmd.cdId(), lojaDestino))
+            throw new RecursoNaoEncontradoException("CD ou loja", lojaDestino != null ? lojaDestino : cmd.cdId());
         if (calendario != null) calendario.exigirAberto(cmd.data(), cmd.cdId(), lojaDestino);
         if (cmd.quantidadePaletes() == null) throw new RegraNegocioException("Quantidade de paletes é obrigatória");
         ResultadoAgendamento resultado = transacao.executar(() -> {
@@ -153,13 +158,13 @@ public class AgendamentoUseCase {
         });
         Agendamento a = resultado.agendamento().agendamento();
         email.enviarConfirmacao(resultado.agendamento(), resultado.linkFornecedor());
-        push.notificarTodos(solicitante.usuario().startsWith("fornecedor:") ? "Agendamento pelo link do fornecedor" : "Novo agendamento",
+        push.notificarDestino(solicitante.usuario().startsWith("fornecedor:") ? "Agendamento pelo link do fornecedor" : "Novo agendamento",
                 a.getFornecedor() + " · " + a.getData().format(BR) + " " + resultado.agendamento().faixaDescricao()
-                        + " · " + a.getPaletesEquivalentes() + " paletes", "/agendamentos/" + a.getId());
+                        + " · " + a.getPaletesEquivalentes() + " paletes", "/agendamentos/" + a.getId(), a.getCdId(), lojaDestino);
         if (!resultado.alertas().isEmpty()) {
-            push.notificarTodos("Capacidade excedida",
+            push.notificarDestino("Capacidade excedida",
                     resultado.alertas().stream().map(AlertaCapacidade::mensagem).collect(Collectors.joining(" | ")),
-                    "/painel?data=" + a.getData());
+                    "/painel?data=" + a.getData(), a.getCdId(), lojaDestino);
         }
         return resultado;
     }
@@ -176,9 +181,9 @@ public class AgendamentoUseCase {
         });
         Agendamento a = detalhe.agendamento();
         email.enviarCancelamento(detalhe);
-        push.notificarTodos("Agendamento cancelado",
+        push.notificarDestino("Agendamento cancelado",
                 a.getFornecedor() + " · " + a.getData().format(BR) + " " + detalhe.faixaDescricao(),
-                "/agendamentos/" + a.getId());
+                "/agendamentos/" + a.getId(), a.getCdId(), lojaDe(a.getId()));
         return detalhe;
     }
 
@@ -240,7 +245,7 @@ public class AgendamentoUseCase {
         List<FaixaHoraria> ativas = faixas.listar().stream().filter(FaixaHoraria::ativo).toList();
         if (centro != null) ativas = centro.ajustar(ativas);
         List<FaixaHoraria> faixasCd = ativas;
-        List<Agendamento> doCd = agendamentos.listarPorPeriodo(inicio, fim).stream()
+        List<Agendamento> doCd = br.com.redekrill.agendamento.application.port.EscopoAtual.semRestricao(() -> agendamentos.listarPorPeriodo(inicio, fim)).stream()
                 .filter(a -> a.getCdId() == null || a.getCdId() == cd).toList();
         // Entrega direta na loja ocupa a capacidade da loja, não a do CD.
         java.util.Set<Long> naLoja = logistica == null || doCd.isEmpty() ? java.util.Set.of()
@@ -262,6 +267,38 @@ public class AgendamentoUseCase {
                     return calculadora.calcular(d, capDia, faixasDia, todos);
                 })
                 .toList();
+    }
+
+    /**
+     * Ocupação de uma loja (entregas diretas): limite da loja no cadastro de capacidade; sem limite = capacidade 0
+     * (a tela mostra "sem limite"). As faixas são as gerais.
+     */
+    public List<OcupacaoDia> ocupacaoPeriodoLoja(LocalDate inicio, LocalDate fim, String loja) {
+        if (inicio == null || fim == null) throw new RegraNegocioException("Informe início e fim do período");
+        validarPeriodo(inicio, fim);
+        String l = loja.trim();
+        List<Agendamento> periodo = br.com.redekrill.agendamento.application.port.EscopoAtual.semRestricao(() -> agendamentos.listarPorPeriodo(inicio, fim));
+        java.util.Set<Long> daLoja = logistica == null || periodo.isEmpty() ? java.util.Set.of()
+                : logistica.porAgendamentos(periodo.stream().map(Agendamento::getId).toList()).values().stream()
+                .filter(x -> l.equals(x.loja())).map(br.com.redekrill.agendamento.domain.model.LogisticaAgendamento::agendamentoId)
+                .collect(java.util.stream.Collectors.toSet());
+        List<Agendamento> todos = periodo.stream().filter(a -> daLoja.contains(a.getId())).toList();
+        List<FaixaHoraria> ativas = faixas.listar().stream().filter(FaixaHoraria::ativo).toList();
+        List<br.com.redekrill.agendamento.domain.model.CapacidadeRecebimento> regras = regrasCapacidade == null ? List.of()
+                : regrasCapacidade.listar().stream().filter(r -> l.equals(r.loja())).toList();
+        return inicio.datesUntil(fim.plusDays(1)).map(d -> {
+            var regra = br.com.redekrill.agendamento.domain.model.CapacidadeRecebimento.resolver(regras, d).orElse(null);
+            int capDia = regra != null && regra.paletes() != null ? regra.paletes() : 0;
+            List<FaixaHoraria> fx = capDia <= 0 ? ativas : ativas.stream().map(f -> new FaixaHoraria(f.id(), f.horaInicio(), f.horaFim(), capDia, f.ativo())).toList();
+            return calculadora.calcular(d, capDia, fx, todos);
+        }).toList();
+    }
+
+    /** Ocupação do destino do agendamento (loja da entrega direta ou CD) para escolher nova data. */
+    public List<OcupacaoDia> ocupacaoDoDestino(Agendamento a, LocalDate inicio, LocalDate fim) {
+        String loja = logistica == null ? null : logistica.buscar(a.getId())
+                .map(br.com.redekrill.agendamento.domain.model.LogisticaAgendamento::loja).filter(x -> x != null && !x.isBlank()).orElse(null);
+        return loja != null ? ocupacaoPeriodoLoja(inicio, fim, loja) : ocupacaoPeriodo(inicio, fim, a.getCdId());
     }
 
     /** Pré-visualiza os alertas de capacidade antes de confirmar (usado na tela de cadastro). */
@@ -293,7 +330,8 @@ public class AgendamentoUseCase {
             String lojaDestino = logistica == null ? null
                     : logistica.buscar(id).map(br.com.redekrill.agendamento.domain.model.LogisticaAgendamento::loja).orElse(null);
             if (calendario != null) calendario.exigirAberto(data, a.getCdId(), lojaDestino);
-            String de = a.getData() + " " + a.getFaixaHorariaId();
+            LocalDate dataAntes = a.getData();
+            FaixaHoraria faixaAntes = faixas.buscarPorId(a.getFaixaHorariaId()).orElse(null);
             a.reagendar(data, faixa, OffsetDateTime.now(clock));
             OcupacaoDia atual = ocupacaoDoDia(data, a.getCdId());
             List<AlertaCapacidade> alertas = lojaDestino != null ? List.of()
@@ -303,16 +341,34 @@ public class AgendamentoUseCase {
                         + " não tem vaga para " + a.getPaletesEquivalentes() + " paletes. Escolha outra.");
             }
             Agendamento salvo = agendamentos.salvar(a);
-            auditoria.registrar(solicitante, "REAGENDAR", "AGENDAMENTO", id, Map.of("de", de,
-                    "para", data + " " + faixa.id(), "alertas", alertas.stream().map(AlertaCapacidade::mensagem).toList()));
+            Map<String, Object> det = new java.util.LinkedHashMap<>();
+            det.put("antes", Map.of("data", dataAntes.toString(), "faixaHorariaId", faixaAntes == null ? 0 : faixaAntes.id(),
+                    "faixa", faixaAntes == null ? "" : faixaAntes.descricao()));
+            det.put("depois", Map.of("data", data.toString(), "faixaHorariaId", faixa.id(), "faixa", faixa.descricao()));
+            det.put("origem", solicitante.usuario() != null && solicitante.usuario().startsWith("fornecedor:") ? "fornecedor" : "equipe");
+            det.put("alertas", alertas.stream().map(AlertaCapacidade::mensagem).toList());
+            auditoria.registrar(solicitante, "REAGENDAR", "AGENDAMENTO", id, det);
+            textoReagendamento.set("Agendamento reagendado: " + a.getFornecedor() + ", pedido " + a.getIdPedido() + ", de "
+                    + dataAntes.format(DM) + " " + (faixaAntes == null ? "" : faixaAntes.descricao()) + " → para "
+                    + data.format(DM) + " " + faixa.descricao());
+            destinoReagendamento.set(lojaDestino);
             return new ResultadoAgendamento(detalhar(salvo), alertas, null);
         });
         Agendamento a = r.agendamento().agendamento();
-        push.notificarTodos("Agendamento remarcado", a.getFornecedor() + " · " + a.getData().format(BR) + " "
-                + r.agendamento().faixaDescricao(), "/agendamentos/" + a.getId());
+        String texto = textoReagendamento.get();
+        String lojaDest = destinoReagendamento.get();
+        textoReagendamento.remove();
+        destinoReagendamento.remove();
+        push.notificarDestino("Agendamento reagendado", texto.replaceFirst("^Agendamento reagendado: ", ""),
+                "/agendamentos/" + a.getId(), lojaDest == null ? a.getCdId() : null, lojaDest);
+        try {
+            email.enviarReagendamento(r.agendamento(), texto);
+        } catch (RuntimeException e) {
+            java.util.logging.Logger.getLogger(AgendamentoUseCase.class.getName()).warning("Falha no e-mail de reagendamento: " + e.getMessage());
+        }
         if (!r.alertas().isEmpty()) {
-            push.notificarTodos("Capacidade excedida", r.alertas().stream().map(AlertaCapacidade::mensagem)
-                    .collect(Collectors.joining(" | ")), "/painel?data=" + a.getData());
+            push.notificarDestino("Capacidade excedida", r.alertas().stream().map(AlertaCapacidade::mensagem)
+                    .collect(Collectors.joining(" | ")), "/painel?data=" + a.getData(), a.getCdId(), lojaDest);
         }
         return r;
     }
@@ -357,6 +413,31 @@ public class AgendamentoUseCase {
 
     private static <T> Map<Long, T> porId(List<T> lista, Function<T, Long> id) {
         return lista.stream().collect(Collectors.toMap(id, Function.identity()));
+    }
+
+    /** Situação (aberto/fechado + motivo) dos dias no destino do agendamento. */
+    public List<br.com.redekrill.agendamento.domain.model.DiaRecebimento> diasDoDestino(Agendamento a, LocalDate inicio, LocalDate fim) {
+        if (calendario == null) return List.of();
+        String loja = lojaDe(a.getId());
+        return calendario.dias(inicio, fim, loja == null ? a.getCdId() : null, loja);
+    }
+
+    public List<OcupacaoDia> disponibilidade(Long id) {
+        Agendamento a = agendamentos.buscarPorId(id).orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
+        LocalDate hoje = LocalDate.now(clock);
+        return ocupacaoDoDestino(a, hoje, hoje.plusDays(13));
+    }
+
+    public List<br.com.redekrill.agendamento.domain.model.DiaRecebimento> calendarioDoAgendamento(Long id) {
+        Agendamento a = agendamentos.buscarPorId(id).orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
+        LocalDate hoje = LocalDate.now(clock);
+        return diasDoDestino(a, hoje, hoje.plusDays(13));
+    }
+
+    /** Loja da entrega direta do agendamento (nula = entrega no CD). */
+    public String lojaDe(Long agendamentoId) {
+        return logistica == null ? null : logistica.buscar(agendamentoId)
+                .map(br.com.redekrill.agendamento.domain.model.LogisticaAgendamento::loja).filter(x -> x != null && !x.isBlank()).orElse(null);
     }
 
     private FaixaHoraria faixa(Long id) {

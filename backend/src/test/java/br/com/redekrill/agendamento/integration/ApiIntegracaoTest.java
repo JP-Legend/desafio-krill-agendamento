@@ -736,4 +736,82 @@ class ApiIntegracaoTest {
         mvc.perform(get("/api/v1/auditoria").param("entidade", "CALENDARIO_RECEBIMENTO").header("Authorization", admin))
                 .andExpect(status().isOk());
     }
+
+    /** Cria usuário restrito (perfil Recebimento), troca a senha provisória e devolve o token. */
+    private String usuarioRestrito(String admin, String login, String cds, String lojas) throws Exception {
+        MediaType j = MediaType.APPLICATION_JSON;
+        long perfil = 0;
+        for (JsonNode p : json.readTree(mvc.perform(get("/api/v1/perfis").header("Authorization", admin)).andReturn().getResponse().getContentAsString()))
+            if (p.get("nome").asText().equals("Recebimento")) perfil = p.get("id").asLong();
+        mvc.perform(post("/api/v1/usuarios").header("Authorization", admin).contentType(j)
+                        .content("{\"login\":\"" + login + "\",\"nome\":\"Teste " + login + "\",\"perfilId\":" + perfil
+                                + ",\"senhaProvisoria\":\"Provisoria2026\",\"todosDestinos\":false,\"cds\":" + cds + ",\"lojas\":" + lojas + "}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.todosDestinos").value(false));
+        String t = token(login, "Provisoria2026");
+        mvc.perform(post("/api/v1/auth/senha").header("Authorization", t).contentType(j)
+                .content("{\"senhaAtual\":\"Provisoria2026\",\"novaSenha\":\"Definitiva2026\"}")).andExpect(status().isNoContent());
+        return t;
+    }
+
+    @Test
+    void escopoPorCdELojaFiltraBloqueiaENotificaReagendamento() throws Exception {
+        String admin = token("admin", "admin123");
+        MediaType j = MediaType.APPLICATION_JSON;
+        long cd805 = 0;
+        for (JsonNode c : json.readTree(mvc.perform(get("/api/v1/cds").header("Authorization", admin)).andReturn().getResponse().getContentAsString()))
+            if (c.get("codigo").asText().equals("805")) cd805 = c.get("id").asLong();
+        String loja = "Loja 21 - KRILL ITANHAEM";
+        mvc.perform(post("/api/v1/lojas").header("Authorization", admin).contentType(j).content("{\"nome\":\"" + loja + "\",\"ativo\":true}"));
+        LocalDate d = dia.plusDays(21);
+        long noCd1 = json.readTree(mvc.perform(post("/api/v1/agendamentos").header("Authorization", admin).contentType(j)
+                .content(agendamento(1, 1, 3).replace(dia.toString(), d.toString()))).andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString()).at("/agendamento/id").asLong();
+        long noCd805 = json.readTree(mvc.perform(post("/api/v1/agendamentos").header("Authorization", admin).contentType(j)
+                .content(agendamento(1, 1, 3).replace(dia.toString(), d.toString()).replace("\"observacao\"", "\"cdId\":" + cd805 + ",\"observacao\"")))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).at("/agendamento/id").asLong();
+        long naLoja = json.readTree(mvc.perform(post("/api/v1/agendamentos").header("Authorization", admin).contentType(j)
+                .content(agendamento(2, 1, 3).replace(dia.toString(), d.toString()).replace("\"observacao\"", "\"loja\":\"" + loja + "\",\"observacao\"")))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).at("/agendamento/id").asLong();
+
+        String doCd = usuarioRestrito(admin, "teste.cd805", "[" + cd805 + "]", "[]");
+        String daLoja = usuarioRestrito(admin, "teste.loja21", "[]", "[\"" + loja + "\"]");
+
+        // lista e detalhe só do próprio destino; o resto responde 404/403
+        JsonNode lista = json.readTree(mvc.perform(get("/api/v1/agendamentos").param("inicio", d.toString()).param("fim", d.toString())
+                .header("Authorization", doCd)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(lista.findValues("id").stream().map(JsonNode::asLong).toList()).containsExactly(noCd805);
+        mvc.perform(get("/api/v1/agendamentos/" + noCd1).header("Authorization", doCd)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/agendamentos/" + naLoja).header("Authorization", doCd)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/ocupacao").param("data", d.toString()).param("cdId", "1").header("Authorization", doCd)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/cds").header("Authorization", doCd)).andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get("/api/v1/auth/eu").header("Authorization", doCd)).andExpect(jsonPath("$.destinos.todos").value(false))
+                .andExpect(jsonPath("$.destinos.cds[0]").value(cd805));
+        mvc.perform(post("/api/v1/agendamentos").header("Authorization", doCd).contentType(j)
+                .content(agendamento(1, 1, 3).replace(dia.toString(), d.toString()))).andExpect(status().isNotFound());
+
+        JsonNode daLojaLista = json.readTree(mvc.perform(get("/api/v1/agendamentos").param("inicio", d.toString()).param("fim", d.toString())
+                .header("Authorization", daLoja)).andReturn().getResponse().getContentAsString());
+        assertThat(daLojaLista.findValues("id").stream().map(JsonNode::asLong).toList()).containsExactly(naLoja);
+        mvc.perform(get("/api/v1/agendamentos/" + noCd805).header("Authorization", daLoja)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/ocupacao/periodo").param("inicio", d.toString()).param("fim", d.toString()).header("Authorization", daLoja))
+                .andDo(r -> System.out.println("RESP " + r.getResponse().getContentAsString())).andExpect(status().isOk()).andExpect(jsonPath("$[0].paletesOcupados").value(3));
+
+        // admin sem restrição: seletor por loja filtra a lista
+        JsonNode soLoja = json.readTree(mvc.perform(get("/api/v1/agendamentos").param("inicio", d.toString()).param("fim", d.toString())
+                .param("loja", loja).header("Authorization", admin)).andReturn().getResponse().getContentAsString());
+        assertThat(soLoja.findValues("id").stream().map(JsonNode::asLong).toList()).containsExactly(naLoja);
+
+        // reagendamento da entrega na loja: sai do dia antigo, aviso só para quem vê a loja, auditoria antes/depois
+        mvc.perform(patch("/api/v1/agendamentos/" + naLoja + "/data").header("Authorization", admin).contentType(j)
+                .content("{\"data\":\"" + d.plusDays(1) + "\",\"faixaHorariaId\":3}")).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/ocupacao/periodo").param("inicio", d.toString()).param("fim", d.plusDays(1).toString()).header("Authorization", daLoja))
+                .andExpect(jsonPath("$[0].paletesOcupados").value(0)).andExpect(jsonPath("$[1].paletesOcupados").value(3));
+        String avisoLoja = mvc.perform(get("/api/v1/avisos").header("Authorization", daLoja)).andReturn().getResponse().getContentAsString();
+        assertThat(avisoLoja).contains("Agendamento reagendado").contains("pedido 98765").contains("→ para");
+        String avisoCd = mvc.perform(get("/api/v1/avisos").header("Authorization", doCd)).andReturn().getResponse().getContentAsString();
+        assertThat(avisoCd).doesNotContain("Agendamento reagendado").doesNotContain(loja);
+        String aud = mvc.perform(get("/api/v1/auditoria").param("acao", "REAGENDAR").header("Authorization", admin)).andReturn().getResponse().getContentAsString();
+        assertThat(aud).contains("antes").contains("depois");
+        mvc.perform(get("/api/v1/avisos").header("Authorization", admin)).andExpect(content().string(org.hamcrest.Matchers.containsString("Agendamento reagendado")));
+    }
 }

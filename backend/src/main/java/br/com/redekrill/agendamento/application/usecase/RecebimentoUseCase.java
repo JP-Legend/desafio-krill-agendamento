@@ -92,9 +92,11 @@ public class RecebimentoUseCase {
         Agendamento a = d.agendamento();
         if (cmd.acao() == Acao.CHEGADA) {
             String hora = a.getChegadaEm() == null ? "" : " · chegou às " + a.getChegadaEm().atZoneSameInstant(clock.getZone()).format(HORA);
-            push.notificarTodos("Caminhão na portaria", a.getFornecedor() + " · placa " + a.getPlaca() + hora, "/portaria");
+            push.notificarDestino("Caminhão na portaria", a.getFornecedor() + " · placa " + a.getPlaca() + hora, "/portaria",
+                    a.getCdId(), agendamentoUseCase.lojaDe(id));
         } else if (cmd.acao() == Acao.CONCLUIR && a.divergente()) {
-            push.notificarTodos("Recebimento com divergência", a.getFornecedor() + " · " + a.getDivergencia(), "/agendamentos/" + id);
+            push.notificarDestino("Recebimento com divergência", a.getFornecedor() + " · " + a.getDivergencia(), "/agendamentos/" + id,
+                    a.getCdId(), agendamentoUseCase.lojaDe(id));
         }
         return d;
     }

@@ -34,4 +34,14 @@ public class NotificadorCentral implements NotificadorPush {
         }
         webPush.notificarTodos(titulo, mensagem, url);
     }
+
+    @Override
+    public void notificarDestino(String titulo, String mensagem, String url, Long cdId, String loja) {
+        try {
+            avisos.registrar(titulo, mensagem, url, loja == null ? cdId : null, loja);
+        } catch (RuntimeException e) {
+            log.warn("Falha ao gravar aviso do sino: {}", e.getMessage());
+        }
+        webPush.notificarDestino(titulo, mensagem, url, cdId, loja);
+    }
 }

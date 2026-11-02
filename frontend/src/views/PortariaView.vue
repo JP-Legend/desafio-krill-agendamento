@@ -5,7 +5,7 @@ import { deIso, fmtData, diaSemana, hoje, isoData } from '../utils'
 import { pode } from '../sessao'
 import { useNotificar } from '../composables/useNotificar'
 import { useEnvio } from '../composables/useEnvio'
-import SeletorCd from '../components/SeletorCd.vue'
+import SeletorDestino from '../components/SeletorDestino.vue'
 
 /**
  * Portaria (porte de /recebimento-operacional/portaria/ do Gestão CD): o porteiro registra a chegada do caminhão
@@ -14,7 +14,7 @@ import SeletorCd from '../components/SeletorCd.vue'
 const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
 const data = ref(deIso(hoje()))
-const cdId = ref(null)
+const destino = ref({ cdId: null, loja: null })
 const quadro = ref(null)
 const filtro = ref('')
 const chegada = reactive({ aberto: false, cartao: null, placa: '', motorista: '', hora: '' })
@@ -38,7 +38,7 @@ const ETAPAS = computed(() => [
 
 async function carregar() {
   try {
-    quadro.value = await api('/patio', { params: { data: isoData(data.value), cdId: cdId.value } })
+    quadro.value = await api('/patio', { params: { data: isoData(data.value), ...destino.value } })
   } catch (e) {
     notificar.erro(e)
   }
@@ -91,7 +91,7 @@ function registrarSaida(k) {
   })
 }
 
-watch([data, cdId], carregar)
+watch([data, destino], carregar, { deep: true })
 onMounted(() => {
   carregar()
   timer = setInterval(carregar, 30000)
@@ -103,7 +103,7 @@ onUnmounted(() => clearInterval(timer))
   <div class="cabecalho">
     <h1>Portaria</h1>
     <div class="acoes filtros-inline">
-      <SeletorCd v-model="cdId" input-id="ptcd" :todos="false" />
+      <SeletorDestino v-model="destino" input-id="ptcd" :todos="false" />
       <div class="campo"><label for="ptd">Data</label><DatePicker v-model="data" input-id="ptd" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
       <div class="campo"><label for="ptb">Placa, fornecedor ou pedido</label><InputText id="ptb" v-model="filtro" type="search" autocomplete="off" /></div>
       <Button icon="pi pi-refresh" class="btn-secundario" aria-label="Atualizar" @click="carregar" />

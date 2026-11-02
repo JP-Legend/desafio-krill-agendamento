@@ -1,103 +1,117 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { api } from '../api'
 import { pode } from '../sessao'
-import { deIso, fmtData, hoje, isoData, somarDias } from '../utils'
+import { deIso, fmtData, hoje, isoData } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
-import BarraOcupacao from '../components/BarraOcupacao.vue'
 
-/**
- * Um único lugar para tudo o que define quando e quanto cada destino recebe: CD ou loja (entrega direta).
- * Limites (alertam, nunca bloqueiam) e calendário (dia fechado recusa o agendamento).
- */
-const DIAS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
+/** Uma tela só: padrão geral (dia, faixa, faixas horárias) e, por CD e loja, limites e calendário de recebimento. */
 const DIAS_CURTOS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
+const editarPadrao = computed(() => pode(1404))
 const editar = computed(() => pode(1405))
 
+// ---- padrão geral
+const parametros = reactive({ capacidadeDiariaPaletes: null, quantidadeFaixas: null, duracaoFaixaMinutos: null })
+const faixas = ref([])
+const geral = reactive({ dia: null, faixa: null })
+async function carregarPadrao() {
+  const [p, f] = await Promise.all([api('/parametros/capacidade'), api('/faixas-horarias')])
+  Object.assign(parametros, p)
+  faixas.value = f.map((x) => ({ ...x, horaInicio: x.horaInicio.slice(0, 5), horaFim: x.horaFim.slice(0, 5) }))
+  geral.dia = p.capacidadeDiariaPaletes
+  const caps = [...new Set(f.filter((x) => x.ativo).map((x) => x.capacidadePaletes))]
+  geral.faixa = caps.length === 1 ? caps[0] : null
+}
+const padraoFaixa = computed(() => {
+  const caps = [...new Set(faixas.value.filter((x) => x.ativo).map((x) => x.capacidadePaletes))]
+  return caps.length === 1 ? caps[0] : null
+})
+function salvarPadrao() {
+  if (!geral.dia) return notificar.aviso('Informe o limite por dia')
+  if (faixas.value.some((f) => !f.horaInicio || !f.horaFim || f.horaFim <= f.horaInicio)) return notificar.aviso('Confira o horário das faixas')
+  enviar(async () => {
+    try {
+      await api('/parametros/capacidade', { method: 'PUT', body: { ...parametros, capacidadeDiariaPaletes: geral.dia } })
+      for (const f of faixas.value) {
+        const body = { horaInicio: f.horaInicio, horaFim: f.horaFim, capacidadePaletes: geral.faixa || f.capacidadePaletes, ativo: f.ativo }
+        await api(f.id ? `/faixas-horarias/${f.id}` : '/faixas-horarias', { method: f.id ? 'PUT' : 'POST', body })
+      }
+      notificar.sucesso('Padrão geral salvo')
+      await carregarPadrao()
+    } catch (e) { notificar.erro(e) }
+  })
+}
+function novaFaixa() {
+  const ultima = faixas.value[faixas.value.length - 1]
+  faixas.value.push({ id: null, horaInicio: ultima?.horaFim || '08:00', horaFim: '', capacidadePaletes: geral.faixa || 120, ativo: true })
+}
+
+// ---- por CD e loja
 const cds = ref([])
 const lojas = ref([])
-const padrao = reactive({ dia: null, faixa: null })
-const destino = reactive({ tipo: 'CD', cdId: null, loja: null })
-const ehLoja = computed(() => destino.tipo === 'LOJA')
-const params = computed(() => (ehLoja.value ? { loja: destino.loja } : { cdId: destino.cdId }))
-const pronto = computed(() => (ehLoja.value ? !!destino.loja : !!destino.cdId))
-const nomeDestino = computed(() => {
-  if (ehLoja.value) return destino.loja || 'Loja'
-  const c = cds.value.find((x) => x.id === destino.cdId)
-  return c ? `CD ${c.codigo} · ${c.nome}` : 'CD'
-})
-
-// ---- limites
 const regras = ref([])
-const regrasDestino = computed(() => regras.value.filter((r) => (ehLoja.value
-  ? (r.loja || '').toLowerCase() === (destino.loja || '').toLowerCase()
-  : r.cdId === destino.cdId)))
+const calendarios = ref([])
+const excecoes = ref([])
+const chaveDe = (cdId, loja) => (loja ? `l:${loja.toLowerCase()}` : `c:${cdId}`)
+const linhas = computed(() => [
+  ...cds.value.map((c) => ({ chave: chaveDe(c.id), tipo: 'CD', nome: `CD ${c.codigo} · ${c.nome}`, cdId: c.id, loja: null })),
+  ...lojas.value.map((l) => ({ chave: chaveDe(null, l.nome), tipo: 'Loja', nome: l.nome, cdId: null, loja: l.nome }))
+].map((d) => {
+  const regra = regras.value.find((r) => r.diaSemana == null && chaveDe(r.loja ? null : r.cdId, r.loja) === d.chave) || null
+  const cal = calendarios.value.find((c) => chaveDe(c.loja ? null : c.cdId, c.loja) === d.chave) || null
+  return { ...d, regra, cal, excecoes: excecoes.value.filter((e) => chaveDe(e.loja ? null : e.cdId, e.loja) === d.chave) }
+}))
+function diasTexto(cal) {
+  const d = cal ? cal.diasSemana : '1111111'
+  if (d === '1111111') return 'Todos'
+  if (d === '1111110') return 'Seg a sáb'
+  if (d === '1111100') return 'Seg a sex'
+  return [...d].map((c, i) => (c === '1' ? DIAS_CURTOS[i] : null)).filter(Boolean).join(', ')
+}
+const feriadoTexto = (cal) => (!cal || cal.recebeFeriado ? 'Recebe' : 'Não recebe')
+async function carregarDestinos() {
+  const [c, l, r, res] = await Promise.all([api('/cds'), api('/lojas'), api('/capacidades-recebimento'), api('/calendario-recebimento/resumo')])
+  cds.value = c.filter((x) => x.ativo)
+  lojas.value = l.filter((x) => x.ativo !== false)
+  regras.value = r
+  calendarios.value = res.calendarios
+  excecoes.value = res.excecoes
+}
+
+// ---- edição de um destino
 const dialogo = ref(false)
-const form = reactive({ id: null, diaSemana: null, paletes: null, caminhoes: null, paletesFaixa: null })
-function abrir(r) {
-  Object.assign(form, r ? { id: r.id, diaSemana: r.diaSemana, paletes: r.paletes, caminhoes: r.caminhoes, paletesFaixa: r.paletesFaixa }
-    : { id: null, diaSemana: null, paletes: null, caminhoes: null, paletesFaixa: null })
+const atual = ref(null)
+const form = reactive({ dia: null, faixa: null, dias: [], recebeFeriado: true })
+const nova = reactive({ data: null, aberto: false, motivo: '' })
+function abrir(l) {
+  atual.value = l
+  const dias = l.cal ? l.cal.diasSemana : '1111111'
+  Object.assign(form, { dia: l.regra?.paletes ?? null, faixa: l.regra?.paletesFaixa ?? null, dias: [...dias].map((c) => c === '1'), recebeFeriado: l.cal ? l.cal.recebeFeriado : true })
+  Object.assign(nova, { data: null, aberto: false, motivo: '' })
   dialogo.value = true
 }
-function salvarRegra() {
-  if (!form.paletes && !form.caminhoes && !form.paletesFaixa) return notificar.aviso('Informe ao menos um limite')
-  const body = { ...params.value, diaSemana: form.diaSemana, paletes: form.paletes, caminhoes: form.caminhoes, paletesFaixa: ehLoja.value ? null : form.paletesFaixa }
+const destinoParams = computed(() => (atual.value?.loja ? { loja: atual.value.loja } : { cdId: atual.value?.cdId }))
+const excecoesAtual = computed(() => (atual.value ? excecoes.value.filter((e) => chaveDe(e.loja ? null : e.cdId, e.loja) === atual.value.chave) : []))
+function salvarDestino() {
+  if (!form.dias.some(Boolean)) return notificar.aviso('Marque ao menos um dia')
+  const l = atual.value
   enviar(async () => {
     try {
-      await api(form.id ? `/capacidades-recebimento/${form.id}` : '/capacidades-recebimento', { method: form.id ? 'PUT' : 'POST', body })
+      const temLimite = form.dia || (!l.loja && form.faixa)
+      const regraOutros = { caminhoes: l.regra?.caminhoes ?? null }
+      if (temLimite || regraOutros.caminhoes) {
+        const body = { ...destinoParams.value, diaSemana: null, paletes: form.dia || null, paletesFaixa: l.loja ? null : form.faixa || null, ...regraOutros }
+        await api(l.regra ? `/capacidades-recebimento/${l.regra.id}` : '/capacidades-recebimento', { method: l.regra ? 'PUT' : 'POST', body })
+      } else if (l.regra) {
+        await api(`/capacidades-recebimento/${l.regra.id}`, { method: 'DELETE' })
+      }
+      await api('/calendario-recebimento', { method: 'PUT', body: { ...destinoParams.value, diasSemana: form.dias.map((d) => (d ? '1' : '0')).join(''), recebeFeriado: form.recebeFeriado } })
+      notificar.sucesso(`${l.nome} salvo`)
       dialogo.value = false
-      notificar.sucesso('Limite salvo')
-      await carregarRegras()
-      consultar()
-    } catch (e) { notificar.erro(e) }
-  })
-}
-function excluirRegra(r) {
-  enviar(async () => {
-    try {
-      await api(`/capacidades-recebimento/${r.id}`, { method: 'DELETE' })
-      notificar.sucesso('Limite excluído')
-      await carregarRegras()
-      consultar()
-    } catch (e) { notificar.erro(e) }
-  })
-}
-async function carregarRegras() {
-  regras.value = await api('/capacidades-recebimento')
-}
-const efetivoDia = computed(() => regrasDestino.value.find((r) => r.diaSemana == null)?.paletes ?? (ehLoja.value ? null : padrao.dia))
-const efetivoFaixa = computed(() => regrasDestino.value.find((r) => r.diaSemana == null)?.paletesFaixa ?? (ehLoja.value ? null : padrao.faixa))
-
-// ---- calendário
-const cal = reactive({ dias: [true, true, true, true, true, true, false], recebeFeriado: false, configurado: false })
-const excecoes = ref([])
-const feriados = ref([])
-const situacao = ref([])
-const nova = reactive({ data: null, aberto: false, motivo: '' })
-async function carregarCalendario() {
-  const r = await api('/calendario-recebimento', { params: params.value })
-  cal.dias = [...r.calendario.diasSemana].map((c) => c === '1')
-  cal.recebeFeriado = r.calendario.recebeFeriado
-  cal.configurado = r.configurado
-  excecoes.value = r.excecoes
-  const ini = hoje()
-  const fim = somarDias(ini, 400)
-  ;[feriados.value, situacao.value] = await Promise.all([
-    api('/calendario-recebimento/feriados', { params: { inicio: ini, fim } }),
-    api('/calendario-recebimento/dias', { params: { inicio: ini, fim, ...params.value } })
-  ])
-}
-const situacaoPorData = computed(() => Object.fromEntries(situacao.value.map((d) => [d.data, d])))
-function salvarCalendario() {
-  if (!cal.dias.some(Boolean)) return notificar.aviso('Marque ao menos um dia da semana')
-  enviar(async () => {
-    try {
-      await api('/calendario-recebimento', { method: 'PUT', body: { ...params.value, diasSemana: cal.dias.map((d) => (d ? '1' : '0')).join(''), recebeFeriado: cal.recebeFeriado } })
-      notificar.sucesso(`Calendário de ${nomeDestino.value} salvo`)
-      await carregarCalendario()
+      await carregarDestinos()
     } catch (e) { notificar.erro(e) }
   })
 }
@@ -105,231 +119,123 @@ function adicionarExcecao() {
   if (!nova.data) return notificar.aviso('Informe a data')
   enviar(async () => {
     try {
-      await api('/calendario-recebimento/excecoes', { method: 'POST', body: { ...params.value, data: isoData(nova.data), aberto: nova.aberto, motivo: nova.motivo.trim() || null } })
+      await api('/calendario-recebimento/excecoes', { method: 'POST', body: { ...destinoParams.value, data: isoData(nova.data), aberto: nova.aberto, motivo: nova.motivo.trim() || null } })
       Object.assign(nova, { data: null, aberto: false, motivo: '' })
-      notificar.sucesso('Exceção salva')
-      await carregarCalendario()
+      await carregarDestinos()
     } catch (e) { notificar.erro(e) }
   })
 }
-function abrirFeriado(f) {
-  Object.assign(nova, { data: deIso(f.data), aberto: !cal.recebeFeriado, motivo: f.nome })
-}
-function excluirExcecao(e) {
+function removerExcecao(e) {
   enviar(async () => {
     try {
       await api(`/calendario-recebimento/excecoes/${e.id}`, { method: 'DELETE' })
-      notificar.sucesso('Exceção removida')
-      await carregarCalendario()
-    } catch (err) { notificar.erro(err) }
+      await carregarDestinos()
+    } catch (er) { notificar.erro(er) }
   })
 }
 
-// ---- está cheio?
-const dataConsulta = ref(deIso(hoje()))
-const ocupacao = ref(null)
-async function consultar() {
-  if (!pronto.value) return
-  try {
-    ocupacao.value = await api('/capacidades-recebimento/ocupacao', { params: { data: isoData(dataConsulta.value), ...params.value } })
-  } catch (e) { notificar.erro(e) }
-}
-const diaConsulta = ref(null)
-watch(dataConsulta, async () => {
-  consultar()
-  if (pronto.value) diaConsulta.value = (await api('/calendario-recebimento/dias', { params: { inicio: isoData(dataConsulta.value), fim: isoData(dataConsulta.value), ...params.value } }).catch(() => [null]))[0]
-})
-
-async function trocarDestino() {
-  if (!pronto.value) return
-  try {
-    await Promise.all([carregarRegras(), carregarCalendario()])
-    consultar()
-    diaConsulta.value = situacaoPorData.value[isoData(dataConsulta.value)] || null
-  } catch (e) { notificar.erro(e) }
-}
-watch(() => [destino.tipo, destino.cdId, destino.loja], trocarDestino)
-
+const pronto = ref(false)
 onMounted(async () => {
   try {
-    const [c, l, p, f] = await Promise.all([api('/cds'), api('/lojas'), api('/parametros/capacidade').catch(() => null), api('/faixas-horarias').catch(() => [])])
-    cds.value = c.filter((x) => x.ativo)
-    lojas.value = l.filter((x) => x.ativo).map((x) => x.nome)
-    padrao.dia = p?.capacidadeDiariaPaletes ?? null
-    const caps = [...new Set(f.filter((x) => x.ativo).map((x) => x.capacidadePaletes))]
-    padrao.faixa = caps.length === 1 ? caps[0] : null
-    destino.cdId = cds.value[0]?.id ?? null
+    await Promise.all([carregarPadrao(), carregarDestinos()])
+    pronto.value = true
   } catch (e) { notificar.erro(e) }
 })
+defineExpose({ abrir, linhas })
 </script>
 
 <template>
-  <div class="cabecalho"><h1>Capacidade e calendário de recebimento</h1></div>
+  <div class="cabecalho"><h1>Capacidade e calendário</h1></div>
 
-  <section class="painel destino">
-    <div class="tipo-destino" role="radiogroup" aria-label="Tipo de destino">
-      <button type="button" role="radio" :aria-checked="!ehLoja" :class="{ ativo: !ehLoja }" @click="destino.tipo = 'CD'"><i class="pi pi-building" /> Centro de distribuição</button>
-      <button type="button" role="radio" :aria-checked="ehLoja" :class="{ ativo: ehLoja }" @click="destino.tipo = 'LOJA'"><i class="pi pi-shop" /> Loja (entrega direta)</button>
-    </div>
-    <div class="campo seletor">
-      <template v-if="!ehLoja">
-        <label for="dest-cd">CD</label>
-        <Select v-model="destino.cdId" input-id="dest-cd" :options="cds" :option-label="(c) => `${c.codigo} · ${c.nome}`" option-value="id" />
-      </template>
-      <template v-else>
-        <label for="dest-loja">Loja</label>
-        <Select v-model="destino.loja" input-id="dest-loja" :options="lojas" filter placeholder="Escolha a loja" />
-      </template>
-    </div>
+  <section class="painel">
+    <div class="titulo-secao"><h2>Padrão geral</h2></div>
+    <form class="padrao" @submit.prevent="salvarPadrao">
+      <div class="campos-padrao">
+        <div class="campo"><label for="pg-dia">Limite por dia (paletes)</label><InputNumber v-model="geral.dia" input-id="pg-dia" :min="1" :max="100000" :disabled="!editarPadrao" /></div>
+        <div class="campo"><label for="pg-faixa">Limite por faixa (paletes)</label><InputNumber v-model="geral.faixa" input-id="pg-faixa" :min="1" :max="100000" :disabled="!editarPadrao" :placeholder="padraoFaixa ? '' : 'Varia por faixa'" /></div>
+      </div>
+      <div class="faixas">
+        <label>Faixas horárias</label>
+        <div v-for="(f, i) in faixas" :key="f.id || `n${i}`" class="faixa-linha">
+          <InputText v-model="f.horaInicio" type="time" :aria-label="`Início da faixa ${i + 1}`" :disabled="!editarPadrao" />
+          <span>às</span>
+          <InputText v-model="f.horaFim" type="time" :aria-label="`Fim da faixa ${i + 1}`" :disabled="!editarPadrao" />
+          <label class="ativa"><Checkbox v-model="f.ativo" binary :input-id="`fx-at-${i}`" :disabled="!editarPadrao" /> Ativa</label>
+        </div>
+        <Button v-if="editarPadrao" type="button" label="Nova faixa" icon="pi pi-plus" size="small" text @click="novaFaixa" />
+      </div>
+      <div v-if="editarPadrao" class="rodape-form"><Button type="submit" label="Salvar padrão" icon="pi pi-check" class="btn-confirmar" :loading="enviando" :disabled="enviando" /></div>
+    </form>
   </section>
 
-  <template v-if="pronto">
-    <div class="grade-destino">
-      <section class="painel">
-        <div class="titulo-secao">
-          <h2>Limites de {{ nomeDestino }}</h2>
-          <Button v-if="editar" label="Novo limite" icon="pi pi-plus" size="small" class="btn-confirmar" @click="abrir(null)" />
-        </div>
-        <p class="texto-suave nota">
-          Só alertam, nunca bloqueiam. Não paletizado conta em dobro.
-          <template v-if="!ehLoja"> Sem limite cadastrado, valem {{ padrao.dia ?? 480 }} paletes por dia e {{ padrao.faixa ?? 120 }} por faixa.</template>
-          <template v-else> Sem limite cadastrado, a loja não tem limite.</template>
-        </p>
-        <div class="efetivos">
-          <div><span>Por dia</span><strong>{{ efetivoDia != null ? `${efetivoDia} paletes` : 'Sem limite' }}</strong></div>
-          <div v-if="!ehLoja"><span>Por faixa</span><strong>{{ efetivoFaixa != null ? `${efetivoFaixa} paletes` : 'Conforme cada faixa' }}</strong></div>
-        </div>
-        <DataTable :value="regrasDestino" size="small" striped-rows data-key="id">
-          <template #empty><div class="vazio">Nenhum limite próprio cadastrado</div></template>
-          <Column header="Dia"><template #body="{ data }">{{ data.diaSemana ? DIAS[data.diaSemana - 1] : 'Todos os dias' }}</template></Column>
-          <Column header="Paletes/dia" class="num"><template #body="{ data }">{{ data.paletes ?? '—' }}</template></Column>
-          <Column v-if="!ehLoja" header="Paletes/faixa" class="num"><template #body="{ data }">{{ data.paletesFaixa ?? '—' }}</template></Column>
-          <Column header="Caminhões/dia" class="num"><template #body="{ data }">{{ data.caminhoes ?? '—' }}</template></Column>
-          <Column v-if="editar" header="" style="width: 92px">
-            <template #body="{ data }">
-              <Button icon="pi pi-pencil" text rounded aria-label="Editar limite" @click="abrir(data)" />
-              <Button icon="pi pi-trash" text rounded severity="danger" aria-label="Excluir limite" :disabled="enviando" @click="excluirRegra(data)" />
-            </template>
-          </Column>
-        </DataTable>
-      </section>
+  <section class="painel">
+    <div class="titulo-secao"><h2>Por CD e loja</h2></div>
+    <DataTable :value="linhas" data-key="chave" size="small" class="tabela-destinos" :loading="!pronto">
+      <Column header="Destino"><template #body="{ data }"><span class="pilula" :class="data.tipo === 'CD' ? 'tipo-cd' : 'tipo-loja'">{{ data.tipo }}</span> {{ data.nome }}</template></Column>
+      <Column header="Limite/dia"><template #body="{ data }"><span :class="{ herdado: !data.regra?.paletes }">{{ data.regra?.paletes ?? (data.tipo === 'CD' ? `padrão (${geral.dia ?? 480})` : 'sem limite') }}</span></template></Column>
+      <Column header="Limite/faixa"><template #body="{ data }"><span :class="{ herdado: !data.regra?.paletesFaixa }">{{ data.tipo === 'Loja' ? '-' : data.regra?.paletesFaixa ?? `padrão (${padraoFaixa ?? 'por faixa'})` }}</span></template></Column>
+      <Column header="Dias que recebe"><template #body="{ data }">{{ diasTexto(data.cal) }}</template></Column>
+      <Column header="Feriados"><template #body="{ data }">{{ feriadoTexto(data.cal) }}</template></Column>
+      <Column header="Exceções"><template #body="{ data }">{{ data.excecoes.length ? data.excecoes.slice(0, 2).map((e) => `${fmtData(e.data).slice(0, 5)} ${e.aberto ? 'aberto' : 'fechado'}`).join(', ') + (data.excecoes.length > 2 ? ` +${data.excecoes.length - 2}` : '') : 'Nenhuma' }}</template></Column>
+      <Column v-if="editar" header="" style="width: 90px"><template #body="{ data }"><Button label="Editar" size="small" class="btn-secundario" :aria-label="`Editar ${data.nome}`" @click="abrir(data)" /></template></Column>
+    </DataTable>
+  </section>
 
-      <section class="painel">
-        <div class="titulo-secao">
-          <h2>Calendário de {{ nomeDestino }}</h2>
-          <span v-if="!cal.configurado" class="pilula">Sem calendário: recebe todos os dias</span>
-        </div>
-        <p class="texto-suave nota">Dia fechado não aparece para agendar e o sistema recusa o agendamento.</p>
-        <fieldset class="dias-semana" :disabled="!editar">
-          <legend>Dias em que recebe mercadoria</legend>
-          <label v-for="(d, i) in DIAS_CURTOS" :key="d" class="dia" :class="{ marcado: cal.dias[i] }">
-            <Checkbox v-model="cal.dias[i]" binary :input-id="`dia-${i}`" />{{ d }}
-          </label>
-        </fieldset>
-        <label class="linha-toggle"><ToggleSwitch v-model="cal.recebeFeriado" input-id="rec-feriado" :disabled="!editar" /> Recebe em feriado</label>
-        <div v-if="editar" class="acoes-secao"><Button label="Salvar calendário" icon="pi pi-check" class="btn-confirmar" size="small" :loading="enviando" :disabled="enviando" @click="salvarCalendario" /></div>
-
-        <h3>Exceções por data</h3>
-        <form v-if="editar" class="nova-excecao" @submit.prevent="adicionarExcecao">
-          <div class="campo"><label for="ex-data">Data</label><DatePicker v-model="nova.data" input-id="ex-data" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
-          <div class="campo"><label for="ex-tipo">Situação</label><Select v-model="nova.aberto" input-id="ex-tipo" :options="[{ l: 'Fechado', v: false }, { l: 'Aberto', v: true }]" option-label="l" option-value="v" /></div>
-          <div class="campo motivo"><label for="ex-motivo">Motivo</label><InputText id="ex-motivo" v-model="nova.motivo" maxlength="120" /></div>
-          <Button type="submit" label="Adicionar" icon="pi pi-plus" size="small" class="btn-secundario" :disabled="enviando" />
-        </form>
-        <ul class="lista-datas">
-          <li v-for="e in excecoes" :key="e.id">
-            <span class="data">{{ fmtData(e.data) }}</span>
-            <span class="pilula" :class="e.aberto ? 'ok' : 'fechado'">{{ e.aberto ? 'Aberto' : 'Fechado' }}</span>
-            <span class="texto-suave">{{ e.motivo }}</span>
-            <Button v-if="editar" icon="pi pi-times" text rounded size="small" aria-label="Remover exceção" :disabled="enviando" @click="excluirExcecao(e)" />
-          </li>
-          <li v-if="!excecoes.length" class="texto-suave">Nenhuma exceção cadastrada</li>
-        </ul>
-
-        <h3>Feriados nacionais</h3>
-        <ul class="lista-datas feriados">
-          <li v-for="f in feriados" :key="f.data">
-            <span class="data">{{ fmtData(f.data) }}</span>
-            <span>{{ f.nome }}</span>
-            <span class="pilula" :class="situacaoPorData[f.data]?.aberto ? 'ok' : 'fechado'">{{ situacaoPorData[f.data]?.aberto ? 'Recebe' : 'Não recebe' }}</span>
-            <Button v-if="editar" :label="situacaoPorData[f.data]?.aberto ? 'Fechar' : 'Abrir'" text size="small" @click="abrirFeriado(f)" />
-          </li>
-        </ul>
-      </section>
-    </div>
-
-    <section class="painel consulta">
-      <h2>Está cheio?</h2>
-      <div class="filtros">
-        <div class="campo"><label for="cq-data">Data</label><DatePicker v-model="dataConsulta" input-id="cq-data" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
+  <Dialog v-model:visible="dialogo" modal :header="atual?.nome" :style="{ width: '480px' }" :breakpoints="{ '520px': '96vw' }">
+    <form v-if="atual" class="form-destino" @submit.prevent="salvarDestino">
+      <div class="linha2">
+        <div class="campo"><label for="d-dia">Limite por dia</label><InputNumber v-model="form.dia" input-id="d-dia" :min="1" :max="100000" :placeholder="atual.loja ? 'Sem limite' : `Padrão (${geral.dia ?? 480})`" /></div>
+        <div v-if="!atual.loja" class="campo"><label for="d-faixa">Limite por faixa</label><InputNumber v-model="form.faixa" input-id="d-faixa" :min="1" :max="100000" :placeholder="`Padrão (${padraoFaixa ?? 'por faixa'})`" /></div>
       </div>
-      <p v-if="diaConsulta && !diaConsulta.aberto" class="texto-excedido">{{ nomeDestino }} não recebe nesta data · {{ diaConsulta.motivo }}</p>
-      <div v-if="ocupacao" class="resultado">
-        <strong :class="ocupacao.cheio ? 'texto-excedido' : 'texto-ok'">
-          {{ ocupacao.cheio ? `Sim, ${ocupacao.destino} está cheio` : ocupacao.limitado ? `Não, ${ocupacao.destino} ainda tem vaga` : `Sem limite cadastrado para ${ocupacao.destino}` }}
-        </strong>
-        <BarraOcupacao v-if="ocupacao.capacidadePaletes" :percentual="ocupacao.percentualPaletes" :ocupado="ocupacao.paletes" :capacidade="ocupacao.capacidadePaletes" />
-        <span v-if="ocupacao.capacidadeCaminhoes">{{ ocupacao.caminhoes }} de {{ ocupacao.capacidadeCaminhoes }} caminhões ({{ Math.round(ocupacao.percentualCaminhoes) }}%)</span>
-        <span v-else>{{ ocupacao.caminhoes }} caminhão(ões) agendado(s)</span>
+      <div class="campo">
+        <label>Dias que recebe</label>
+        <div class="dias">
+          <label v-for="(d, i) in DIAS_CURTOS" :key="d" class="dia" :class="{ marcado: form.dias[i] }"><Checkbox v-model="form.dias[i]" binary :input-id="`d-dia-${i}`" /> {{ d }}</label>
+        </div>
       </div>
-    </section>
-  </template>
-
-  <Dialog v-model:visible="dialogo" modal :header="form.id ? 'Editar limite' : 'Novo limite'" :style="{ width: '480px' }" :breakpoints="{ '520px': '96vw' }">
-    <form class="grade" novalidate @submit.prevent="salvarRegra">
-      <div class="campo c12"><label for="lim-dia">Dia da semana</label>
-        <Select v-model="form.diaSemana" input-id="lim-dia" :options="[{ l: 'Todos os dias', v: null }, ...DIAS.map((d, i) => ({ l: d, v: i + 1 }))]" option-label="l" option-value="v" />
+      <div class="linha-toggle"><ToggleSwitch v-model="form.recebeFeriado" input-id="d-feriado" /><label for="d-feriado">Recebe em feriado</label></div>
+      <div class="campo">
+        <label>Exceções</label>
+        <div v-for="e in excecoesAtual" :key="e.id" class="excecao">
+          <strong>{{ fmtData(e.data) }}</strong>
+          <span class="pilula" :class="e.aberto ? 'ativo' : 'inativo'">{{ e.aberto ? 'Aberto' : 'Fechado' }}</span>
+          <span class="texto-suave">{{ e.motivo }}</span>
+          <Button icon="pi pi-times" text rounded size="small" :aria-label="`Remover exceção de ${fmtData(e.data)}`" @click="removerExcecao(e)" />
+        </div>
+        <div class="nova-excecao">
+          <DatePicker v-model="nova.data" input-id="d-ex-data" date-format="dd/mm/yy" :min-date="deIso(hoje())" placeholder="Data" />
+          <Select v-model="nova.aberto" input-id="d-ex-tipo" :options="[{ l: 'Fechado', v: false }, { l: 'Aberto', v: true }]" option-label="l" option-value="v" aria-label="Situação" />
+          <InputText v-model="nova.motivo" maxlength="80" placeholder="Motivo" aria-label="Motivo" />
+          <Button type="button" icon="pi pi-plus" class="btn-secundario" aria-label="Adicionar exceção" :disabled="enviando" @click="adicionarExcecao" />
+        </div>
       </div>
-      <div class="campo c6"><label for="lim-pal">Paletes por dia</label><InputNumber v-model="form.paletes" input-id="lim-pal" :min="1" :max="100000" /></div>
-      <div class="campo c6"><label for="lim-cam">Caminhões por dia</label><InputNumber v-model="form.caminhoes" input-id="lim-cam" :min="1" :max="10000" /></div>
-      <div v-if="!ehLoja" class="campo c6"><label for="lim-fx">Paletes por faixa</label><InputNumber v-model="form.paletesFaixa" input-id="lim-fx" :min="1" :max="100000" /></div>
+      <div class="rodape-form">
+        <Button type="button" label="Cancelar" class="btn-secundario" @click="dialogo = false" />
+        <Button type="submit" label="Salvar" icon="pi pi-check" class="btn-confirmar" :loading="enviando" :disabled="enviando" />
+      </div>
     </form>
-    <template #footer>
-      <Button label="Cancelar" class="btn-secundario" :disabled="enviando" @click="dialogo = false" />
-      <Button label="Salvar" icon="pi pi-check" class="btn-confirmar" :loading="enviando" :disabled="enviando" @click="salvarRegra" />
-    </template>
   </Dialog>
 </template>
 
 <style scoped>
-.destino { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; }
-.tipo-destino { display: inline-flex; border: 1px solid var(--gc-border); border-radius: var(--raio); overflow: hidden; }
-.tipo-destino button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 0; background: var(--gc-panel); color: var(--gc-text); font: inherit; font-weight: 600; cursor: pointer; }
-.tipo-destino button + button { border-left: 1px solid var(--gc-border); }
-.tipo-destino button.ativo { background: var(--gc-navy); color: var(--gc-topbar-text); }
-.seletor { min-width: 280px; flex: 1 1 280px; max-width: 420px; }
-.grade-destino { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; align-items: start; }
-.titulo-secao { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.titulo-secao h2 { margin: 0; }
-.nota { margin: 6px 0 10px; font-size: 12px; }
-.efetivos { display: flex; gap: 10px; margin-bottom: 10px; }
-.efetivos div { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border: 1px solid var(--gc-border); border-left: 3px solid var(--gc-navy); border-radius: var(--raio); }
-.efetivos span { font-size: 11px; color: var(--cor-texto-suave); text-transform: uppercase; letter-spacing: .06em; }
-.dias-semana { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; padding: 0; border: 0; }
-.dias-semana legend { margin-bottom: 6px; font-size: 12px; font-weight: 600; }
-.dia { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--gc-border); border-radius: var(--raio); font-size: 13px; cursor: pointer; }
-.dia.marcado { border-color: var(--gc-navy); background: var(--gc-navy-50); }
-.linha-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
-.acoes-secao { display: flex; justify-content: flex-end; margin-top: 10px; }
-h3 { margin: 16px 0 8px; font-size: 13px; color: var(--cor-titulo); }
-.nova-excecao { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin-bottom: 8px; }
-.nova-excecao .campo { grid-column: auto; width: 150px; }
-.nova-excecao .motivo { flex: 1 1 160px; }
-.lista-datas { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
-.lista-datas li { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 2px 4px; border-bottom: 1px solid var(--gc-border); }
-.lista-datas .data { min-width: 84px; font-variant-numeric: tabular-nums; font-weight: 600; }
-.feriados { max-height: 280px; overflow-y: auto; }
-.feriados li span:nth-child(2) { flex: 1; }
-.pilula.ok { background: var(--gc-toast-success-bg, var(--gc-navy-50)); color: var(--cor-ok); }
-.pilula.fechado { background: var(--gc-navy-50); color: var(--cor-excedido); }
-.consulta { margin-top: 12px; }
-.resultado { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-width: 520px; }
-.texto-excedido { color: var(--cor-excedido); }
-.texto-ok { color: var(--cor-ok); }
-@media (max-width: 1000px) { .grade-destino { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 640px) {
-  .tipo-destino { width: 100%; }
-  .tipo-destino button { flex: 1; justify-content: center; padding: 0 8px; font-size: 13px; }
-  .seletor { min-width: 0; max-width: none; }
+.padrao { display: flex; flex-direction: column; gap: 12px; }
+.campos-padrao { display: flex; flex-wrap: wrap; gap: 12px; }
+.faixas { display: flex; flex-direction: column; gap: 6px; }
+.faixa-linha { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.faixa-linha .p-inputtext { width: 110px; }
+.ativa { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; }
+.herdado { color: var(--gc-muted, #64748b); }
+.tipo-cd { background: var(--gc-navy-soft, #e0e7ff); }
+.form-destino { display: flex; flex-direction: column; gap: 12px; }
+.linha2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dias { display: flex; flex-wrap: wrap; gap: 6px; }
+.dia { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid var(--gc-border, #cbd5e1); border-radius: 6px; font-size: 0.85rem; }
+.dia.marcado { border-color: var(--gc-navy, #1e3a8a); }
+.linha-toggle { display: flex; align-items: center; gap: 8px; }
+.excecao { display: flex; align-items: center; gap: 8px; }
+.nova-excecao { display: grid; grid-template-columns: 130px 110px 1fr auto; gap: 6px; }
+@media (max-width: 520px) {
+  .linha2 { grid-template-columns: 1fr; }
+  .nova-excecao { grid-template-columns: 1fr 1fr; }
 }
 </style>

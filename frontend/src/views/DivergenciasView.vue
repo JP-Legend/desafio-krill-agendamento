@@ -5,19 +5,19 @@ import { api } from '../api'
 import { baixarArquivo, deIso, fmtData, hoje, isoData, somarDias } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
-import SeletorCd from '../components/SeletorCd.vue'
+import SeletorDestino from '../components/SeletorDestino.vue'
 
 const router = useRouter()
 const route = useRoute()
 const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
-const filtro = reactive({ inicio: deIso(route.query.inicio || somarDias(hoje(), -30)), fim: deIso(route.query.fim || hoje()), fornecedor: '', cdId: null })
+const filtro = reactive({ inicio: deIso(route.query.inicio || somarDias(hoje(), -30)), fim: deIso(route.query.fim || hoje()), fornecedor: '', destino: { cdId: null, loja: null } })
 const lista = ref([])
 const buscou = ref(false)
 const carregando = ref(false)
 
 function params() {
-  return { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), fornecedor: filtro.fornecedor.trim(), cdId: filtro.cdId }
+  return { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), fornecedor: filtro.fornecedor.trim(), ...filtro.destino }
 }
 function valido() {
   if (!filtro.inicio || !filtro.fim) return notificar.aviso('Informe o período'), false
@@ -57,7 +57,7 @@ defineExpose({ buscar, exportar, filtro })
     <div class="campo"><label for="di">De <span class="obrig">*</span></label><DatePicker v-model="filtro.inicio" input-id="di" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     <div class="campo"><label for="df">Até <span class="obrig">*</span></label><DatePicker v-model="filtro.fim" input-id="df" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     <div class="campo"><label for="dfo">Fornecedor</label><InputText id="dfo" v-model="filtro.fornecedor" /></div>
-    <SeletorCd v-model="filtro.cdId" input-id="dcd" />
+    <SeletorDestino v-model="filtro.destino" input-id="dcd" />
     <Button type="submit" label="Buscar" icon="pi pi-search" class="btn-confirmar" :loading="carregando" />
     <Button type="button" label="Exportar CSV" icon="pi pi-download" class="btn-secundario" :loading="enviando" :disabled="enviando" @click="exportar" />
   </form>

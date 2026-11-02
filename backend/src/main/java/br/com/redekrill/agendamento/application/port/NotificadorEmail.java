@@ -7,4 +7,8 @@ public interface NotificadorEmail {
     void enviarConfirmacao(AgendamentoDetalhe agendamento, String linkFornecedor);
 
     void enviarCancelamento(AgendamentoDetalhe agendamento);
+
+    /** Confirma ao fornecedor a nova data/faixa depois de um reagendamento. */
+    default void enviarReagendamento(AgendamentoDetalhe agendamento, String resumo) {
+    }
 }

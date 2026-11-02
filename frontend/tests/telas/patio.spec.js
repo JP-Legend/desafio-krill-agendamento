@@ -51,39 +51,42 @@ describe('pátio e docas', () => {
   })
 })
 
-describe('capacidade por CD e loja', () => {
-  it('lista regras e responde se está cheio', async () => {
+describe('capacidade e calendário (tela única)', () => {
+  it('padrão geral, tabela por CD e loja com herança e edição compacta', async () => {
     logar('ADMIN')
-    const calendario = (r) => ({ configurado: !!r.params.loja, calendario: { diasSemana: r.params.loja ? '1111100' : '1111110', recebeFeriado: false }, excecoes: [] })
     const api = simularApi({
-      'GET /cds': [{ id: 1, codigo: 'CD1', nome: 'CD Principal', ativo: true }],
-      'GET /lojas': ['Loja 7'],
-      'GET /parametros/capacidade': { capacidadeDiariaPaletes: 480 },
-      'GET /faixas-horarias': [{ id: 1, capacidadePaletes: 120, ativo: true }],
-      'GET /capacidades-recebimento': [{ id: 1, cdId: null, loja: 'Loja 7', diaSemana: 1, paletes: 20, caminhoes: 2 }],
-      'GET /calendario-recebimento': calendario,
-      'PUT /calendario-recebimento': (r) => r.corpo,
-      'POST /calendario-recebimento/excecoes': (r) => ({ id: 9, ...r.corpo }),
-      'GET /calendario-recebimento/feriados': [{ data: '2026-12-25', nome: 'Natal' }],
-      'GET /calendario-recebimento/dias': [],
-      'GET /capacidades-recebimento/ocupacao': (r) => (r.params.loja
-        ? { destino: 'a loja Loja 7', limitado: true, cheio: true, capacidadePaletes: 20, paletes: 25, percentualPaletes: 125, capacidadeCaminhoes: 2, caminhoes: 2, percentualCaminhoes: 100 }
-        : { destino: 'o CD CD1', limitado: true, cheio: false, capacidadePaletes: 480, paletes: 100, percentualPaletes: 20.8, caminhoes: 3 })
+      'GET /cds': [{ id: 1, codigo: '806', nome: 'CD Rede Krill', ativo: true }],
+      'GET /lojas': [{ id: 7, nome: 'Loja 7', ativo: true }],
+      'GET /parametros/capacidade': { capacidadeDiariaPaletes: 480, quantidadeFaixas: 4, duracaoFaixaMinutos: 120 },
+      'PUT /parametros/capacidade': (r) => r.corpo,
+      'GET /faixas-horarias': [{ id: 1, horaInicio: '08:00:00', horaFim: '10:00:00', capacidadePaletes: 120, ativo: true }],
+      'PUT /faixas-horarias/1': (r) => r.corpo,
+      'GET /capacidades-recebimento': [{ id: 3, cdId: null, loja: 'Loja 7', diaSemana: null, paletes: 20, caminhoes: null, paletesFaixa: null }],
+      'PUT /capacidades-recebimento/3': (r) => r.corpo,
+      'GET /calendario-recebimento/resumo': { calendarios: [{ id: 1, cdId: null, loja: 'Loja 7', diasSemana: '1111100', recebeFeriado: false }], excecoes: [{ id: 4, cdId: 1, loja: null, data: '2026-12-24', aberto: false, motivo: 'Inventário' }] },
+      'PUT /calendario-recebimento': (r) => r.corpo
     })
     const { w } = await montar(CapacidadeRecebimentoView)
     await flushPromises()
-    expect(w.text()).toContain('Não, o CD CD1 ainda tem vaga')
-    expect(w.text()).toContain('Natal')
-    await w.findAll('[role=radio]')[1].trigger('click')
-    w.findAllComponents({ name: 'Select' }).find((c) => c.props('inputId') === 'dest-loja').vm.$emit('update:modelValue', 'Loja 7')
+    const t = w.text()
+    expect(t).toContain('Padrão geral')
+    expect(t).toContain('padrão (480)')
+    expect(t).toContain('padrão (120)')
+    expect(t).toContain('Seg a sex')
+    expect(t).toContain('Não recebe')
+    expect(t).toContain('24/12 fechado')
+    expect(t).not.toContain('Capacidade diária')
+    await botao(w, 'Salvar padrão').trigger('click')
     await flushPromises()
-    expect(w.text()).toContain('Segunda')
-    expect(w.text()).toContain('Sim, a loja Loja 7 está cheio')
-    expect(api.ultima('GET /capacidades-recebimento/ocupacao').params.loja).toBe('Loja 7')
-    expect(api.ultima('GET /calendario-recebimento').params.loja).toBe('Loja 7')
-    await botao(w, 'Salvar calendário').trigger('click')
+    expect(api.ultima('PUT /parametros/capacidade').corpo.capacidadeDiariaPaletes).toBe(480)
+    expect(api.ultima('PUT /faixas-horarias/1').corpo).toMatchObject({ horaInicio: '08:00', capacidadePaletes: 120 })
+    const linha = w.findComponent(CapacidadeRecebimentoView).vm.linhas.find((l) => l.loja === 'Loja 7')
+    w.findComponent(CapacidadeRecebimentoView).vm.abrir(linha)
+    await flushPromises()
+    await w.find('.form-destino').trigger('submit')
     await flushPromises()
     expect(api.ultima('PUT /calendario-recebimento').corpo).toMatchObject({ loja: 'Loja 7', diasSemana: '1111100', recebeFeriado: false })
+    expect(api.ultima('PUT /capacidades-recebimento/3').corpo).toMatchObject({ loja: 'Loja 7', paletes: 20, paletesFaixa: null })
   })
 })
 

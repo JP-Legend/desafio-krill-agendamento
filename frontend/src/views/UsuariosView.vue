@@ -17,6 +17,14 @@ const editar = pode(1002)
 
 const visivel = ref(false)
 const form = reactive({})
+const cdsDisp = ref([])
+const lojasDisp = ref([])
+/** Resumo dos destinos do usuário para a lista. */
+function destinosDe(u) {
+  if (u.todosDestinos !== false) return 'Todos os destinos'
+  const cds = (u.cds || []).map((id) => cdsDisp.value.find((c) => c.id === id)).map((c, i) => (c ? `CD ${c.codigo}` : `CD ${u.cds[i]}`))
+  return [...cds, ...(u.lojas || [])].join(', ')
+}
 const erros = ref({})
 const senhaVisivel = ref(false)
 const senha = reactive({ usuario: null, valor: '', erro: '' })
@@ -49,6 +57,7 @@ async function carregar() {
   carregando.value = true
   try {
     ;[usuarios.value, perfis.value] = await Promise.all([api('/usuarios'), api('/perfis')])
+    Promise.all([api('/cds'), api('/lojas')]).then(([c, l]) => { cdsDisp.value = c; lojasDisp.value = l }).catch(() => {})
   } catch (e) {
     notificar.erro(e)
   } finally {
@@ -63,7 +72,7 @@ function abrirMenu(ev, u) {
 
 function abrir(u) {
   Object.keys(form).forEach((k) => delete form[k])
-  Object.assign(form, u ? { ...u, senhaProvisoria: '' } : { id: null, login: '', nome: '', perfilId: null, ativo: true, senhaProvisoria: '' })
+  Object.assign(form, u ? { ...u, senhaProvisoria: '' } : { id: null, login: '', nome: '', perfilId: null, ativo: true, senhaProvisoria: '', todosDestinos: true, cds: [], lojas: [] })
   erros.value = {}
   visivel.value = true
 }
@@ -80,6 +89,7 @@ function validar() {
   if (!form.id && !/^[a-z0-9][a-z0-9._-]{2,59}$/.test((form.login || '').trim().toLowerCase())) e.login = 'De 3 a 60 caracteres: letras, números, ponto, hífen ou sublinhado'
   if (!(form.nome || '').trim()) e.nome = 'Informe o nome'
   if (!form.perfilId) e.perfilId = 'Escolha o perfil'
+  if (form.todosDestinos === false && !(form.cds || []).length && !(form.lojas || []).length) e.destinos = 'Escolha ao menos um CD ou loja'
   if (!form.id) {
     const s = validarSenha(form.senhaProvisoria, form.login)
     if (s) e.senhaProvisoria = s
@@ -92,7 +102,8 @@ function salvar() {
   if (!validar()) return
   enviar(async () => {
     try {
-      const body = { login: form.login.trim().toLowerCase(), nome: form.nome.trim(), perfilId: form.perfilId, ativo: form.ativo, senhaProvisoria: form.id ? null : form.senhaProvisoria }
+      const body = { login: form.login.trim().toLowerCase(), nome: form.nome.trim(), perfilId: form.perfilId, ativo: form.ativo, senhaProvisoria: form.id ? null : form.senhaProvisoria,
+        todosDestinos: form.todosDestinos !== false, cds: form.todosDestinos === false ? form.cds : [], lojas: form.todosDestinos === false ? form.lojas : [] }
       await api(form.id ? `/usuarios/${form.id}` : '/usuarios', { method: form.id ? 'PUT' : 'POST', body })
       notificar.sucesso(form.id ? 'Usuário atualizado' : 'Usuário incluído. A troca de senha será pedida no primeiro acesso.')
       visivel.value = false
@@ -161,6 +172,7 @@ onMounted(carregar)
           <span v-if="data.trocarSenha && data.ativo" class="pilula aviso">Troca de senha pendente</span>
         </template>
       </Column>
+      <Column header="CDs e lojas"><template #body="{ data }"><span class="texto-suave">{{ destinosDe(data) }}</span></template></Column>
       <Column header="Último acesso"><template #body="{ data }">{{ ultimoAcesso(data) }}</template></Column>
       <Column v-if="editar" header="" style="width: 56px">
         <template #body="{ data }"><Button icon="pi pi-ellipsis-v" text rounded :aria-label="`Ações de ${data.nome}`" @click="abrirMenu($event, data)" /></template>
@@ -178,6 +190,7 @@ onMounted(carregar)
           <span class="pilula" :class="u.ativo ? 'ativo' : 'inativo'">{{ u.ativo ? 'Ativo' : 'Inativo' }}</span>
           <span v-if="u.trocarSenha && u.ativo" class="pilula aviso">Troca de senha pendente</span>
         </div>
+        <div class="linha-cartao"><i class="pi pi-building" />{{ destinosDe(u) }}</div>
         <div class="linha-cartao"><i class="pi pi-clock" />{{ ultimoAcesso(u) }}</div>
       </article>
     </div>
@@ -199,6 +212,15 @@ onMounted(carregar)
         <InputText id="u-senha" v-model="form.senhaProvisoria" type="password" maxlength="72" autocomplete="new-password" :invalid="!!erros.senhaProvisoria" />
         <span class="dica">Mínimo de 8 caracteres com letras e números. O usuário troca no primeiro acesso.</span>
         <span v-if="erros.senhaProvisoria" class="erro">{{ erros.senhaProvisoria }}</span>
+      </div>
+      <div class="campo c12 destinos-usuario">
+        <label for="u-todos">CDs e lojas que o usuário vê</label>
+        <div class="linha-toggle"><ToggleSwitch v-model="form.todosDestinos" input-id="u-todos" /><span>{{ form.todosDestinos ? 'Todos os destinos' : 'Somente os escolhidos' }}</span></div>
+        <template v-if="!form.todosDestinos">
+          <MultiSelect v-model="form.cds" input-id="u-cds" :options="cdsDisp" :option-label="(c) => `CD ${c.codigo} · ${c.nome}`" option-value="id" placeholder="CDs" display="chip" aria-label="CDs do usuário" />
+          <MultiSelect v-model="form.lojas" input-id="u-lojas" :options="lojasDisp.map((l) => l.nome)" placeholder="Lojas" display="chip" filter aria-label="Lojas do usuário" />
+        </template>
+        <span v-if="erros.destinos" class="erro">{{ erros.destinos }}</span>
       </div>
       <div class="campo c6"><label for="u-ativo">Ativo</label><ToggleSwitch v-model="form.ativo" input-id="u-ativo" :disabled="form.login === sessao.atual?.usuario" /></div>
       <button type="submit" hidden />
@@ -222,3 +244,8 @@ onMounted(carregar)
     </template>
   </Dialog>
 </template>
+
+<style scoped>
+.destinos-usuario { display: flex; flex-direction: column; gap: 6px; }
+.linha-toggle { display: flex; align-items: center; gap: 8px; }
+</style>

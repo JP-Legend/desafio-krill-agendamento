@@ -22,9 +22,24 @@ public class AgendamentoRepositorioJpa implements AgendamentoRepositorio {
     private final AgendamentoJpa jpa;
     private final EntityManager em;
 
+    private br.com.redekrill.agendamento.infrastructure.persistence.jdbc.EscopoDestinos escopo;
+
     public AgendamentoRepositorioJpa(AgendamentoJpa jpa, EntityManager em) {
         this.jpa = jpa;
         this.em = em;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    void usarEscopo(br.com.redekrill.agendamento.infrastructure.persistence.jdbc.EscopoDestinos escopo) {
+        this.escopo = escopo;
+    }
+
+    /** Listas respeitam o escopo do usuário (CDs/lojas dele); sem usuário restrito, tudo. */
+    private List<Agendamento> doEscopo(List<Agendamento> lista) {
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        if (e.todos() || escopo == null || lista.isEmpty()) return lista;
+        var ok = escopo.visiveis(e, lista.stream().map(Agendamento::getId).toList());
+        return lista.stream().filter(a -> ok.contains(a.getId())).toList();
     }
 
     @Override
@@ -39,7 +54,7 @@ public class AgendamentoRepositorioJpa implements AgendamentoRepositorio {
 
     @Override
     public List<Agendamento> listarPorPeriodo(LocalDate inicio, LocalDate fim) {
-        return jpa.findByDataBetween(inicio, fim).stream().map(AgendamentoRepositorioJpa::paraDominio).toList();
+        return doEscopo(jpa.findByDataBetween(inicio, fim).stream().map(AgendamentoRepositorioJpa::paraDominio).toList());
     }
 
     @Override
@@ -58,8 +73,8 @@ public class AgendamentoRepositorioJpa implements AgendamentoRepositorio {
             }
             return cb.and(p.toArray(Predicate[]::new));
         };
-        return jpa.findAll(spec, Sort.by("data", "faixaHorariaId", "id")).stream()
-                .map(AgendamentoRepositorioJpa::paraDominio).toList();
+        return doEscopo(jpa.findAll(spec, Sort.by("data", "faixaHorariaId", "id")).stream()
+                .map(AgendamentoRepositorioJpa::paraDominio).toList());
     }
 
     @Override

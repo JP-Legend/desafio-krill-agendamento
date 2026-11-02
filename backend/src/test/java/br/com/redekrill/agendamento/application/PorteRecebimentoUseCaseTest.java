@@ -66,6 +66,7 @@ import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -443,11 +444,11 @@ class PorteRecebimentoUseCaseTest {
         var d = link.reagendar("token-fixo-para-os-testes-0001", HOJE.plusDays(2), 3L, "1.1.1.1");
         assertThat(d.agendamento().getData()).isEqualTo(HOJE.plusDays(2));
         assertThat(d.agendamento().getStatus()).isEqualTo(StatusAgendamento.AGENDADO);
-        verify(push).notificarTodos(eq("Agendamento remarcado"), anyString(), anyString());
+        verify(push).notificarDestino(eq("Agendamento reagendado"), anyString(), anyString(), any(), any());
         // o CD pode exceder (só alerta)
         var r = agendamentos.reagendar(2L, HOJE.plusDays(2), 2L, ADMIN, true);
         assertThat(r.alertas()).isNotEmpty();
-        verify(push).notificarTodos(eq("Capacidade excedida"), anyString(), anyString());
+        verify(push).notificarDestino(eq("Capacidade excedida"), anyString(), anyString(), any(), any());
         assertThatThrownBy(() -> agendamentos.reagendar(2L, null, 2L, ADMIN, true)).hasMessage("Data é obrigatória");
         assertThatThrownBy(() -> agendamentos.reagendar(999L, HOJE, 2L, ADMIN, true)).isInstanceOf(RecursoNaoEncontradoException.class);
     }

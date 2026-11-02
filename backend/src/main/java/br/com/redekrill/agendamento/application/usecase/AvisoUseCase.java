@@ -26,10 +26,25 @@ public class AvisoUseCase {
         return avisos.registrar(new Aviso(null, titulo, mensagem, url, null));
     }
 
+    public Aviso registrar(String titulo, String mensagem, String url, Long cdId, String loja) {
+        return avisos.registrar(new Aviso(null, titulo, mensagem, url, null, cdId, loja));
+    }
+
     public Caixa caixa(String usuario) {
+        return caixa(usuario, a -> true);
+    }
+
+    /** Caixa só com os avisos que o usuário pode ver (escopo de CD/loja). */
+    public Caixa caixa(String usuario, java.util.function.Predicate<Aviso> visivel) {
         long lido = avisos.ultimoLido(chave(usuario));
-        List<Item> itens = avisos.recentes(LIMITE).stream().map(a -> new Item(a, a.id() <= lido)).toList();
-        return new Caixa(avisos.contarDepoisDe(lido), itens);
+        List<Item> itens = avisos.recentes(LIMITE * 4).stream().filter(visivel).limit(LIMITE).map(a -> new Item(a, a.id() <= lido)).toList();
+        int naoLidos = visivel.test(null) ? avisos.contarDepoisDe(lido) : (int) itens.stream().filter(i -> !i.lido()).count();
+        return new Caixa(naoLidos, itens);
+    }
+
+    public Caixa marcarLidas(String usuario, java.util.function.Predicate<Aviso> visivel) {
+        marcarLidas(usuario);
+        return caixa(usuario, visivel);
     }
 
     public Caixa marcarLidas(String usuario) {

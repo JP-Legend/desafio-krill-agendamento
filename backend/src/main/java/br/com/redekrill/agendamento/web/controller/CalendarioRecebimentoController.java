@@ -45,6 +45,12 @@ public class CalendarioRecebimentoController {
         return useCase.obter(cdId, loja, LocalDate.now(clock));
     }
 
+    @GetMapping("/resumo")
+    @Operation(summary = "Calendários de todos os destinos e exceções futuras")
+    public CalendarioRecebimentoUseCase.Resumo resumo() {
+        return useCase.resumo(LocalDate.now(clock));
+    }
+
     @PutMapping
     public CalendarioRecebimento salvar(@Valid @RequestBody Requisicoes.CalendarioRecebimento b, HttpServletRequest req) {
         return useCase.salvar(b.cdId(), b.loja(), b.diasSemana(), Boolean.TRUE.equals(b.recebeFeriado()), Requisicao.solicitante(req));

@@ -49,15 +49,19 @@ public class CapacidadeRecebimentoUseCase {
     }
 
     public List<CapacidadeRecebimento> listar() {
-        return repo.listar();
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        return repo.listar().stream().filter(c -> e.permite(c.cdId(), c.loja())).toList();
     }
 
     public CapacidadeRecebimento salvar(Long id, Dados d, Solicitante s) {
         return transacao.executar(() -> {
-            if (id != null) repo.buscarPorId(id).orElseThrow(() -> new RecursoNaoEncontradoException("Capacidade", id));
+            var escopo = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+            if (id != null) repo.buscarPorId(id).filter(o -> escopo.permite(o.cdId(), o.loja()))
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Capacidade", id));
             String loja = d.loja() == null || d.loja().isBlank() ? null : d.loja().trim();
             Long cd = loja == null ? d.cdId() : null;
             if (cd != null) cds.buscarPorId(cd).orElseThrow(() -> new RecursoNaoEncontradoException("CD", cd));
+            if (!escopo.permite(cd, loja)) throw new RecursoNaoEncontradoException("CD ou loja", loja != null ? loja : cd);
             CapacidadeRecebimento c = new CapacidadeRecebimento(id, cd, loja, d.diaSemana(), d.paletes(), d.caminhoes(), d.paletesFaixa());
             boolean duplicada = repo.listar().stream().anyMatch(o -> !Objects.equals(o.id(), id)
                     && Objects.equals(o.cdId(), c.cdId()) && Objects.equals(o.diaSemana(), c.diaSemana())
@@ -77,7 +81,9 @@ public class CapacidadeRecebimentoUseCase {
 
     public void excluir(Long id, Solicitante s) {
         transacao.executar(() -> {
-            repo.buscarPorId(id).orElseThrow(() -> new RecursoNaoEncontradoException("Capacidade", id));
+            var escopo = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+            repo.buscarPorId(id).filter(o -> escopo.permite(o.cdId(), o.loja()))
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Capacidade", id));
             repo.excluir(id);
             auditoria.registrar(s, "EXCLUIR", "CAPACIDADE_RECEBIMENTO", id, Map.of());
             return null;

@@ -47,6 +47,13 @@ public class NotificadorEmailSmtp implements NotificadorEmail {
                 "Agendamento de entrega cancelado", d, "#dc2626", null);
     }
 
+    @Override
+    public void enviarReagendamento(AgendamentoDetalhe d, String resumo) {
+        Agendamento a = d.agendamento();
+        enviar(a.getEmailFornecedor(), "Entrega reagendada — Pedido " + a.getIdPedido() + " · Agendamento Rede Krill",
+                "Entrega reagendada: nova data confirmada", d, "#1d4ed8", null);
+    }
+
     private void enviar(String para, String assunto, String titulo, AgendamentoDetalhe d, String cor, String link) {
         try {
             MimeMessage msg = sender.createMimeMessage();

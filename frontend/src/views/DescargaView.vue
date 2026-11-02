@@ -5,18 +5,18 @@ import { api } from '../api'
 import { baixarArquivo, deIso, fmtData, fmtMin, fmtMoeda, hoje, isoData, somarDias } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
 import { useNotificar } from '../composables/useNotificar'
-import SeletorCd from '../components/SeletorCd.vue'
+import SeletorDestino from '../components/SeletorDestino.vue'
 
 const route = useRoute()
 const notificar = useNotificar()
 const { enviando, enviar } = useEnvio()
-const filtro = reactive({ inicio: deIso(route.query.inicio || somarDias(hoje(), -7)), fim: deIso(route.query.fim || hoje()), cdId: null })
+const filtro = reactive({ inicio: deIso(route.query.inicio || somarDias(hoje(), -7)), fim: deIso(route.query.fim || hoje()), destino: { cdId: null, loja: null } })
 const dados = ref(null)
 const carregando = ref(false)
 const SITUACAO = { AGUARDANDO: ['Aguardando', 'info'], EM_DESCARGA: ['Em descarga', 'warn'], NO_PRAZO: ['No prazo', 'success'], ACIMA_DO_PREVISTO: ['Acima do previsto', 'danger'] }
 
 function params() {
-  return { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), cdId: filtro.cdId }
+  return { inicio: isoData(filtro.inicio), fim: isoData(filtro.fim), ...filtro.destino }
 }
 async function buscar() {
   if (!filtro.inicio || !filtro.fim) return notificar.aviso('Informe o período')
@@ -47,7 +47,7 @@ onMounted(() => { if (route.query.inicio) buscar() })
   <form class="painel filtros" @submit.prevent="buscar">
     <div class="campo"><label for="ti">De</label><DatePicker v-model="filtro.inicio" input-id="ti" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     <div class="campo"><label for="tf">Até</label><DatePicker v-model="filtro.fim" input-id="tf" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
-    <SeletorCd v-model="filtro.cdId" input-id="tcd" />
+    <SeletorDestino v-model="filtro.destino" input-id="tcd" />
     <Button type="submit" label="Gerar" icon="pi pi-search" class="btn-confirmar" :loading="carregando" />
     <Button type="button" label="Exportar CSV" icon="pi pi-download" class="btn-secundario" :loading="enviando" :disabled="enviando" @click="exportar" />
   </form>

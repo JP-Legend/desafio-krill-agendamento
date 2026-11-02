@@ -39,7 +39,8 @@ public class LojaController {
     @GetMapping
     @Operation(summary = "Lojas (entrega direta e links de agendamento)")
     public List<Loja> listar() {
-        return useCase.listar();
+        var e = br.com.redekrill.agendamento.application.port.EscopoAtual.get();
+        return useCase.listar().stream().filter(l -> e.permiteLoja(l.nome())).toList();
     }
 
     @PostMapping

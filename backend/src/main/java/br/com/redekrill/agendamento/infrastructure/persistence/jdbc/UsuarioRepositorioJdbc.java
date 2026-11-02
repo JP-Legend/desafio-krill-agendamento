@@ -54,6 +54,30 @@ public class UsuarioRepositorioJdbc implements UsuarioRepositorio {
     }
 
     @Override
+    public br.com.redekrill.agendamento.domain.model.Escopo escopo(Long usuarioId) {
+        Boolean todos = db.sql("select todos_destinos from usuario where id = ?").param(usuarioId).query(Boolean.class).optional().orElse(true);
+        if (todos) return br.com.redekrill.agendamento.domain.model.Escopo.TODOS;
+        var cds = new java.util.HashSet<Long>();
+        var lojas = new java.util.HashSet<String>();
+        db.sql("select cd_id, loja from usuario_destino where usuario_id = ?").param(usuarioId).query((r, i) -> {
+            long cd = r.getLong("cd_id");
+            if (!r.wasNull()) cds.add(cd);
+            if (r.getString("loja") != null) lojas.add(r.getString("loja"));
+            return 0;
+        }).list();
+        return new br.com.redekrill.agendamento.domain.model.Escopo(false, cds, lojas);
+    }
+
+    @Override
+    public void salvarEscopo(Long usuarioId, br.com.redekrill.agendamento.domain.model.Escopo e) {
+        db.sql("update usuario set todos_destinos = ? where id = ?").params(e.todos(), usuarioId).update();
+        db.sql("delete from usuario_destino where usuario_id = ?").param(usuarioId).update();
+        if (e.todos()) return;
+        for (Long cd : e.cds()) db.sql("insert into usuario_destino (usuario_id, cd_id) values (?, ?)").params(usuarioId, cd).update();
+        for (String l : e.lojas()) db.sql("insert into usuario_destino (usuario_id, loja) values (?, ?)").params(usuarioId, l).update();
+    }
+
+    @Override
     public void registrarAcesso(Long id, Instant quando) {
         db.sql("update usuario set ultimo_acesso_em = ? where id = ?").params(Timestamp.from(quando), id).update();
     }

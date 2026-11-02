@@ -70,7 +70,7 @@ describe('gestão de acessos', () => {
     document.querySelector('#u-senha').dispatchEvent(new Event('input'))
     salvar()
     await flushPromises()
-    expect(api.ultima('POST /usuarios').corpo).toEqual({ login: 'joana.prado', nome: 'Joana Prado', perfilId: 3, ativo: true, senhaProvisoria: 'Guarita2026' })
+    expect(api.ultima('POST /usuarios').corpo).toEqual({ login: 'joana.prado', nome: 'Joana Prado', perfilId: 3, ativo: true, senhaProvisoria: 'Guarita2026', todosDestinos: true, cds: [], lojas: [] })
     expect(toast()).toContain('primeiro acesso')
   })
 

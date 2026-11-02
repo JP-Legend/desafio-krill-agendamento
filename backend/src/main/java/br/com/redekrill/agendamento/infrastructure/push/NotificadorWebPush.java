@@ -62,6 +62,17 @@ public class NotificadorWebPush implements NotificadorPush {
     @Async
     @Override
     public void notificarTodos(String titulo, String mensagem, String url) {
+        enviar(titulo, mensagem, url, null, null);
+    }
+
+    /** Só usuários que veem todos os destinos ou que têm este CD (entrega no CD) / esta loja. */
+    @Async
+    @Override
+    public void notificarDestino(String titulo, String mensagem, String url, Long cdId, String loja) {
+        enviar(titulo, mensagem, url, loja == null ? (cdId == null ? 1L : cdId) : null, loja);
+    }
+
+    private void enviar(String titulo, String mensagem, String url, Long cdId, String loja) {
         String payload;
         try {
             payload = mapper.writeValueAsString(Map.of("title", titulo, "body", mensagem, "url", url));
@@ -69,8 +80,12 @@ public class NotificadorWebPush implements NotificadorPush {
             return;
         }
         var destinatarios = new java.util.HashSet<>(db.sql("select lower(u.username) from usuario u join perfil_acesso p on p.id = u.perfil_id "
-                + "join perfil_permissao pp on pp.perfil_id = p.id where u.ativo and p.ativo and pp.codigo = ?")
-                .param(br.com.redekrill.agendamento.domain.model.Permissao.AGENDAMENTOS_VER.codigo()).query(String.class).list());
+                + "join perfil_permissao pp on pp.perfil_id = p.id where u.ativo and p.ativo and pp.codigo = ? "
+                + "and (? = 0 or u.todos_destinos or exists (select 1 from usuario_destino d where d.usuario_id = u.id "
+                + "and ((? > 0 and d.cd_id = ?) or (d.loja = ?))))")
+                .params(br.com.redekrill.agendamento.domain.model.Permissao.AGENDAMENTOS_VER.codigo(),
+                        cdId == null && loja == null ? 0 : 1, cdId == null ? 0 : cdId, cdId == null ? 0 : cdId, loja == null ? "" : loja)
+                .query(String.class).list());
         for (PushInscricaoEntity i : inscricoes.findAll()) {
             if (i.usuario == null || !destinatarios.contains(i.usuario.toLowerCase())) continue;
             try {
