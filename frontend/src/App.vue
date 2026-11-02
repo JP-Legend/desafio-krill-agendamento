@@ -14,8 +14,12 @@ import AbasMdi from './components/AbasMdi.vue'
 const route = useRoute()
 const router = useRouter()
 const menuUsuario = ref(false)
-/** Inicial do nome completo, como o data-initials do Gestão CD; o rótulo é o login. */
-const inicial = computed(() => (sessao.atual?.nome || sessao.atual?.usuario || '?').trim().charAt(0).toUpperCase())
+/** Iniciais do nome (primeiro e último), como o avatar do Gestão CD em produção. */
+const inicial = computed(() => {
+  const partes = (sessao.atual?.nome || sessao.atual?.usuario || '?').trim().split(/\s+/)
+  return ((partes[0][0] || '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase()
+})
+const primeiroNome = computed(() => (sessao.atual?.nome || sessao.atual?.usuario || '').trim().split(/\s+/)[0])
 const fecharMenuUsuario = () => { menuUsuario.value = false }
 watch(() => route.fullPath, () => { if (logado.value) abrirAba(route) }, { immediate: true })
 const notificar = useNotificar()
@@ -87,10 +91,10 @@ async function sair() {
       <BuscaTopo />
       <SinoAvisos v-if="pode(1102)" />
       <div class="user-menu" :class="{ aberto: menuUsuario }">
-        <button type="button" class="user-trigger" aria-haspopup="true" :aria-expanded="menuUsuario" :title="sessao.atual?.nome" @click.stop="abrirMenuUsuario">
+        <button type="button" class="user-trigger" aria-haspopup="true" :aria-expanded="menuUsuario" :title="`${sessao.atual?.nome} (${sessao.atual?.usuario})`" @click.stop="abrirMenuUsuario">
           <span class="user-avatar" aria-hidden="true">{{ inicial }}</span>
-          <span class="user-trigger-label">{{ sessao.atual?.usuario }}</span>
-          <span class="user-caret" aria-hidden="true">▾</span>
+          <span class="user-trigger-label">{{ sessao.atual?.nome }}</span>
+          <span class="user-trigger-label-curto">{{ primeiroNome }}</span>
         </button>
         <div v-if="menuUsuario" class="user-dropdown" role="menu" @click="menuUsuario = false">
           <button v-if="pushSuportado()" type="button" role="menuitem" @click="alternarPush">{{ pushAtivo ? 'Desativar notificações' : 'Ativar notificações' }}<span>&gt;</span></button>
