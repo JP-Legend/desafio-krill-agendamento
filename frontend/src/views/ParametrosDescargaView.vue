@@ -34,7 +34,7 @@ onMounted(carregar)
 </script>
 
 <template>
-  <div class="cabecalho"><h1>Tempos de descarga</h1></div>
+  <div class="cabecalho"><div class="titulo-tela"><h1>Tempos de descarga</h1><BotaoPermissoes /></div></div>
   <section class="painel">
     <DataTable :value="linhas" size="small" striped-rows data-key="tipoCaminhaoId">
       <Column field="nome" header="Tipo de caminhão" />

@@ -95,7 +95,7 @@ defineExpose({ abrir, confirmar, dlg, erro })
 
 <template>
   <div class="cabecalho">
-    <h1>Conta-corrente de paletes</h1>
+    <div class="titulo-tela"><h1>Conta-corrente de paletes</h1><BotaoPermissoes /></div>
     <form class="acoes" @submit.prevent="carregar"><SeletorDestino v-model="destino" input-id="destino-conta" @update:model-value="carregar" /><InputText v-model="busca" placeholder="Fornecedor" aria-label="Fornecedor" /><Button type="submit" icon="pi pi-search" class="btn-secundario" aria-label="Buscar" /></form>
   </div>
   <div class="abas">

@@ -64,7 +64,7 @@ onMounted(carregar)
 
 <template>
   <div class="cabecalho">
-    <h1>Ocupação do recebimento</h1>
+    <div class="titulo-tela"><h1>Ocupação do recebimento</h1><BotaoPermissoes /></div>
     <div class="acoes">
       <SeletorDestino v-model="destino" input-id="ocd" :todos="false" />
       <Button icon="pi pi-angle-left" class="btn-secundario" aria-label="Semana anterior" @click="navegar(-7)" />

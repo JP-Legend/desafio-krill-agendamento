@@ -64,7 +64,7 @@ defineExpose({ novo, salvar, form, erros })
 
 <template>
   <div class="cabecalho">
-    <h1>Paletes nas lojas</h1>
+    <div class="titulo-tela"><h1>Paletes nas lojas</h1><BotaoPermissoes /></div>
     <div class="acoes">
       <form @submit.prevent="carregar" class="acoes"><SeletorDestino v-model="destino" input-id="destino-mov" @update:model-value="carregar" /><InputText v-if="!lojaUnica && !destino.loja" v-model="busca" placeholder="Loja" aria-label="Loja" /><Button type="submit" icon="pi pi-search" class="btn-secundario" aria-label="Buscar" /></form>
       <Button v-if="pode(1308)" label="Novo romaneio" icon="pi pi-plus" class="btn-confirmar" @click="novo()" />

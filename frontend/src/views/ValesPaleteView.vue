@@ -51,7 +51,7 @@ onActivated(() => { if (primeira) { primeira = false; return } buscar() })
 
 <template>
   <div class="cabecalho">
-    <h1>Vale-palete</h1>
+    <div class="titulo-tela"><h1>Vale-palete</h1><BotaoPermissoes /></div>
     <div class="acoes">
       <form class="busca-codigo" @submit.prevent="porCodigo"><InputText v-model="codigo" placeholder="Bipe ou digite o código do vale" aria-label="Código do vale (leitor de código de barras)" class="campo-leitura" /><Button type="submit" icon="pi pi-search" class="btn-secundario" aria-label="Abrir vale" /></form>
       <Button v-if="pode(1302)" label="Novo vale" icon="pi pi-plus" class="btn-confirmar" @click="router.push('/vales-palete/novo')" />

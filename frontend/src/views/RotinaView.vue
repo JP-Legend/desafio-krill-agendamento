@@ -26,13 +26,13 @@ onMounted(carregar)
 
 <template>
   <div class="cabecalho">
-    <h1>Rotina do dia</h1>
+    <div class="titulo-tela"><h1>Rotina do dia</h1><BotaoPermissoes /></div>
     <div class="acoes filtros-inline">
       <SeletorDestino v-model="destino" input-id="rcd" />
       <div class="campo"><label for="rd">Data</label><DatePicker v-model="data" input-id="rd" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     </div>
   </div>
-  <p v-if="rotina" class="texto-suave">{{ diaSemana(rotina.data) }}, {{ fmtData(rotina.data) }} — o que o recebimento precisa resolver.</p>
+  <p v-if="rotina" class="texto-suave">{{ diaSemana(rotina.data) }}, {{ fmtData(rotina.data) }}</p>
   <div v-if="rotina" class="rotina">
     <section v-for="i in rotina.itens" :key="i.codigo" class="painel item" :class="i.itens.length ? `nivel-${i.nivel}` : 'ok'">
       <div class="painel-titulo">

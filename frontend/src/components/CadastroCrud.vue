@@ -1,7 +1,7 @@
 <script setup>
 import CampoHora from './CampoHora.vue'
 import { onMounted, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { erroCnpj, mascaraCnpj, soDigitos } from '../utils'
 import { useEnvio } from '../composables/useEnvio'
@@ -32,6 +32,8 @@ const visivel = ref(false)
 const form = reactive({})
 const erros = ref({})
 const route = useRoute()
+const router = useRouter()
+const caminhoDaAba = route.path
 
 async function carregar() {
   carregando.value = true
@@ -84,6 +86,7 @@ function salvar() {
 
 /** ?id=N (vindo da busca do topo) abre o registro direto. */
 function abrirDaRota() {
+  if (route.path !== caminhoDaAba) return
   const id = Number(route.query.id)
   if (!id) return
   const r = lista.value.find((x) => x.id === id)
@@ -94,12 +97,18 @@ onMounted(async () => {
   abrirDaRota()
 })
 watch(() => route.query.id, () => abrirDaRota())
+/** Fechou o diálogo aberto pela busca: tira o ?id da URL para a aba não reabrir ao voltar. */
+watch(visivel, (v) => {
+  if (v || route.path !== caminhoDaAba || !route.query.id) return
+  const { id, ...resto } = route.query
+  router.replace({ path: route.path, query: resto })
+})
 defineExpose({ carregar })
 </script>
 
 <template>
   <div class="cabecalho">
-    <h1>{{ titulo }}</h1>
+    <div class="titulo-tela"><h1>{{ titulo }}</h1><BotaoPermissoes /></div>
     <div class="acoes"><Button :label="rotuloNovo" icon="pi pi-plus" class="btn-confirmar" @click="abrir(null)" /></div>
   </div>
   <section class="painel">

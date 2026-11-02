@@ -212,11 +212,13 @@ function limpar() {
   erros.value = {}
   tentouEnviar.value = false
 }
+/** O backend devolve "o CD 806" / "a loja X" para frases; no rótulo vai só o nome. */
+const nomeDestino = (d) => String(d || '').replace(/^(o|a) /, '').replace(/^loja/, 'Loja')
 </script>
 
 <template>
   <div class="cabecalho">
-    <h1>Novo agendamento</h1>
+    <div class="titulo-tela"><h1>Novo agendamento</h1><BotaoPermissoes /></div>
     <div class="acoes"><Button label="Voltar" icon="pi pi-arrow-left" class="btn-secundario" @click="router.back()" /></div>
   </div>
 
@@ -298,7 +300,7 @@ function limpar() {
         <InputText id="transp" v-model="form.transportadora" maxlength="80" />
       </div>
       <div v-if="destino" class="campo c12 destino">
-        <label>Capacidade do dia — {{ destino.destino }}</label>
+        <label>Capacidade do dia · {{ nomeDestino(destino.destino) }}</label>
         <template v-if="destino.limitado">
           <BarraOcupacao :percentual="destino.percentual" :ocupado="destino.paletes" :capacidade="destino.capacidadePaletes" />
           <span class="dica">

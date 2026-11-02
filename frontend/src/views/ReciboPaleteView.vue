@@ -25,13 +25,13 @@ function imprimir() {
 
 <template>
   <div class="cabecalho nao-imprimir">
-    <h1>Recibo de paletes</h1>
+    <div class="titulo-tela"><h1>Recibo de paletes</h1><BotaoPermissoes /></div>
     <div class="acoes">
       <Button label="Voltar" icon="pi pi-arrow-left" class="btn-secundario" @click="router.push('/paletes/cobrancas')" />
       <Button v-if="c?.reciboNumero" label="Imprimir" icon="pi pi-print" class="btn-confirmar" @click="imprimir" />
     </div>
   </div>
-  <div v-if="c && !c.reciboNumero" class="painel vazio">Cobrança #{{ c.id }} ainda não foi paga — o recibo é emitido no recebimento.</div>
+  <div v-if="c && !c.reciboNumero" class="painel vazio">Cobrança #{{ c.id }} ainda não foi paga. O recibo é emitido no recebimento.</div>
   <article v-else-if="c" class="painel recibo">
     <header class="recibo-topo">
       <div class="recibo-marca"><img src="/img/rede-krill-logo.png" alt="Rede Krill" width="570" height="528" /><div><strong>Agendamento Rede Krill</strong><small>Recibo de pagamento de paletes</small></div></div>

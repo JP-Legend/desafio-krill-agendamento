@@ -38,7 +38,7 @@ onMounted(buscar)
 </script>
 
 <template>
-  <div class="cabecalho"><h1>Logs de acesso</h1></div>
+  <div class="cabecalho"><div class="titulo-tela"><h1>Logs de acesso</h1><BotaoPermissoes /></div></div>
   <form class="painel filtros" @submit.prevent="buscar">
     <div class="campo"><label for="lg-texto">Login ou IP</label><InputText id="lg-texto" v-model="filtro.texto" maxlength="80" /></div>
     <div class="campo"><label for="lg-ev">Evento</label><Select v-model="filtro.evento" input-id="lg-ev" :options="eventos" option-label="label" option-value="value" show-clear /></div>

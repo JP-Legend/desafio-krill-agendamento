@@ -16,8 +16,9 @@ import Paginator from 'primevue/paginator'
 import Menu from 'primevue/menu'
 import Checkbox from 'primevue/checkbox'
 import MultiSelect from 'primevue/multiselect'
+import BotaoPermissoes from './components/BotaoPermissoes.vue'
 
 export function registrarComponentes(app) {
   Object.entries({ Button, InputText, InputNumber, Textarea, Select, DatePicker, DataTable, Column, Dialog, Tag, Toast,
-    ToggleSwitch, Drawer, Password, Paginator, Menu, Checkbox, MultiSelect }).forEach(([n, c]) => app.component(n, c))
+    ToggleSwitch, Drawer, Password, Paginator, Menu, Checkbox, MultiSelect, BotaoPermissoes }).forEach(([n, c]) => app.component(n, c))
 }

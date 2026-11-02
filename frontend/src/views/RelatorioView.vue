@@ -72,7 +72,7 @@ function exportar() {
 </script>
 
 <template>
-  <div class="cabecalho"><h1>Relatório de agendamentos</h1></div>
+  <div class="cabecalho"><div class="titulo-tela"><h1>Relatório de agendamentos</h1><BotaoPermissoes /></div></div>
 
   <form class="painel filtros" @submit.prevent="buscar">
     <div class="campo"><label for="ri">De <span class="obrig">*</span></label><DatePicker v-model="filtro.inicio" input-id="ri" date-format="dd/mm/yy" show-icon icon-display="input" /></div>

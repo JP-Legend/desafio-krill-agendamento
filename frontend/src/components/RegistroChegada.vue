@@ -11,7 +11,7 @@ import CampoHora from './CampoHora.vue'
  * empresa, transportadora, tipo de veículo, tipo de carga, placa, quantidade de paletes e horário de chegada,
  * mais o motorista. "Chegou" avisa todos do CD/loja (sino e push); "Não compareceu" encerra o agendamento.
  */
-const props = defineProps({ cartao: { type: Object, default: null } })
+const props = defineProps({ cartao: { type: Object, default: null }, permiteNaoCompareceu: { type: Boolean, default: true } })
 const visivel = defineModel('visivel', { type: Boolean, default: false })
 const emit = defineEmits(['registrado'])
 const notificar = useNotificar()
@@ -70,7 +70,7 @@ function naoCompareceu() {
     </form>
     <template #footer>
       <div class="rodape-acoes">
-        <div class="rodape-perigo"><Button v-if="pode(1204)" label="Não compareceu" icon="pi pi-ban" class="btn-excluir" :disabled="enviando" @click="naoCompareceu" /></div>
+        <div class="rodape-perigo"><Button v-if="pode(1204) && permiteNaoCompareceu" label="Não compareceu" icon="pi pi-ban" class="btn-excluir" :disabled="enviando" @click="naoCompareceu" /></div>
         <div class="rodape-principal"><Button label="Chegou" icon="pi pi-check" class="btn-confirmar" :loading="enviando" :disabled="enviando" @click="chegou" /></div>
       </div>
     </template>

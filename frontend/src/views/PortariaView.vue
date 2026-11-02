@@ -22,7 +22,7 @@ const chegada = reactive({ aberto: false, cartao: null })
 let timer = null
 
 const hora = (s) => (s ? new Date(s).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '')
-const ehHoje = computed(() => isoData(data.value) === hoje())
+const ateHoje = computed(() => isoData(data.value) <= hoje())
 const docasLivres = computed(() => (quadro.value?.docas || []).filter((d) => !d.agendamentoId).map((d) => ({ label: d.doca.nome, value: d.doca.id })))
 const normal = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
 const confere = (k) => !filtro.value.trim() || [k.placa, k.fornecedor, k.transportadora, k.motorista, String(k.idPedido || '')].some((v) => normal(v).includes(normal(filtro.value)))
@@ -82,7 +82,7 @@ onUnmounted(() => clearInterval(timer))
 
 <template>
   <div class="cabecalho">
-    <h1>Portaria</h1>
+    <div class="titulo-tela"><h1>Portaria</h1><BotaoPermissoes /></div>
     <div class="acoes filtros-inline">
       <SeletorDestino v-model="destino" input-id="ptcd" :todos="false" />
       <div class="campo"><label for="ptd">Data</label><DatePicker v-model="data" input-id="ptd" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
@@ -101,7 +101,7 @@ onUnmounted(() => clearInterval(timer))
       <section v-for="e in ETAPAS" :key="e.chave" class="painel etapa">
         <div class="painel-titulo"><h2><i :class="e.icone" /> {{ e.titulo }}</h2><Tag :value="String(e.itens.length)" severity="secondary" /></div>
         <p v-if="!e.itens.length" class="texto-suave">Nenhum caminhão</p>
-        <article v-for="k in e.itens" :key="k.agendamentoId" class="veiculo" :class="{ tocavel: e.chave === 'previstos' && pode(1204) && ehHoje }" @click="e.chave === 'previstos' && pode(1204) && ehHoje && abrirChegada(k)">
+        <article v-for="k in e.itens" :key="k.agendamentoId" class="veiculo" :class="{ tocavel: e.chave === 'previstos' && pode(1204) }" @click="e.chave === 'previstos' && pode(1204) && abrirChegada(k)">
           <header>
             <RouterLink :to="`/agendamentos/${k.agendamentoId}`" class="placa" @click.stop>{{ k.placa || 'Sem placa' }}</RouterLink>
             <span class="faixa">{{ k.faixa }}</span>
@@ -113,7 +113,7 @@ onUnmounted(() => clearInterval(timer))
           <span v-if="k.chegadaEm" class="suave">Chegou às {{ hora(k.chegadaEm) }}<template v-if="k.docaEm"> · doca às {{ hora(k.docaEm) }}</template><template v-if="k.saidaEm"> · saiu às {{ hora(k.saidaEm) }}</template></span>
           <span v-if="e.chave === 'doca'" class="suave">{{ k.codigoStatus === 'EM_RECEBIMENTO' ? 'Em conferência' : 'Aguardando conferência' }}<template v-if="k.doca"> · <Tag :value="k.doca" /></template></span>
           <div class="acoes-veiculo">
-            <Button v-if="e.chave === 'previstos' && pode(1204) && ehHoje" label="Registrar chegada" icon="pi pi-truck" class="btn-confirmar" :disabled="enviando" @click.stop="abrirChegada(k)" />
+            <Button v-if="e.chave === 'previstos' && pode(1204)" label="Registrar chegada" icon="pi pi-truck" class="btn-confirmar" :disabled="enviando" @click.stop="abrirChegada(k)" />
             <Select v-if="e.chave === 'patio' && pode(1206)" :options="docasLivres" option-label="label" option-value="value" placeholder="Encaminhar à doca"
                     :disabled="enviando || !docasLivres.length" :aria-label="`Encaminhar ${k.placa || k.fornecedor} à doca`" @change="(ev) => atribuir(k, ev.value)" />
             <Button v-if="e.chave === 'saida' && pode(1204)" label="Registrar saída" icon="pi pi-sign-out" class="btn-confirmar" :disabled="enviando" @click="registrarSaida(k)" />
@@ -123,7 +123,7 @@ onUnmounted(() => clearInterval(timer))
     </div>
   </template>
 
-  <RegistroChegada v-model:visivel="chegada.aberto" :cartao="chegada.cartao" @registrado="carregar" />
+  <RegistroChegada v-model:visivel="chegada.aberto" :cartao="chegada.cartao" :permite-nao-compareceu="ateHoje" @registrado="carregar" />
 </template>
 
 <style scoped>

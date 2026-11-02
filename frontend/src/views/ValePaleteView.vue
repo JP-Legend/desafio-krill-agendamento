@@ -176,7 +176,7 @@ onMounted(carregar)
 
 <template>
   <template v-if="novo">
-    <div class="cabecalho"><h1>Novo vale-palete</h1></div>
+    <div class="cabecalho"><div class="titulo-tela"><h1>Novo vale-palete</h1><BotaoPermissoes /></div></div>
     <form class="painel" @submit.prevent="criar">
       <div class="form-grade">
         <div v-if="!form.agendamentoId" class="campo c12 destino-vale"><SeletorDestino v-model="destinoNovo" :todos="false" input-id="vdest" /></div>
@@ -203,7 +203,7 @@ onMounted(carregar)
 
   <template v-else-if="vale">
     <div class="cabecalho nao-imprimir">
-      <h1>Vale {{ vale.codigo }}</h1>
+      <div class="titulo-tela"><h1>Vale {{ vale.codigo }}</h1><BotaoPermissoes /></div>
       <div class="acoes">
         <Button label="Voltar" class="btn-secundario" @click="router.push('/vales-palete')" />
         <Button label="Imprimir" icon="pi pi-print" class="btn-confirmar" @click="imprimir" />

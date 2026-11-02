@@ -65,7 +65,7 @@ onMounted(() => carregar())
 
 <template>
   <div class="cabecalho">
-    <h1>Perfis e permissões</h1>
+    <div class="titulo-tela"><h1>Perfis e permissões</h1><BotaoPermissoes /></div>
     <div class="acoes"><Button label="Novo perfil" icon="pi pi-plus" class="btn-confirmar" @click="selecionar(null)" /></div>
   </div>
   <div class="perfis-layout">

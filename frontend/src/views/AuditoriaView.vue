@@ -31,7 +31,7 @@ onMounted(() => buscar())
 </script>
 
 <template>
-  <div class="cabecalho"><h1>Auditoria e log de acesso</h1></div>
+  <div class="cabecalho"><div class="titulo-tela"><h1>Auditoria e log de acesso</h1><BotaoPermissoes /></div></div>
   <form class="painel filtros" @submit.prevent="buscar(0)">
     <div class="campo"><label for="ai">De</label><DatePicker v-model="filtro.inicio" input-id="ai" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     <div class="campo"><label for="af">Até</label><DatePicker v-model="filtro.fim" input-id="af" date-format="dd/mm/yy" show-icon icon-display="input" /></div>

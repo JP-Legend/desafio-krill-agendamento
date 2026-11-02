@@ -52,7 +52,7 @@ defineExpose({ buscar, exportar, filtro })
 </script>
 
 <template>
-  <div class="cabecalho"><h1>Divergências de recebimento</h1></div>
+  <div class="cabecalho"><div class="titulo-tela"><h1>Divergências de recebimento</h1><BotaoPermissoes /></div></div>
   <form class="painel filtros" @submit.prevent="buscar">
     <div class="campo"><label for="di">De <span class="obrig">*</span></label><DatePicker v-model="filtro.inicio" input-id="di" date-format="dd/mm/yy" show-icon icon-display="input" /></div>
     <div class="campo"><label for="df">Até <span class="obrig">*</span></label><DatePicker v-model="filtro.fim" input-id="df" date-format="dd/mm/yy" show-icon icon-display="input" /></div>

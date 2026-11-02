@@ -4,7 +4,7 @@ import { reactive } from 'vue'
 const CHAVE = 'krill.abas'
 const inicial = () => {
   try {
-    return JSON.parse(sessionStorage.getItem(CHAVE)) || []
+    return (JSON.parse(sessionStorage.getItem(CHAVE)) || []).filter((a) => !/^\/agendamentos\/\d+$/.test(a.chave))
   } catch {
     return []
   }

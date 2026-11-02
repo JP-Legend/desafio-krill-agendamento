@@ -57,7 +57,7 @@ onUnmounted(() => clearInterval(timer))
 
 <template>
   <div class="cabecalho">
-    <h1>Pátio e docas</h1>
+    <div class="titulo-tela"><h1>Pátio e docas</h1><BotaoPermissoes /></div>
     <div class="acoes filtros-inline">
       <SeletorDestino v-model="destino" input-id="pcd" :todos="false" />
       <div class="campo"><label for="pd">Data</label><DatePicker v-model="data" input-id="pd" date-format="dd/mm/yy" show-icon icon-display="input" /></div>

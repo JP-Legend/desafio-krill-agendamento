@@ -15,7 +15,7 @@ export const routes = [
   { path: '/painel', name: 'painel', component: () => import('./views/PainelView.vue'), meta: { permissao: 1101, titulo: 'Ocupação da semana' } },
   { path: '/agendamentos', name: 'agendamentos', component: () => import('./views/AgendamentosView.vue'), meta: { permissao: 1102, titulo: 'Agendamentos' } },
   { path: '/agendamentos/novo', name: 'novo', component: () => import('./views/NovoAgendamentoView.vue'), meta: { permissao: 1103, titulo: 'Novo agendamento' } },
-  { path: '/agendamentos/:id(\\d+)', name: 'detalhe', component: () => import('./views/AgendamentosView.vue'), meta: { permissao: 1102, titulo: 'Agendamentos' } },
+  { path: '/agendamentos/:id(\\d+)', name: 'detalhe', redirect: (to) => ({ path: '/agendamentos', query: { ...to.query, id: to.params.id } }) },
   { path: '/relatorio', name: 'relatorio', component: () => import('./views/RelatorioView.vue'), meta: { permissao: 1106, titulo: 'Relatório' } },
   { path: '/cadastros/capacidade', redirect: '/cadastros/capacidade-recebimento' },
   { path: '/cadastros/faixas', redirect: '/cadastros/capacidade-recebimento' },

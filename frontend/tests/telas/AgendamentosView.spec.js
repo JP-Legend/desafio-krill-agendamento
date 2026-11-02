@@ -42,7 +42,7 @@ describe('AgendamentosView', () => {
   it('abre o detalhe pela rota; USUARIO não vê ações', async () => {
     logar('USUARIO')
     simularApi(base())
-    const { w } = await montar(AgendamentosView, { rota: '/agendamentos/1' })
+    const { w } = await montar(AgendamentosView, { rota: '/agendamentos?id=1' })
     expect(w.text()).toContain('Agendamento #1')
     expect(botao(w, 'Cancelar agendamento')).toBeUndefined()
     expect(botao(w, 'Remarcar')).toBeUndefined()
@@ -51,7 +51,7 @@ describe('AgendamentosView', () => {
   it('ADMIN cancela exigindo motivo', async () => {
     logar('ADMIN')
     const api = simularApi(base({ 'PATCH /agendamentos/1/cancelamento': (r) => ag(1, 'CANCELADO', { motivoCancelamento: r.corpo.motivo }) }))
-    const { w } = await montar(AgendamentosView, { rota: '/agendamentos/1' })
+    const { w } = await montar(AgendamentosView, { rota: '/agendamentos?id=1' })
     await botao(w, 'Cancelar agendamento').trigger('click')
     await botao(w, 'Confirmar cancelamento').trigger('click')
     await flushPromises()
@@ -65,7 +65,7 @@ describe('AgendamentosView', () => {
   it('ADMIN registra chegada com placa', async () => {
     logar('ADMIN')
     const api = simularApi(base({ 'PATCH /agendamentos/1/status': ag(1, 'CHEGOU', { placa: 'ABC1D23' }), 'GET /agendamentos/1/notas': [] }))
-    const { w } = await montar(AgendamentosView, { rota: '/agendamentos/1' })
+    const { w } = await montar(AgendamentosView, { rota: '/agendamentos?id=1' })
     await botao(w, 'Registrar chegada').trigger('click')
     await flushPromises()
     // mesmo formulário da Portaria (campos do Gestão CD)
@@ -83,7 +83,7 @@ describe('AgendamentosView', () => {
   it('ADMIN remarca escolhendo dia e faixa (faixa cheia continua permitida ao CD)', async () => {
     logar('ADMIN')
     const api = simularApi(base({ 'PATCH /agendamentos/1/data': (r) => ({ agendamento: ag(1, 'AGENDADO', { data: r.corpo.data, faixaHorariaId: r.corpo.faixaHorariaId }), alertas: [{ mensagem: 'Faixa excedida' }] }) }))
-    const { w } = await montar(AgendamentosView, { rota: '/agendamentos/1' })
+    const { w } = await montar(AgendamentosView, { rota: '/agendamentos?id=1' })
     await botao(w, 'Remarcar').trigger('click')
     await flushPromises()
     const amanha = somarDias(hoje(), 1)
@@ -100,7 +100,7 @@ describe('AgendamentosView', () => {
   it('recebido mostra divergência e o painel de NF-e', async () => {
     logar('ADMIN')
     simularApi(base())
-    const { w } = await montar(AgendamentosView, { rota: '/agendamentos/3' })
+    const { w } = await montar(AgendamentosView, { rota: '/agendamentos?id=3' })
     expect(w.text()).toContain('faltou 1')
     expect(w.text()).toContain('Notas fiscais (XML)')
   })
@@ -108,8 +108,24 @@ describe('AgendamentosView', () => {
   it('agendamento inexistente volta para a lista', async () => {
     logar('ADMIN')
     simularApi(base({ 'GET /agendamentos/77': erroHttp(404, 'Agendamento não encontrado') }))
-    const { router } = await montar(AgendamentosView, { rota: '/agendamentos/77' })
+    const { router } = await montar(AgendamentosView, { rota: '/agendamentos?id=77' })
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/agendamentos')
+    expect(router.currentRoute.value.query.id).toBeUndefined()
+  })
+
+  it('fechar o detalhe tira o id da URL e a aba não reabre o modal ao voltar', async () => {
+    logar('ADMIN')
+    simularApi(base())
+    const { w, router } = await montar(AgendamentosView, { rota: '/agendamentos?id=1' })
+    expect(w.text()).toContain('Agendamento #1')
+    await w.find('.p-dialog-close-button').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.query.id).toBeUndefined()
+    expect(w.text()).not.toContain('Agendamento #1')
+    await router.push('/portaria')
+    await router.push('/agendamentos')
+    await flushPromises()
+    expect(w.text()).not.toContain('Agendamento #1')
   })
 })

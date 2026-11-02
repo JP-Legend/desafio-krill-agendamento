@@ -151,7 +151,7 @@ onMounted(carregar)
 
 <template>
   <div class="cabecalho">
-    <h1>Usuários</h1>
+    <div class="titulo-tela"><h1>Usuários</h1><BotaoPermissoes /></div>
     <div class="acoes"><Button v-if="editar" label="Novo usuário" icon="pi pi-plus" class="btn-confirmar" @click="abrir(null)" /></div>
   </div>
   <section class="painel filtros">
@@ -215,11 +215,12 @@ onMounted(carregar)
       </div>
       <div class="campo c12 destinos-usuario">
         <label for="u-todos">CDs e lojas que o usuário vê</label>
-        <div class="linha-toggle"><ToggleSwitch v-model="form.todosDestinos" input-id="u-todos" /><span>{{ form.todosDestinos ? 'Todos os destinos' : 'Somente os escolhidos' }}</span></div>
-        <template v-if="!form.todosDestinos">
+        <div class="linha-toggle"><ToggleSwitch :model-value="form.todosDestinos === false" input-id="u-todos" @update:model-value="(v) => { form.todosDestinos = !v }" /><span>Somente os escolhidos</span></div>
+        <template v-if="form.todosDestinos === false">
           <MultiSelect v-model="form.cds" input-id="u-cds" :options="cdsDisp" :option-label="(c) => `CD ${c.codigo} · ${c.nome}`" option-value="id" placeholder="CDs" display="chip" aria-label="CDs do usuário" />
           <MultiSelect v-model="form.lojas" input-id="u-lojas" :options="lojasDisp.map((l) => l.nome)" placeholder="Lojas" display="chip" filter aria-label="Lojas do usuário" />
         </template>
+        <span v-else class="dica">Vê todos os CDs e lojas</span>
         <span v-if="erros.destinos" class="erro">{{ erros.destinos }}</span>
       </div>
       <div class="campo c6"><label for="u-ativo">Ativo</label><ToggleSwitch v-model="form.ativo" input-id="u-ativo" :disabled="form.login === sessao.atual?.usuario" /></div>

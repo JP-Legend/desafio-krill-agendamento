@@ -70,7 +70,7 @@ defineExpose({ destino })
 </script>
 
 <template>
-  <div class="cabecalho"><h1>Links de agendamento</h1></div>
+  <div class="cabecalho"><div class="titulo-tela"><h1>Links de agendamento</h1><BotaoPermissoes /></div></div>
   <form class="painel filtros" @submit.prevent="pedirGerar">
     <div class="campo campo-destino"><label for="la-destino">CD ou loja</label><Select v-model="destino" input-id="la-destino" :options="opcoes" option-label="label" option-value="value" /></div>
     <Button type="submit" label="Gerar / regenerar link" icon="pi pi-link" class="btn-confirmar" :disabled="!destinos.length" />

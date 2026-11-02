@@ -158,7 +158,7 @@ defineExpose({ abrir, linhas })
 </script>
 
 <template>
-  <div class="cabecalho"><h1>Capacidade e calendário</h1></div>
+  <div class="cabecalho"><div class="titulo-tela"><h1>Capacidade e calendário</h1><BotaoPermissoes /></div></div>
 
   <section class="painel">
     <div class="titulo-secao"><h2>Padrão geral</h2></div>

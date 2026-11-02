@@ -167,8 +167,15 @@ async function abrir(id) {
     detalhe.value = await api(`/agendamentos/${id}`)
   } catch (e) {
     notificar.erro(e)
-    router.replace('/agendamentos')
+    limparIdDaRota()
   }
+}
+
+/** O detalhe abre uma vez por ação (?id=N); ao fechar o id sai da URL para a aba não reabrir o modal. */
+function limparIdDaRota() {
+  if (route.path !== '/agendamentos' || !route.query.id) return
+  const { id, ...resto } = route.query
+  router.replace({ path: '/agendamentos', query: resto })
 }
 
 function fechar() {
@@ -179,7 +186,7 @@ function fechar() {
   link.value = ''
   motivo.value = ''
   erroMotivo.value = ''
-  if (route.params.id) router.replace('/agendamentos')
+  limparIdDaRota()
 }
 
 function confirmarCancelamento() {
@@ -199,16 +206,16 @@ function confirmarCancelamento() {
   })
 }
 
-watch(() => route.params.id, (id) => { if (id) abrir(id) })
+watch(() => route.query.id, (id) => { if (id && route.path === '/agendamentos') abrir(id) })
 onMounted(() => {
   buscar()
-  if (route.params.id) abrir(route.params.id)
+  if (route.query.id) abrir(route.query.id)
 })
 </script>
 
 <template>
   <div class="cabecalho">
-    <h1>Agendamentos</h1>
+    <div class="titulo-tela"><h1>Agendamentos</h1><BotaoPermissoes /></div>
     <div class="acoes">
       <Button v-if="pode(1103)" label="Novo agendamento" icon="pi pi-plus" class="btn-confirmar" @click="router.push('/agendamentos/novo')" />
     </div>
