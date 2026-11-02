@@ -14,6 +14,11 @@
   --gc-blue-700: #0b63b5;          /* azul do sistema (primário, links) */
   --gc-red-600: #d71920;
   --gc-yellow-400: #ffd21f;
+  /* menu do usuário do Gestão CD (base.html .user-trigger / .user-dropdown) */
+  --gc-user-borda: rgba(255, 255, 255, .22);
+  --gc-user-linha: #d7e0eb;
+  --gc-user-hover: #eef5fc;
+  --gc-user-sombra: 0 14px 34px rgba(6, 29, 55, .08);
   --gc-ok: #148a42;
 
   /* azul-marinho Krill em produção (index.ts "Tema: topbar em azul-marinho da marca"; amostrado no print do app: #1e3a8a) */

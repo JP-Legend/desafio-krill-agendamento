@@ -14,8 +14,8 @@ import AbasMdi from './components/AbasMdi.vue'
 const route = useRoute()
 const router = useRouter()
 const menuUsuario = ref(false)
-const iniciais = computed(() => (sessao.atual?.nome || sessao.atual?.usuario || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase())
-const primeiroNome = computed(() => (sessao.atual?.nome || sessao.atual?.usuario || '').split(/\s+/)[0])
+/** Inicial do nome completo, como o data-initials do Gestão CD; o rótulo é o login. */
+const inicial = computed(() => (sessao.atual?.nome || sessao.atual?.usuario || '?').trim().charAt(0).toUpperCase())
 const fecharMenuUsuario = () => { menuUsuario.value = false }
 watch(() => route.fullPath, () => { if (logado.value) abrirAba(route) }, { immediate: true })
 const notificar = useNotificar()
@@ -87,17 +87,15 @@ async function sair() {
       <BuscaTopo />
       <SinoAvisos v-if="pode(1102)" />
       <div class="user-menu" :class="{ aberto: menuUsuario }">
-        <button type="button" class="user-trigger" aria-haspopup="true" :aria-expanded="menuUsuario" :title="`${sessao.atual?.nome} · ${sessao.atual?.perfil}`" @click.stop="abrirMenuUsuario">
-          <span class="user-avatar">{{ iniciais }}</span>
-          <span class="user-nome">{{ sessao.atual?.nome }}</span>
-          <span class="user-nome-curto">{{ primeiroNome }}</span>
-          <i class="pi pi-angle-down" />
+        <button type="button" class="user-trigger" aria-haspopup="true" :aria-expanded="menuUsuario" :title="sessao.atual?.nome" @click.stop="abrirMenuUsuario">
+          <span class="user-avatar" aria-hidden="true">{{ inicial }}</span>
+          <span class="user-trigger-label">{{ sessao.atual?.usuario }}</span>
+          <span class="user-caret" aria-hidden="true">▾</span>
         </button>
         <div v-if="menuUsuario" class="user-dropdown" role="menu" @click="menuUsuario = false">
-          <p class="user-perfil">{{ sessao.atual?.perfil }}</p>
-          <button v-if="pushSuportado()" type="button" role="menuitem" @click="alternarPush">{{ pushAtivo ? 'Desativar notificações' : 'Ativar notificações' }}<span>›</span></button>
-          <RouterLink to="/trocar-senha" role="menuitem">Trocar senha<span>›</span></RouterLink>
-          <button type="button" class="sair" role="menuitem" @click="sair">Sair<span>›</span></button>
+          <button v-if="pushSuportado()" type="button" role="menuitem" @click="alternarPush">{{ pushAtivo ? 'Desativar notificações' : 'Ativar notificações' }}<span>&gt;</span></button>
+          <RouterLink to="/trocar-senha" role="menuitem">Trocar senha<span>&gt;</span></RouterLink>
+          <button type="button" class="sair" role="menuitem" @click="sair">Sair<span>&gt;</span></button>
         </div>
       </div>
       </div>
