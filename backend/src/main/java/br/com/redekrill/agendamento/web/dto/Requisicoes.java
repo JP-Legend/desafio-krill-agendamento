@@ -133,7 +133,8 @@ public final class Requisicoes {
             @Min(0) @Max(10000) Integer paletesRecebidos,
             @Size(max = 255) String divergencia,
             @Size(max = 255) String motivo,
-            @Schema(description = "Hora da chegada na portaria (vazio = agora)", example = "08:15") java.time.LocalTime horaChegada) {
+            @Schema(description = "Hora da chegada na portaria (vazio = agora)", example = "08:15") java.time.LocalTime horaChegada,
+            @Size(max = 80) String transportadora, @Size(max = 40) String tipoVeiculo, @Min(0) @Max(10000) Integer paletesChegada) {
     }
 
     public record VeiculoFornecedor(@Size(max = 8) @Schema(example = "ABC1D23") String placa,

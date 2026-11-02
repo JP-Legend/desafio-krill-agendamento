@@ -1,4 +1,5 @@
 <script setup>
+import RegistroChegada from '../components/RegistroChegada.vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
@@ -71,9 +72,23 @@ const acoes = computed(() => {
   if (s === 'EM_RECEBIMENTO') r.push({ k: 'CONCLUIR', label: 'Concluir recebimento', icon: 'pi pi-check-square' })
   return r
 })
+const acoesPerigo = computed(() => acoes.value.filter((a) => a.excluir))
+/** Ação principal (verde) fica por último, à direita; as demais são secundárias. */
+const acoesNormais = computed(() => { const n = acoes.value.filter((a) => !a.excluir); const k = n.findIndex((a) => a.k === 'CHEGADA'); return k >= 0 ? [...n.slice(0, k), ...n.slice(k + 1), n[k]] : n })
+const principal = computed(() => acoesNormais.value.at(-1)?.k)
 const TITULOS = { CONFIRMAR: 'Confirmar agendamento', CHEGADA: 'Chegada na portaria', INICIAR: 'Início da conferência', CONCLUIR: 'Conclusão do recebimento', NAO_COMPARECEU: 'Registrar não comparecimento' }
 
+/** Chegada: o mesmo formulário da Portaria (campos do Gestão CD). */
+const chegadaAberta = ref(false)
+const cartaoChegada = computed(() => detalhe.value && { agendamentoId: detalhe.value.id, fornecedor: detalhe.value.fornecedor, idPedido: detalhe.value.idPedido,
+  faixa: detalhe.value.faixaHoraria, placa: detalhe.value.placa, motorista: detalhe.value.motorista, tipoCaminhao: detalhe.value.tipoCaminhao,
+  paletes: detalhe.value.quantidadePaletes, transportadora: detalhe.value.transportadora })
+async function aposChegada() {
+  try { detalhe.value = await api(`/agendamentos/${detalhe.value.id}`) } catch { /* lista recarrega */ }
+  buscar()
+}
 function prepararAcao(k) {
+  if (k === 'CHEGADA') { chegadaAberta.value = true; return }
   acao.value = k
   op.placa = detalhe.value.placa || ''
   op.motorista = detalhe.value.motorista || ''
@@ -294,23 +309,32 @@ onMounted(() => {
       </div>
     </template>
     <template #footer>
-      <template v-if="detalhe && !acao && !cancelando && !remarcando">
-        <Button v-for="a in (pode(1204) ? acoes : [])" :key="a.k" :label="a.label" :icon="a.icon" :class="a.excluir ? 'btn-excluir' : 'btn-confirmar'" @click="prepararAcao(a.k)" />
-        <Button v-if="podeRemarcar && pode(1104)" label="Remarcar" icon="pi pi-calendar" class="btn-secundario" @click="abrirRemarcar" />
-        <Button v-if="pode(1105) && ['AGENDADO', 'CONFIRMADO'].includes(detalhe.status)" label="Link do fornecedor" icon="pi pi-link" class="btn-secundario" :disabled="enviando" @click="gerarLink" />
-        <WhatsAppAviso v-if="['AGENDADO', 'CONFIRMADO'].includes(detalhe.status)" documento="agendamentos" :id="detalhe.id" :admin="pode(1105)" />
-        <Button v-if="pode(1302) && ['CHEGOU', 'EM_RECEBIMENTO', 'RECEBIDO'].includes(detalhe.status)" label="Emitir vale-palete" icon="pi pi-ticket" class="btn-secundario" @click="router.push({ path: '/vales-palete/novo', query: { agendamento: detalhe.id } })" />
-      </template>
-      <template v-if="detalhe && pode(1104) && podeCancelar && !acao && !remarcando">
-        <template v-if="cancelando">
-          <Button label="Voltar" class="btn-secundario" :disabled="enviando" @click="cancelando = false" />
-          <Button label="Confirmar cancelamento" icon="pi pi-times" class="btn-excluir" :loading="enviando" :disabled="enviando" @click="confirmarCancelamento" />
-        </template>
-        <Button v-else label="Cancelar agendamento" icon="pi pi-times" class="btn-excluir" @click="cancelando = true" />
-      </template>
-      <Button v-if="!cancelando && !acao && !remarcando" label="Fechar" class="btn-secundario" @click="fechar" />
+      <div v-if="detalhe && !acao && !remarcando" class="rodape-acoes">
+        <div class="rodape-perigo">
+          <template v-if="!cancelando">
+            <Button v-for="a in (pode(1204) ? acoesPerigo : [])" :key="a.k" :label="a.label" :icon="a.icon" class="btn-excluir" @click="prepararAcao(a.k)" />
+            <Button v-if="pode(1104) && podeCancelar" label="Cancelar agendamento" icon="pi pi-times" class="btn-excluir" @click="cancelando = true" />
+          </template>
+        </div>
+        <div class="rodape-principal">
+          <template v-if="cancelando">
+            <Button label="Voltar" class="btn-secundario" :disabled="enviando" @click="cancelando = false" />
+            <Button label="Confirmar cancelamento" icon="pi pi-times" class="btn-excluir" :loading="enviando" :disabled="enviando" @click="confirmarCancelamento" />
+          </template>
+          <template v-else>
+            <Button v-for="a in (pode(1204) ? acoesNormais : [])" :key="a.k" :label="a.label" :icon="a.icon" :class="a.k === principal ? 'btn-confirmar' : 'btn-secundario'" @click="prepararAcao(a.k)" />
+          </template>
+        </div>
+        <div v-if="!cancelando" class="rodape-secundarias">
+            <Button v-if="podeRemarcar && pode(1104)" label="Remarcar" icon="pi pi-calendar" class="btn-secundario" @click="abrirRemarcar" />
+            <Button v-if="pode(1105) && ['AGENDADO', 'CONFIRMADO'].includes(detalhe.status)" label="Link do fornecedor" icon="pi pi-link" class="btn-secundario" :disabled="enviando" @click="gerarLink" />
+            <WhatsAppAviso v-if="['AGENDADO', 'CONFIRMADO'].includes(detalhe.status)" documento="agendamentos" :id="detalhe.id" :admin="pode(1105)" />
+            <Button v-if="pode(1302) && ['CHEGOU', 'EM_RECEBIMENTO', 'RECEBIDO'].includes(detalhe.status)" label="Emitir vale-palete" icon="pi pi-ticket" class="btn-secundario" @click="router.push({ path: '/vales-palete/novo', query: { agendamento: detalhe.id } })" />
+        </div>
+      </div>
     </template>
   </Dialog>
+  <RegistroChegada v-model:visivel="chegadaAberta" :cartao="cartaoChegada" @registrado="aposChegada" />
 </template>
 
 <style scoped>

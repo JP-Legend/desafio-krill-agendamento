@@ -3,6 +3,7 @@ import { pode } from './sessao'
 /** Menu único do sistema: a grade da tela inicial e o menu lateral usam estes grupos; cada tela aparece uma vez. */
 export const CENTRAIS = {
   Agendamentos: { sigla: 'AGE', titulo: 'Agendamentos', icone: 'pi pi-calendar' },
+  Portaria: { sigla: 'POR', titulo: 'Portaria', icone: 'pi pi-car' },
   Recebimento: { sigla: 'REC', titulo: 'Recebimento', icone: 'pi pi-clipboard' },
   Paletes: { sigla: 'PAL', titulo: 'Paletes', icone: 'pi pi-box' },
   Cadastros: { sigla: 'CAD', titulo: 'Cadastros', icone: 'pi pi-database' },
@@ -22,9 +23,12 @@ const GRUPOS = [
     ]
   },
   {
+    grupo: 'Portaria',
+    itens: [{ to: '/portaria', label: 'Portaria', icon: 'pi pi-car', p: 1208 }]
+  },
+  {
     grupo: 'Recebimento',
     itens: [
-      { to: '/portaria', label: 'Portaria', icon: 'pi pi-car', p: 1208 },
       { to: '/patio', label: 'Pátio e docas', icon: 'pi pi-truck', p: 1205 },
       { to: '/divergencias', label: 'Divergências', icon: 'pi pi-exclamation-triangle', p: 1202 },
       { to: '/relatorios/descarga', label: 'Tempos de descarga', icon: 'pi pi-stopwatch', p: 1203 }

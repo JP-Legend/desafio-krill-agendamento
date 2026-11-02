@@ -18,16 +18,17 @@ const botao = (w, texto) => w.findAll('button').find((b) => b.text().includes(te
 const aviso = (id, titulo, mensagem, lido = false) => ({ aviso: { id, titulo, mensagem, url: '/portaria', criadoEm: '2026-11-02T12:00:00Z' }, lido })
 
 describe('grade da home sem buracos', () => {
-  it('usuário comum: os três grupos se dividem em 2 + 1', async () => {
+  it('usuário comum: os quatro grupos se dividem em 2 + 2', async () => {
     logar('USUARIO')
     simularApi({ 'GET /dashboard': { __erro: true, status: 500, corpo: {} } })
     const { w } = await montar(InicioView)
-    expect(w.findAll('.centrais-coluna').map((c) => c.findAll('.central-card').length)).toEqual([2, 1])
+    expect(w.findAll('.centrais-coluna').map((c) => c.findAll('.central-card').length)).toEqual([2, 2])
   })
 
-  it('portaria fica no grupo Recebimento e cada tela aparece uma vez', () => {
+  it('portaria tem grupo próprio e cada tela aparece uma vez', () => {
     const m = menuItens(() => true)
-    expect(m.find((g) => g.grupo === 'Recebimento').itens.map((i) => i.to)).toEqual(['/portaria', '/patio', '/divergencias', '/relatorios/descarga'])
+    expect(m.find((g) => g.grupo === 'Portaria').itens.map((i) => i.to)).toEqual(['/portaria'])
+    expect(m.find((g) => g.grupo === 'Recebimento').itens.map((i) => i.to)).toEqual(['/patio', '/divergencias', '/relatorios/descarga'])
     const rotas = m.flatMap((g) => g.itens.map((i) => i.to))
     expect(rotas.filter((r) => r === '/portaria')).toHaveLength(1)
     expect(menuItens((c) => PERMISSOES.USUARIO.includes(c)).flatMap((g) => g.itens.map((i) => i.to))).toContain('/portaria')
@@ -123,12 +124,12 @@ describe('portaria', () => {
     expect(w.text()).toContain('Saíram')
     await botao(w, 'Registrar chegada').trigger('click')
     await flushPromises()
-    const hora = document.querySelector('#chh')
+    const hora = document.querySelector('#rc-h')
     hora.value = '08:15'
     hora.dispatchEvent(new Event('input'))
-    await botao(w, 'Confirmar chegada').trigger('click')
+    await botao(w, 'Chegou').trigger('click')
     await flushPromises()
-    expect(api.ultima('PATCH /agendamentos/1/status').corpo).toEqual({ acao: 'CHEGADA', placa: 'ABC1D23', motorista: 'João', horaChegada: '08:15' })
+    expect(api.ultima('PATCH /agendamentos/1/status').corpo).toMatchObject({ acao: 'CHEGADA', placa: 'ABC1D23', motorista: 'João', horaChegada: '08:15', tipoVeiculo: 'Truck Sider' })
     expect(document.body.textContent).toContain('Todos foram avisados')
 
     const sel = w.findAllComponents({ name: 'Select' }).find((s) => s.props('placeholder') === 'Encaminhar à doca')

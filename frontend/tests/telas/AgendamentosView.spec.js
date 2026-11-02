@@ -67,10 +67,17 @@ describe('AgendamentosView', () => {
     const api = simularApi(base({ 'PATCH /agendamentos/1/status': ag(1, 'CHEGOU', { placa: 'ABC1D23' }), 'GET /agendamentos/1/notas': [] }))
     const { w } = await montar(AgendamentosView, { rota: '/agendamentos/1' })
     await botao(w, 'Registrar chegada').trigger('click')
-    await w.find('#op-placa').setValue('abc1d23')
-    await w.find('form.acao-op').trigger('submit')
     await flushPromises()
-    expect(api.ultima('PATCH /agendamentos/1/status').corpo).toMatchObject({ acao: 'CHEGADA' })
+    // mesmo formulário da Portaria (campos do Gestão CD)
+    const placa = document.querySelector('#rc-pl')
+    placa.value = 'abc1d23'
+    placa.dispatchEvent(new Event('input'))
+    placa.dispatchEvent(new Event('blur'))
+    w.findAllComponents({ name: 'Select' }).find((c) => c.props('inputId') === 'rc-vei').vm.$emit('update:modelValue', 'Toco')
+    await flushPromises()
+    await botao(w, 'Chegou').trigger('click')
+    await flushPromises()
+    expect(api.ultima('PATCH /agendamentos/1/status').corpo).toMatchObject({ acao: 'CHEGADA', placa: 'ABC1D23', tipoVeiculo: 'Toco' })
   })
 
   it('ADMIN remarca escolhendo dia e faixa (faixa cheia continua permitida ao CD)', async () => {

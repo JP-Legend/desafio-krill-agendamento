@@ -11,9 +11,9 @@ describe('InicioView e menu único', () => {
     simularApi({ 'GET /dashboard': erroHttp(500, 'fora') })
     const { w } = await montar(InicioView)
     expect(w.find('h1').text()).toContain('Hoje')
-    expect(w.findAll('.centrais-coluna').map((c) => c.findAll('.central-card').length)).toEqual([3, 2])
+    expect(w.findAll('.centrais-coluna').map((c) => c.findAll('.central-card').length)).toEqual([3, 3])
     const cards = w.findAll('.central-card')
-    expect(cards.map((c) => c.find('.eyebrow').text())).toEqual(['AGE', 'REC', 'PAL', 'CAD', 'ADM'])
+    expect(cards.map((c) => c.find('.eyebrow').text())).toEqual(['AGE', 'POR', 'REC', 'PAL', 'CAD', 'ADM'])
     await cards[0].find('button').trigger('click')
     expect(cards[0].text()).toContain('Novo agendamento')
     await cards[2].find('button').trigger('click')
@@ -22,9 +22,9 @@ describe('InicioView e menu único', () => {
   })
 
 
-  it('admin vê os cinco grupos, cada tela uma vez só', () => {
+  it('admin vê os seis grupos, cada tela uma vez só', () => {
     const m = menuItens(() => true)
-    expect(m.map((g) => g.grupo)).toEqual(['Agendamentos', 'Recebimento', 'Paletes', 'Cadastros', 'Acessos e auditoria'])
+    expect(m.map((g) => g.grupo)).toEqual(['Agendamentos', 'Portaria', 'Recebimento', 'Paletes', 'Cadastros', 'Acessos e auditoria'])
     expect(m[0].itens.map((i) => i.label)).toEqual(['Ocupação da semana', 'Agendamentos', 'Novo agendamento', 'Links de agendamento', 'Relatório'])
     const rotas = m.flatMap((g) => g.itens.map((i) => i.to))
     expect(new Set(rotas).size).toBe(rotas.length)

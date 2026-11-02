@@ -27,7 +27,12 @@ public class RecebimentoUseCase {
     public enum Acao { CONFIRMAR, CHEGADA, INICIAR, CONCLUIR, NAO_COMPARECEU }
 
     public record Comando(Acao acao, String placa, String motorista, String conferente, Integer paletesRecebidos,
-                          String divergencia, String motivo, LocalTime horaChegada) {
+                          String divergencia, String motivo, LocalTime horaChegada,
+                          String transportadora, String tipoVeiculo, Integer paletesChegada) {
+        public Comando(Acao acao, String placa, String motorista, String conferente, Integer paletesRecebidos,
+                       String divergencia, String motivo, LocalTime horaChegada) {
+            this(acao, placa, motorista, conferente, paletesRecebidos, divergencia, motivo, horaChegada, null, null, null);
+        }
         public Comando(Acao acao, String placa, String motorista, String conferente, Integer paletesRecebidos,
                        String divergencia, String motivo) {
             this(acao, placa, motorista, conferente, paletesRecebidos, divergencia, motivo, null);
@@ -82,6 +87,16 @@ public class RecebimentoUseCase {
             det.put("de", antes);
             det.put("para", salvo.getStatus().name());
             if (salvo.getPlaca() != null) det.put("placa", salvo.getPlaca());
+            if (cmd.acao() == Acao.CHEGADA) {
+                // campos da chegada como na portaria do Gestão CD (sem notas fiscais)
+                if (cmd.transportadora() != null && !cmd.transportadora().isBlank()) {
+                    agendamentoUseCase.definirTransportadora(id, cmd.transportadora().trim());
+                    det.put("transportadora", cmd.transportadora().trim());
+                }
+                if (cmd.tipoVeiculo() != null && !cmd.tipoVeiculo().isBlank()) det.put("tipoVeiculo", cmd.tipoVeiculo().trim());
+                if (cmd.paletesChegada() != null) det.put("paletesChegada", cmd.paletesChegada());
+                if (salvo.getMotorista() != null) det.put("motorista", salvo.getMotorista());
+            }
             if (cmd.acao() == Acao.CONCLUIR) {
                 det.put("paletesRecebidos", salvo.getPaletesRecebidos());
                 if (salvo.divergente()) det.put("divergencia", salvo.getDivergencia());
@@ -92,7 +107,8 @@ public class RecebimentoUseCase {
         Agendamento a = d.agendamento();
         if (cmd.acao() == Acao.CHEGADA) {
             String hora = a.getChegadaEm() == null ? "" : " · chegou às " + a.getChegadaEm().atZoneSameInstant(clock.getZone()).format(HORA);
-            push.notificarDestino("Caminhão na portaria", a.getFornecedor() + " · placa " + a.getPlaca() + hora, "/portaria",
+            String veiculo = cmd.tipoVeiculo() == null || cmd.tipoVeiculo().isBlank() ? "" : " · " + cmd.tipoVeiculo().trim();
+            push.notificarDestino("Caminhão na portaria", a.getFornecedor() + " · placa " + a.getPlaca() + veiculo + hora, "/portaria",
                     a.getCdId(), agendamentoUseCase.lojaDe(id));
         } else if (cmd.acao() == Acao.CONCLUIR && a.divergente()) {
             push.notificarDestino("Recebimento com divergência", a.getFornecedor() + " · " + a.getDivergencia(), "/agendamentos/" + id,

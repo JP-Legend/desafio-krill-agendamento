@@ -174,7 +174,7 @@ defineExpose({ abrir, confirmar, dlg, erro })
     </form>
     <template #footer>
       <Button label="Voltar" class="btn-secundario" :disabled="enviando" @click="dlg.tipo = null" />
-      <Button :label="dlg.tipo === 'cancelar' ? 'Cancelar cobrança' : 'Confirmar'" :class="dlg.tipo === 'cancelar' ? 'btn-excluir' : 'btn-confirmar'" icon="pi pi-check" :loading="enviando" :disabled="enviando" @click="confirmar" />
+      <Button :label="dlg.tipo === 'cancelar' ? 'Cancelar cobrança' : 'Confirmar'" :class="dlg.tipo === 'cancelar' ? 'btn-excluir' : 'btn-confirmar'" :icon="dlg.tipo === 'cancelar' ? 'pi pi-times' : 'pi pi-check'" :loading="enviando" :disabled="enviando" @click="confirmar" />
     </template>
   </Dialog>
 </template>

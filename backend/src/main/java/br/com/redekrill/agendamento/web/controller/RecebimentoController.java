@@ -47,7 +47,7 @@ public class RecebimentoController {
     @Operation(summary = "Avança o fluxo: CONFIRMAR, CHEGADA (portaria), INICIAR (conferência), CONCLUIR ou NAO_COMPARECEU")
     public AgendamentoResp acao(@PathVariable Long id, @Valid @RequestBody Requisicoes.AcaoRecebimento b, HttpServletRequest req) {
         return AgendamentoResp.de(recebimento.executar(id, new RecebimentoUseCase.Comando(b.acao(), b.placa(), b.motorista(),
-                b.conferente(), b.paletesRecebidos(), b.divergencia(), b.motivo(), b.horaChegada()), Requisicao.solicitante(req)));
+                b.conferente(), b.paletesRecebidos(), b.divergencia(), b.motivo(), b.horaChegada(), b.transportadora(), b.tipoVeiculo(), b.paletesChegada()), Requisicao.solicitante(req)));
     }
 
     @PostMapping("/agendamentos/{id}/link-fornecedor")

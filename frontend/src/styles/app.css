@@ -386,3 +386,23 @@ pre.json { background: var(--cor-campo); border-radius: var(--raio); padding: 8p
   .mdi-home { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: var(--raio); color: var(--gc-navy); background: var(--gc-navy-50); text-decoration: none; }
 }
 .espaco { flex: 1; }
+
+/* ---------- rodapé de ações dos modais de detalhe (como no Gestão CD) ----------
+   linha 1: ações secundárias (contorno) · linha 2: destrutivas à esquerda, principal (verde) à direita */
+.rodape-acoes { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 24px; width: 100%; }
+.rodape-secundarias { grid-column: 1 / -1; grid-row: 1; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--gc-border); }
+.rodape-perigo { grid-row: 2; display: flex; gap: 8px; flex-wrap: nowrap; }
+.rodape-principal { grid-row: 2; display: flex; justify-content: flex-end; gap: 8px; }
+.rodape-secundarias:empty { display: none; }
+.rodape-acoes .p-button { white-space: nowrap; height: var(--altura-botao-modal, 36px); padding: 0 14px; font-size: 0.875rem; flex: 0 0 auto; }
+.rodape-acoes .p-button .p-button-label { white-space: nowrap; }
+.p-dialog .p-dialog-close-button { width: 28px; height: 28px; }
+.p-dialog .p-dialog-close-button:focus-visible { outline: 1px solid var(--gc-border-strong); outline-offset: 0; box-shadow: none; }
+.p-dialog .p-dialog-close-button .p-icon { width: 12px; height: 12px; }
+@media (max-width: 640px) {
+  .rodape-acoes { grid-template-columns: minmax(0, 1fr); }
+  .rodape-principal { grid-row: 1; flex-direction: column-reverse; }
+  .rodape-secundarias { grid-row: 2; flex-direction: column; padding-bottom: 0; border-bottom: 0; }
+  .rodape-perigo { grid-row: 3; flex-direction: column; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--gc-border); }
+  .rodape-acoes .p-button { width: 100%; justify-content: center; }
+}

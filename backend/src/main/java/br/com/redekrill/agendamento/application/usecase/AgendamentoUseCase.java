@@ -474,4 +474,11 @@ public class AgendamentoUseCase {
         if (id == null) throw new RegraNegocioException("Tipo de paletização é obrigatório");
         return paletizacoes.buscarPorId(id).orElseThrow(() -> new RecursoNaoEncontradoException("Tipo de paletização", id));
     }
+
+    /** Portaria: transportadora informada na chegada. */
+    public void definirTransportadora(Long id, String transportadora) {
+        if (logistica == null) return;
+        var l = logistica.buscar(id).orElse(br.com.redekrill.agendamento.domain.model.LogisticaAgendamento.vazia(id));
+        logistica.salvar(l.comDados(l.loja(), transportadora, l.modalDescarga()));
+    }
 }

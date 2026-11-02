@@ -1,5 +1,5 @@
 <script setup>
-import CampoHora from '../components/CampoHora.vue'
+import RegistroChegada from '../components/RegistroChegada.vue'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { api } from '../api'
 import { deIso, fmtData, diaSemana, hoje, isoData } from '../utils'
@@ -18,11 +18,10 @@ const data = ref(deIso(hoje()))
 const destino = ref({ cdId: null, loja: null })
 const quadro = ref(null)
 const filtro = ref('')
-const chegada = reactive({ aberto: false, cartao: null, placa: '', motorista: '', hora: '' })
+const chegada = reactive({ aberto: false, cartao: null })
 let timer = null
 
 const hora = (s) => (s ? new Date(s).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '')
-const agoraHora = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 const ehHoje = computed(() => isoData(data.value) === hoje())
 const docasLivres = computed(() => (quadro.value?.docas || []).filter((d) => !d.agendamentoId).map((d) => ({ label: d.doca.nome, value: d.doca.id })))
 const normal = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -46,26 +45,7 @@ async function carregar() {
 }
 
 function abrirChegada(k) {
-  Object.assign(chegada, { aberto: true, cartao: k, placa: k.placa || '', motorista: k.motorista || '', hora: agoraHora() })
-}
-
-function registrarChegada() {
-  const placa = chegada.placa.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-  if (!/^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(placa)) return notificar.aviso('Informe a placa no formato ABC1D23 ou ABC1234')
-  enviar(async () => {
-    try {
-      await api(`/agendamentos/${chegada.cartao.agendamentoId}/status`, {
-        method: 'PATCH',
-        body: { acao: 'CHEGADA', placa, motorista: chegada.motorista.trim() || null, horaChegada: chegada.hora || null }
-      })
-      notificar.sucesso(`${placa} · ${chegada.cartao.fornecedor}. Todos foram avisados.`, 'Chegada registrada')
-      window.dispatchEvent(new Event('krill:avisos'))
-      chegada.aberto = false
-      await carregar()
-    } catch (e) {
-      notificar.erro(e)
-    }
-  })
+  Object.assign(chegada, { aberto: true, cartao: k })
 }
 
 function atribuir(k, docaId) {
@@ -112,7 +92,7 @@ onUnmounted(() => clearInterval(timer))
   </div>
 
   <template v-if="quadro">
-    <p class="texto-suave">{{ diaSemana(quadro.data) }}, {{ fmtData(quadro.data) }} · {{ quadro.indicador.docasOcupadas }} de {{ quadro.indicador.docasAtivas }} docas ocupadas · <RouterLink to="/patio">Pátio e docas</RouterLink></p>
+    <p class="texto-suave">{{ diaSemana(quadro.data) }}, {{ fmtData(quadro.data) }} · {{ quadro.indicador.docasOcupadas }} de {{ quadro.indicador.docasAtivas }} docas ocupadas<template v-if="pode(1205)"> · <RouterLink to="/patio">Pátio e docas</RouterLink></template></p>
     <div class="portaria-resumo">
       <div v-for="e in ETAPAS" :key="e.chave" class="kpi"><span>{{ e.titulo }}</span><strong>{{ e.itens.length }}</strong></div>
     </div>
@@ -121,9 +101,9 @@ onUnmounted(() => clearInterval(timer))
       <section v-for="e in ETAPAS" :key="e.chave" class="painel etapa">
         <div class="painel-titulo"><h2><i :class="e.icone" /> {{ e.titulo }}</h2><Tag :value="String(e.itens.length)" severity="secondary" /></div>
         <p v-if="!e.itens.length" class="texto-suave">Nenhum caminhão</p>
-        <article v-for="k in e.itens" :key="k.agendamentoId" class="veiculo">
+        <article v-for="k in e.itens" :key="k.agendamentoId" class="veiculo" :class="{ tocavel: e.chave === 'previstos' && pode(1204) && ehHoje }" @click="e.chave === 'previstos' && pode(1204) && ehHoje && abrirChegada(k)">
           <header>
-            <RouterLink :to="`/agendamentos/${k.agendamentoId}`" class="placa">{{ k.placa || 'Sem placa' }}</RouterLink>
+            <RouterLink :to="`/agendamentos/${k.agendamentoId}`" class="placa" @click.stop>{{ k.placa || 'Sem placa' }}</RouterLink>
             <span class="faixa">{{ k.faixa }}</span>
           </header>
           <strong class="fornecedor">{{ k.fornecedor }}</strong>
@@ -133,7 +113,7 @@ onUnmounted(() => clearInterval(timer))
           <span v-if="k.chegadaEm" class="suave">Chegou às {{ hora(k.chegadaEm) }}<template v-if="k.docaEm"> · doca às {{ hora(k.docaEm) }}</template><template v-if="k.saidaEm"> · saiu às {{ hora(k.saidaEm) }}</template></span>
           <span v-if="e.chave === 'doca'" class="suave">{{ k.codigoStatus === 'EM_RECEBIMENTO' ? 'Em conferência' : 'Aguardando conferência' }}<template v-if="k.doca"> · <Tag :value="k.doca" /></template></span>
           <div class="acoes-veiculo">
-            <Button v-if="e.chave === 'previstos' && pode(1204) && ehHoje" label="Registrar chegada" icon="pi pi-check" class="btn-confirmar" :disabled="enviando" @click="abrirChegada(k)" />
+            <Button v-if="e.chave === 'previstos' && pode(1204) && ehHoje" label="Registrar chegada" icon="pi pi-truck" class="btn-confirmar" :disabled="enviando" @click.stop="abrirChegada(k)" />
             <Select v-if="e.chave === 'patio' && pode(1206)" :options="docasLivres" option-label="label" option-value="value" placeholder="Encaminhar à doca"
                     :disabled="enviando || !docasLivres.length" :aria-label="`Encaminhar ${k.placa || k.fornecedor} à doca`" @change="(ev) => atribuir(k, ev.value)" />
             <Button v-if="e.chave === 'saida' && pode(1204)" label="Registrar saída" icon="pi pi-sign-out" class="btn-confirmar" :disabled="enviando" @click="registrarSaida(k)" />
@@ -143,19 +123,7 @@ onUnmounted(() => clearInterval(timer))
     </div>
   </template>
 
-  <Dialog v-model:visible="chegada.aberto" modal header="Registrar chegada" :style="{ width: '440px' }" :breakpoints="{ '560px': '96vw' }">
-    <form v-if="chegada.cartao" class="grade" novalidate @submit.prevent="registrarChegada">
-      <p class="campo c12"><strong>{{ chegada.cartao.fornecedor }}</strong><span class="texto-suave">Pedido {{ chegada.cartao.idPedido }} · faixa {{ chegada.cartao.faixa }}</span></p>
-      <div class="campo c6"><label for="chp">Placa <span class="obrig">*</span></label><InputText id="chp" v-model="chegada.placa" maxlength="8" autocapitalize="characters" autocomplete="off" /></div>
-      <div class="campo c6"><label for="chh">Hora de chegada</label><CampoHora id="chh" v-model="chegada.hora" /></div>
-      <div class="campo c12"><label for="chm">Motorista</label><InputText id="chm" v-model="chegada.motorista" maxlength="80" autocomplete="off" /></div>
-      <button type="submit" hidden />
-    </form>
-    <template #footer>
-      <Button label="Cancelar" class="btn-secundario" :disabled="enviando" @click="chegada.aberto = false" />
-      <Button label="Confirmar chegada" icon="pi pi-check" class="btn-confirmar" :loading="enviando" @click="registrarChegada" />
-    </template>
-  </Dialog>
+  <RegistroChegada v-model:visivel="chegada.aberto" :cartao="chegada.cartao" @registrado="carregar" />
 </template>
 
 <style scoped>
@@ -170,6 +138,8 @@ onUnmounted(() => clearInterval(timer))
 .veiculo .fornecedor { color: var(--cor-titulo); }
 .veiculo .suave { color: var(--cor-texto-suave); font-size: 12px; }
 .acoes-veiculo { display: flex; margin-top: 6px; }
+.veiculo.tocavel { cursor: pointer; }
+.veiculo.tocavel:hover { border-color: var(--cor-primaria); }
 .acoes-veiculo:empty { display: none; }
 .acoes-veiculo .p-button, .acoes-veiculo .p-select { width: 100%; min-height: 44px; justify-content: center; }
 .campo.c12 strong { display: block; }
