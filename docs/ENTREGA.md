@@ -1,16 +1,16 @@
 # Entrega — Teste técnico Rede Krill (Agendamento Rede Krill)
 
-- **Repositório:** `<link do repositório a preencher>`
+- **Repositório:** https://github.com/JP-Legend/desafio-krill-agendamento
 - **Prazo:** 04/11/2026
 
 ## Como rodar
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
 - Pré-requisito: só Docker com Compose. Passo a passo e acesso pela rede no [README](../README.md#como-rodar).
-- Aplicação: http://localhost:8081. Login `admin` / `admin123` (perfil Administrador) ou `usuario` / `usuario123` (perfil Consulta).
+- Aplicação: http://localhost:8081. Usuários padrão na seção "Usuários padrão" do [README](../README.md).
 - Swagger: http://localhost:8080/swagger-ui/index.html
 - E-mails enviados (Mailpit): http://localhost:8025
 - Testes: `cd backend && mvn verify` e `cd frontend && npm run test:coverage`.
@@ -29,9 +29,9 @@ docker compose up --build
 | Java 17+ / Spring Boot 3 / JPA / Security JWT / Flyway / PostgreSQL / Swagger | ✅ |
 | Vue 3 + Vite + PrimeVue | ✅ |
 | Dockerfiles multi-stage, não-root, nginx + compose (db, api, web, mail) | ✅ |
-| JUnit 5, Mockito, Testcontainers, JaCoCo ≥ 80% em domain/application, Vitest | ✅ backend: 101 testes, gate do JaCoCo (80% linhas / 70% ramos em domain+application) passando. Frontend: 70 testes (Vitest + Vue Test Utils), 94,6% de linhas e 81,7% de ramos nas telas críticas (formulário, lista/detalhe, cadastros, guarda de rota, login e telas do porte) |
+| JUnit 5, Mockito, Testcontainers, JaCoCo ≥ 80% em domain/application, Vitest | ✅ backend: 119 testes, gate do JaCoCo (80% linhas / 70% ramos em domain+application) passando. Frontend: 105 testes (Vitest + Vue Test Utils), 91,1% de linhas e 80,4% de ramos nas telas críticas (formulário, lista/detalhe, cadastros, guarda de rota, login e telas do porte) |
 | Clean Architecture, README em pt-BR | ✅ |
-| Relatório de segurança (OWASP Dependency-Check) | ✅ configurado, veja [SEGURANCA.md](SEGURANCA.md) |
+| Relatório de segurança (OWASP Dependency-Check) | ✅ configurado, veja [RELATORIO-SEGURANCA.md](RELATORIO-SEGURANCA.md) |
 | **Extra:** PWA instalável + Web Push (novo, cancelado, capacidade excedida, chegada, divergência) | ✅ |
 | **Extra:** Início/dashboard, portaria e conferência, link público do fornecedor, vale-palete com assinatura e impressão | ✅ (porte do Gestão CD, veja [PORTE-GESTAO-CD.md](PORTE-GESTAO-CD.md)) |
 | **Extra:** Preenchimento pelo nº do pedido de compra via ERP (Bluesoft pronto, desligado) | ✅ [INTEGRACAO-BLUESOFT.md](INTEGRACAO-BLUESOFT.md) |
@@ -82,7 +82,7 @@ docker compose up --build
 - CORS restrito, cabeçalhos de segurança (CSP, X-Frame-Options, nosniff) na API e no nginx.
 - CSV protegido contra injeção de fórmula. Assinatura do vale aceita só PNG em data URL, até 300 KB.
 - Containers sem root e imagens mínimas (JRE Alpine, nginx-unprivileged).
-- Análise de dependências: [SEGURANCA.md](SEGURANCA.md).
+- Análise de dependências: [RELATORIO-SEGURANCA.md](RELATORIO-SEGURANCA.md).
 
 ## Telas
 

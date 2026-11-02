@@ -1,3 +1,9 @@
+2026-11-02T14:35:06Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-11-02T14:35:10Z	INFO	Detected OS	family="alpine" version="3.24.3"
+2026-11-02T14:35:10Z	INFO	[alpine] Detecting vulnerabilities...	os_version="3.24" repository="3.24" pkg_num=73
+2026-11-02T14:35:10Z	INFO	Number of language-specific files	num=1
+2026-11-02T14:35:10Z	INFO	[jar] Detecting vulnerabilities...
+2026-11-02T14:35:10Z	INFO	Table result includes only package filenames. Use '--format json' option to get the full path to the package file.
 
 Report Summary
 
@@ -18,7 +24,7 @@ Report Summary
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
 │ app/BOOT-INF/lib/aspectjweaver-1.9.25.1.jar                                  │  jar   │        0        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
-│ app/BOOT-INF/lib/async-http-client-2.16.1.jar                                │  jar   │        2        │
+│ app/BOOT-INF/lib/async-http-client-2.16.1.jar                                │  jar   │        4        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
 │ app/BOOT-INF/lib/async-http-client-netty-utils-2.16.1.jar                    │  jar   │        0        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
@@ -32,7 +38,7 @@ Report Summary
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
 │ app/BOOT-INF/lib/commons-codec-1.18.0.jar                                    │  jar   │        0        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
-│ app/BOOT-INF/lib/commons-lang3-3.17.0.jar                                    │  jar   │        0        │
+│ app/BOOT-INF/lib/commons-lang3-3.18.0.jar                                    │  jar   │        0        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
 │ app/BOOT-INF/lib/flyway-core-11.7.2.jar                                      │  jar   │        0        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
@@ -110,9 +116,9 @@ Report Summary
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
 │ app/BOOT-INF/lib/jul-to-slf4j-2.0.18.jar                                     │  jar   │        0        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
-│ app/BOOT-INF/lib/log4j-api-2.24.3.jar                                        │  jar   │        0        │
+│ app/BOOT-INF/lib/log4j-api-2.25.5.jar                                        │  jar   │        0        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
-│ app/BOOT-INF/lib/log4j-to-slf4j-2.24.3.jar                                   │  jar   │        0        │
+│ app/BOOT-INF/lib/log4j-to-slf4j-2.25.5.jar                                   │  jar   │        0        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
 │ app/BOOT-INF/lib/logback-classic-1.5.34.jar                                  │  jar   │        0        │
 ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
@@ -245,7 +251,7 @@ Legend:
 
 Java (jar)
 ==========
-Total: 4 (HIGH: 2, CRITICAL: 2)
+Total: 6 (UNKNOWN: 0, LOW: 0, MEDIUM: 2, HIGH: 2, CRITICAL: 2)
 
 ┌──────────────────────────────────────────────────────────────┬─────────────────┬──────────┬────────┬───────────────────┬───────────────┬──────────────────────────────────────────────────────────────┐
 │                           Library                            │  Vulnerability  │ Severity │ Status │ Installed Version │ Fixed Version │                            Title                             │
@@ -258,6 +264,14 @@ Total: 4 (HIGH: 2, CRITICAL: 2)
 │                                                              │                 │          │        │                   │               │ Information disclosure via improper connection pool          │
 │                                                              │                 │          │        │                   │               │ partitioning                                                 │
 │                                                              │                 │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2026-107230                  │
+│                                                              ├─────────────────┼──────────┤        │                   │               ├──────────────────────────────────────────────────────────────┤
+│                                                              │ CVE-2026-107226 │ MEDIUM   │        │                   │               │ The AsyncHttpClient (AHC) library allows Java applications   │
+│                                                              │                 │          │        │                   │               │ to easily e ...                                              │
+│                                                              │                 │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2026-107226                  │
+│                                                              ├─────────────────┤          │        │                   │               ├──────────────────────────────────────────────────────────────┤
+│                                                              │ CVE-2026-107228 │          │        │                   │               │ The AsyncHttpClient (AHC) library allows Java applications   │
+│                                                              │                 │          │        │                   │               │ to easily e ...                                              │
+│                                                              │                 │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2026-107228                  │
 ├──────────────────────────────────────────────────────────────┼─────────────────┼──────────┤        ├───────────────────┼───────────────┼──────────────────────────────────────────────────────────────┤
 │ org.springframework:spring-webmvc (spring-webmvc-6.2.19.jar) │ CVE-2026-47884  │ CRITICAL │        │ 6.2.19            │ 7.0.9         │ org.springframework/spring-webmvc: Spring Framework: Remote  │
 │                                                              │                 │          │        │                   │               │ Code Execution via improper path limitation in XsltView...   │

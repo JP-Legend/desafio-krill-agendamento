@@ -41,7 +41,7 @@
 18. **Qual a cobertura?** Backend: domain + application 99,7% de linhas e 89,3% de ramos; o build falha abaixo de 80%. Frontend: 94,6% de linhas e 81,7% de ramos nas telas críticas, com corte de 80% no `test:coverage`.
 19. **Por que Flyway?** O banco é versionado junto com o código. Qualquer ambiente sobe com a mesma estrutura.
 20. **Como estão os Dockerfiles?** Multi-stage: compila numa imagem e roda em outra pequena, sem root. O frontend roda em nginx sem root.
-21. **E a segurança das dependências?** Dependency-Check configurado e Trivy nas imagens. Atualizei o Boot e as bibliotecas. Os 4 achados que restaram não se aplicam ao projeto e estão justificados em SEGURANCA.md.
+21. **E a segurança das dependências?** Dependency-Check configurado e Trivy nas imagens. Atualizei o Boot e as bibliotecas. Os 4 achados que restaram não se aplicam ao projeto e estão justificados em RELATORIO-SEGURANCA.md.
 22. **Por que versionar a API em /api/v1?** Se mudar o contrato, crio a v2 sem quebrar quem usa a v1.
 23. **Como entra o Bluesoft?** Por uma porta `PedidoCompraGateway`. Hoje roda o adaptador local. O do Bluesoft está pronto (OAuth `client_credentials`) e liga por variável quando houver credencial.
 24. **O que veio do Gestão CD?** Regras de capacidade, portaria, conferência, link do fornecedor e vale-palete com assinatura. O inventário completo está em PORTE-GESTAO-CD.md.

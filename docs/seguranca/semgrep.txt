@@ -1,0 +1,16 @@
+                   
+                   
+┌─────────────────┐
+│ 2 Code Findings │
+└─────────────────┘
+                       
+    frontend/nginx.conf
+    ❯❱ generic.nginx.security.request-host-used.request-host-used
+          ❰❰ Blocking ❱❱
+          '$http_host' and '$host' variables may contain a malicious value from attacker controlled 'Host'
+          request header. Use an explicitly configured host value or a allow list for validation.         
+          Details: https://sg.run/4x3Z                                                                    
+                                                                                                          
+           17┆ proxy_set_header Host $host;
+            ⋮┆----------------------------------------
+           24┆ proxy_set_header Host $host;

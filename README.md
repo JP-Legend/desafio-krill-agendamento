@@ -6,14 +6,21 @@ Sistema web para agendar a entrega de caminhões no recebimento do CD, controlan
 - **Frontend:** Vue 3 + Vite + PrimeVue, PWA instalável (manifest, service worker, tela offline, notificações push).
 - **Infra:** Docker multi-stage (usuário não-root), nginx para o frontend, docker-compose com `db`, `api`, `web` e `mail` (Mailpit).
 
+## Documentos da entrega
+
+- [Decisões de banco de dados e arquitetura](docs/DECISOES-ARQUITETURA.md)
+- [Relatório de segurança](docs/RELATORIO-SEGURANCA.md) (saídas das ferramentas em [docs/seguranca](docs/seguranca))
+- Documento de entrega em PDF: [docs/ENTREGA-Joao-Pedro-Desafio-Rede-Krill.pdf](docs/ENTREGA-Joao-Pedro-Desafio-Rede-Krill.pdf)
+- Vídeo de demonstração: [release v1.0.0](https://github.com/JP-Legend/desafio-krill-agendamento/releases/tag/v1.0.0)
+
 ## Como rodar
 
 Pré-requisito: Docker com o plugin Compose (Docker Desktop no Windows/macOS). Não precisa de Java, Node nem Postgres na máquina.
 
 ```bash
-git clone https://github.com/New-Legend/desafio-krill-agendamento.git
+git clone https://github.com/JP-Legend/desafio-krill-agendamento.git
 cd desafio-krill-agendamento
-docker compose up --build        # primeira vez leva alguns minutos (compila API e tela)
+docker compose up -d --build     # primeira vez leva alguns minutos (compila API e tela)
 ```
 
 Quando os quatro serviços ficarem `healthy` (`docker compose ps`), abra:
@@ -169,6 +176,7 @@ Detalhes em [docs/INTEGRACAO-BLUESOFT.md](docs/INTEGRACAO-BLUESOFT.md).
 - [docs/ENTREGA.md](docs/ENTREGA.md): resumo da entrega, decisões e segurança
 - [docs/PORTE-GESTAO-CD.md](docs/PORTE-GESTAO-CD.md): o que veio do Gestão CD
 - [docs/INTEGRACAO-BLUESOFT.md](docs/INTEGRACAO-BLUESOFT.md)
-- [docs/SEGURANCA.md](docs/SEGURANCA.md): relatório OWASP Dependency-Check / npm audit
+- [docs/RELATORIO-SEGURANCA.md](docs/RELATORIO-SEGURANCA.md): relatório de segurança (OSV-Scanner, Trivy, npm audit, Semgrep)
+- [docs/DECISOES-ARQUITETURA.md](docs/DECISOES-ARQUITETURA.md): decisões de banco e arquitetura
 - [docs/ROTEIRO-VIDEO-E-DEFESA.md](docs/ROTEIRO-VIDEO-E-DEFESA.md)
 - [docs/prints/](docs/prints): telas desktop e celular

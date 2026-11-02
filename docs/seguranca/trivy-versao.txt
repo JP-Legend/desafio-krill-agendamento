@@ -1,0 +1,11 @@
+Version: 0.76.1
+Vulnerability DB:
+  Version: 2
+  UpdatedAt: 2026-11-02 13:15:56.44112656 +0000 UTC
+  NextUpdate: 2026-11-03 13:15:56.441126429 +0000 UTC
+  DownloadedAt: 2026-11-02 14:31:57.259964986 +0000 UTC
+Java DB:
+  Version: 1
+  UpdatedAt: 2026-11-02 01:21:00.147683029 +0000 UTC
+  NextUpdate: 2026-11-05 01:21:00.147682798 +0000 UTC
+  DownloadedAt: 2026-11-02 14:32:16.677203426 +0000 UTC
