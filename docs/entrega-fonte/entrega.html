@@ -1,0 +1,115 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Entrega — Agendamento Rede Krill — João Pedro</title>
+<style>
+@page{size:A4;margin:16mm 16mm 16mm 16mm}
+body{font-family:"DejaVu Sans",Arial,sans-serif;font-size:10pt;color:#1f2937;line-height:1.45;margin:0}
+.topo{border-bottom:4px solid #facc15;padding-bottom:10px;margin-bottom:14px;display:flex;align-items:center;gap:14px}
+.topo img{height:46px}
+h1{font-size:19pt;color:#1e3a8a;margin:0}
+.sub{color:#475569;margin:2px 0 0}
+h2{font-size:12.5pt;color:#1e3a8a;border-left:4px solid #facc15;padding-left:8px;margin:16px 0 6px;break-after:avoid}
+h3{font-size:10.5pt;margin:10px 0 4px;color:#1e3a8a}
+a{color:#1e3a8a;word-break:break-all}
+table{border-collapse:collapse;width:100%;margin:4px 0 8px;break-inside:auto}
+td,th{border:1px solid #cbd5e1;padding:4px 6px;text-align:left;vertical-align:top}
+th{background:#1e3a8a;color:#fff;font-weight:600}
+tr{break-inside:avoid}tr:nth-child(even) td{background:#f8fafc}
+code,pre{font-family:"DejaVu Sans Mono",monospace;font-size:9pt}
+pre{background:#eff6ff;border:1px solid #bfdbfe;padding:8px;border-radius:4px;margin:4px 0}
+.caixa{background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;padding:8px 10px}
+ul{margin:4px 0;padding-left:18px}
+li{margin:2px 0}
+.quebra{break-before:page}
+</style></head><body>
+<div class="topo"><img src="../../frontend/public/img/rede-krill-logo.png" alt="Rede Krill"><div><h1>Agendamento Rede Krill</h1><p class="sub">Teste técnico para desenvolvedor · Candidato: <b>João Pedro</b> (GitHub JP-Legend) · Entrega em 04/11/2026</p></div></div>
+
+<div class="caixa">
+<b>Repositório:</b> <a href="https://github.com/JP-Legend/desafio-krill-agendamento">https://github.com/JP-Legend/desafio-krill-agendamento</a><br>
+<b>Vídeo de demonstração (14 min 01 s):</b> página da release <a href="https://github.com/JP-Legend/desafio-krill-agendamento/releases/tag/v1.0.0">https://github.com/JP-Legend/desafio-krill-agendamento/releases/tag/v1.0.0</a><br>
+<b>Link direto do vídeo:</b> <a href="https://github.com/JP-Legend/desafio-krill-agendamento/releases/download/v1.0.0/video-demonstracao-agendamento-rede-krill.mp4">https://github.com/JP-Legend/desafio-krill-agendamento/releases/download/v1.0.0/video-demonstracao-agendamento-rede-krill.mp4</a>
+</div>
+
+<h2>O que é</h2>
+<p>Sistema web para agendar a entrega de caminhões no recebimento do CD, com controle de capacidade de paletes por dia (480) e por faixa horária (120 em 4 faixas de 2 h). Não paletizado conta em dobro. A capacidade excedida gera alerta, sem bloquear. Ao agendar, o fornecedor recebe e-mail de confirmação. Há relatório por período com CSV, perfis com permissões validadas no backend e auditoria de todas as ações.</p>
+
+<h2>Como rodar localmente</h2>
+<p>Pré-requisito: Docker Desktop (ou Docker com o plugin Compose). Não é preciso instalar Java, Node nem PostgreSQL.</p>
+<pre>git clone https://github.com/JP-Legend/desafio-krill-agendamento.git
+cd desafio-krill-agendamento
+docker compose up -d --build
+docker compose ps        # aguardar os 4 serviços como "healthy"</pre>
+<table><tr><th>Serviço</th><th>Endereço</th></tr>
+<tr><td>Aplicação (web)</td><td>http://localhost:8081</td></tr>
+<tr><td>API</td><td>http://localhost:8080/api/v1</td></tr>
+<tr><td>Swagger</td><td>http://localhost:8080/swagger-ui/index.html</td></tr>
+<tr><td>E-mails enviados (Mailpit)</td><td>http://localhost:8025</td></tr></table>
+<p>Usuários padrão (Administrador e Consulta): veja a seção <b>“Usuários padrão”</b> do README. Para parar: <code>docker compose down</code>. Testes: <code>cd backend &amp;&amp; mvn verify</code> e <code>cd frontend &amp;&amp; npm run test:coverage</code>.</p>
+
+<h2>Stack</h2>
+<table>
+<tr><td><b>Backend</b></td><td>Java 17+, Spring Boot 3.5 (Web, Validation, Data JPA, Security com JWT), Flyway (V1 a V16), springdoc/Swagger, SMTP, Web Push</td></tr>
+<tr><td><b>Frontend</b></td><td>Vue 3, Vite, PrimeVue, PWA</td></tr>
+<tr><td><b>Banco</b></td><td>PostgreSQL 16</td></tr>
+<tr><td><b>Infra</b></td><td>Dockerfiles multi-stage sem root, nginx, docker-compose com db, api, web e Mailpit</td></tr>
+<tr><td><b>Testes</b></td><td>JUnit 5, Mockito, Testcontainers (Postgres real), JaCoCo; Vitest e Vue Test Utils</td></tr>
+</table>
+
+<h2 class="quebra">Banco de dados: por que PostgreSQL</h2>
+<ul>
+<li><b>Integridade:</b> agendamento, faixa, caminhão, paletização, CD, loja, fornecedor e auditoria são relacionais. As migrações Flyway criam chaves estrangeiras, <code>UNIQUE</code> e <code>CHECK</code> no próprio banco.</li>
+<li><b>Agendamentos simultâneos:</b> cada agendamento roda numa transação que pega <code>pg_advisory_xact_lock</code> por data. Dois usuários no mesmo dia são atendidos em fila e a soma de paletes do alerta não fica errada.</li>
+<li><b>Ocupação:</b> o agendamento guarda os paletes equivalentes; a % do dia e de cada faixa é calculada no domínio (<code>CalculadoraOcupacao</code>) a partir de uma consulta indexada por data.</li>
+<li><b>JSONB</b> no “antes/depois” da auditoria e <b>índices parciais</b> nos tokens públicos.</li>
+<li><b>Flyway</b> versiona o esquema; open source; roda na imagem oficial no compose e nos testes via Testcontainers (sem H2).</li>
+</ul>
+
+<h2>Decisões de arquitetura</h2>
+<ul>
+<li><b>Clean Architecture:</b> <code>domain</code> (regras puras, sem Spring) → <code>application</code> (casos de uso e portas) → <code>infrastructure</code> (JPA/JDBC, SMTP, push, JWT, BCrypt, ERP) e <code>web</code> (REST). Os casos de uso são montados em <code>UseCaseConfig</code> e testados com Mockito sem subir o Spring.</li>
+<li><b>Frontend e backend separados</b>, conversando só por REST/JSON em <code>/api/v1</code> com JWT. Permissões decididas no backend.</li>
+<li><b>Alerta em vez de bloqueio:</b> a calculadora devolve os alertas; o caso de uso salva e repassa para tela, e-mail e push.</li>
+<li><b>Mailpit</b> como SMTP de desenvolvimento: os e-mails ficam visíveis em localhost:8025 e nada sai para fora. Envio assíncrono.</li>
+<li><b>Docker multi-stage:</b> imagens finais só com JRE Alpine e nginx sem root, camadas do Spring Boot separadas para cache.</li>
+</ul>
+<p>Detalhes: <code>docs/DECISOES-ARQUITETURA.md</code> no repositório.</p>
+
+<h2>Testes e cobertura (02/11/2026)</h2>
+<table><tr><th>Parte</th><th>Testes</th><th>Linhas</th><th>Ramos</th></tr>
+<tr><td>Backend: <code>domain</code></td><td rowspan="3">119 (JUnit 5, Mockito, Testcontainers)</td><td>99,9%</td><td>90,6%</td></tr>
+<tr><td>Backend: <code>application</code> (casos de uso)</td><td>97,0%</td><td>80,4%</td></tr>
+<tr><td>Backend: total do projeto</td><td>93,7%</td><td>77,8%</td></tr>
+<tr><td>Frontend: telas e módulos críticos</td><td>105 (Vitest)</td><td>91,1%</td><td>80,4%</td></tr></table>
+<p>Domínios críticos: <code>Agendamento</code> 100% de linhas, <code>CalculadoraOcupacao</code> 100%, <code>AgendamentoUseCase</code> 94,3%, <code>CapacidadeRecebimentoUseCase</code> 100%, <code>AcessoUseCase</code> (permissões) 98,1%, <code>RegrasAcesso</code> 100%, <code>AuditoriaUseCase</code> 100%. O <code>mvn verify</code> falha se domain + application ficarem abaixo de 80% de linhas (gate do JaCoCo), e o Vitest tem limite de 80%.</p>
+
+<h2>Relatório de segurança (resumo)</h2>
+<p>Ferramentas executadas em 02/11/2026: OSV-Scanner 2.7.0 (Maven e npm), Trivy 0.76.1 (imagens Docker), npm audit e Semgrep 1.182.1 (regras Java, OWASP Top 10, JavaScript e segredos). O plugin OWASP Dependency-Check está configurado no <code>pom.xml</code>; sem chave do NVD a base não baixa em tempo razoável, por isso a análise de dependências usou OSV-Scanner e Trivy.</p>
+<table><tr><th>Alvo</th><th>Antes</th><th>Depois</th></tr>
+<tr><td>Dependências (OSV-Scanner)</td><td>22: 4 críticas, 2 altas, 16 médias</td><td>20: 4 críticas, 2 altas, 14 médias</td></tr>
+<tr><td>Imagem api, jars (Trivy)</td><td>8: 2 críticas, 2 altas, 4 médias</td><td>6: 2 críticas, 2 altas, 2 médias</td></tr>
+<tr><td>Imagem web e sistema da imagem api (Trivy)</td><td>0</td><td>0</td></tr>
+<tr><td>npm audit só produção</td><td>0</td><td>0</td></tr>
+<tr><td>Semgrep</td><td>2 avisos</td><td>2 avisos (falso positivo)</td></tr></table>
+<ul>
+<li><b>Corrigido:</b> commons-lang3 3.18.0, log4j-api 2.25.5 e o nginx passou a enviar o IP real em <code>X-Forwarded-For</code> (o IP da auditoria e do limite de requisições não pode ser forjado). Antes: Spring Boot 3.5.16 e bibliotecas atualizadas, imagem nginx atualizada.</li>
+<li><b>Restante, justificado:</b> 2 críticas no spring-webmvc (só com XsltView ou SSE com fragmentos de view, que a API não usa; correção só no Spring 7), 2 altas e 2 médias no async-http-client (WebSocket/Kerberos, não usados pelo Web Push; correção só na 3.x), commons-compress só em teste, e pacotes do Vitest só em desenvolvimento (as 2 críticas restantes do OSV-Scanner são do tinypool).</li>
+<li><b>Controles da aplicação:</b> BCrypt, JWT stateless, permissões numeradas validadas no backend (403), escopo por CD/loja nos casos de uso, auditoria com IP e antes/depois, limite por IP no link público (HTTP 429), Bean Validation, consultas parametrizadas, XML sem XXE, CORS restrito, cabeçalhos de segurança, segredos por variável de ambiente e containers sem root.</li>
+</ul>
+<p>Relatório completo: <code>docs/RELATORIO-SEGURANCA.md</code>; saídas das ferramentas em <code>docs/seguranca/</code>.</p>
+
+<h2 class="quebra">Checklist do desafio</h2>
+<table><tr><th>Requisito</th><th>Onde está</th></tr>
+<tr><td>Capacidade 480/dia e 120/faixa, alerta sem bloqueio, não paletizado em dobro</td><td><code>CalculadoraOcupacao</code>, <code>AgendamentoUseCase</code>, tela Novo agendamento</td></tr>
+<tr><td>Cadastro de agendamento com % de ocupação</td><td><code>AgendamentoController</code>, tela Novo agendamento</td></tr>
+<tr><td>E-mail ao fornecedor</td><td>SMTP + Mailpit (localhost:8025)</td></tr>
+<tr><td>Relatório por período + CSV</td><td>Tela Relatório, endpoint de exportação</td></tr>
+<tr><td>Perfis e permissões no backend</td><td><code>JwtFiltro</code>, <code>RegrasAcesso</code>, tela Perfis e permissões</td></tr>
+<tr><td>Auditoria</td><td><code>FiltroAuditoria</code>, <code>AuditoriaUseCase</code>, tela Auditoria</td></tr>
+<tr><td>Documentação Swagger</td><td>localhost:8080/swagger-ui/index.html</td></tr>
+<tr><td>Dockerfile otimizado e docker-compose</td><td><code>backend/Dockerfile</code>, <code>frontend/Dockerfile</code>, <code>docker-compose.yml</code></td></tr>
+<tr><td>Testes com 80% ou mais nos domínios críticos</td><td>JaCoCo e Vitest (seção acima)</td></tr>
+<tr><td>Histórico de commits coerente</td><td>Histórico do repositório no GitHub</td></tr>
+<tr><td>Clean Architecture (diferencial)</td><td>Pacotes <code>domain</code>, <code>application</code>, <code>infrastructure</code>, <code>web</code></td></tr>
+<tr><td>README explicativo</td><td><code>README.md</code></td></tr>
+<tr><td>Justificativa de banco e arquitetura</td><td><code>docs/DECISOES-ARQUITETURA.md</code></td></tr>
+<tr><td>Relatório de segurança</td><td><code>docs/RELATORIO-SEGURANCA.md</code></td></tr>
+<tr><td>Vídeo de até 15 minutos</td><td>Release v1.0.0 (14 min 01 s)</td></tr></table>
+</body></html>
